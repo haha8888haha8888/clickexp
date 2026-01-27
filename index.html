@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -122,6 +123,31 @@
             margin-top: 5px;
             background-color: #151d28;
         }
+        .xp-edit-input {
+            width: 60px;
+        }
+        .xp-note-input {
+            width: 140px;
+        }
+        .pet-slider-wrapper {
+            margin-top: 5px;
+            font-size: 12px;
+        }
+        .pet-slider-wrapper input[type="range"] {
+            width: 200px;
+        }
+        .timer-restart-area {
+            margin-top: 5px;
+            font-size: 12px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
+        .timer-restart-area label {
+            margin-right: 5px;
+        }
+        .timer-restart-buttons {
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -233,7 +259,30 @@
             XP Timer: <span id="xpTimerDisplay">0s</span>
         </div>
 
-        <div>
+        <div style="margin-top:5px;">
+            <label><input type="checkbox" id="usingPetCheckbox"> Using a pet?</label>
+        </div>
+        <div id="petSliderWrapper" class="pet-slider-wrapper" style="display:none;">
+            <div>Did YOU do more damage than your pet?</div>
+            <div>
+                <span>YOU</span>
+                <input type="range" id="petDamageSlider" min="0" max="100" value="100">
+                <span>PET</span>
+            </div>
+            <div id="petSliderState" style="margin-top:2px;">Current: YOU get full XP</div>
+        </div>
+
+        <div class="timer-restart-area">
+            <label><input type="checkbox" id="masterRestartCheckbox"> Restart selected timers when MOB EXP +1 is clicked?</label>
+            <div id="timerRestartList" style="margin-top:3px; font-size:11px;">
+                <!-- checkboxes for main + extra timers will appear here -->
+            </div>
+            <div id="timerRestartButtons" class="timer-restart-buttons">
+                <!-- +1 Mob (TimerName) buttons appear here when master is checked -->
+            </div>
+        </div>
+
+        <div style="margin-top:5px;">
             <button id="xpGainBtn" disabled>1% EXP GAIN RECORD</button>
             <button id="xpGainLateBtn" disabled>1% GAINED (IGNORE TIMER, INPUT LATE)</button>
         </div>
@@ -255,10 +304,13 @@
                         <th>Current % Level</th>
                         <th>Gap</th>
                         <th>Mobs</th>
+                        <th>Notes</th>
+                        <th>Update</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+            <button id="printXpTableBtn" style="margin-top:5px;">Print XP Table to Log</button>
         </div>
     </div>
 
@@ -270,7 +322,8 @@
         <label for="mobSeconds">Seconds:</label>
         <input id="mobSeconds" type="number" min="0" max="59" value="0" style="width:60px;">
 
-        <button id="mobStartBtn">Start / Restart Timer</button>
+        <button id="mobStartBtn">Start</button>
+        <button id="mobResetBtn">Reset</button>
         <button id="mobSoundToggleBtn">Sound Alarm: ON</button>
 
         <div style="margin-top:5px;">
@@ -425,25 +478,29 @@
         // ---------- STATE ----------
         let sessionActive = false;
         let sessionPaused = false;
-
         let xpPercent = 0;
         let xpTimerRunning = false;
         let xpTimerStartMs = null;
         let xpTimerInterval = null;
         let xpElapsedOffsetMs = 0;
-
         let last1pTimeMs = null;
         let lastGapText = "N/A";
-
         let mobsThisCycle = 0;
         let xpHistory = [];
+        let xpTablePrinted = false;
 
         let mobTimerInterval = null;
         let mobRemainingMs = 0;
         let mobSoundOn = true;
+        let mobTimerRunning = false;
+        let mobTimerStartMs = null;
+        let mobTimerOriginalMs = 0;
 
         let inGroup = false;
         let groupSize = 1;
+
+        let extraTimerIdCounter = 1;
+        const timerRegistry = {}; // id -> {type, labelFn, restartFn, checkboxEl, buttonEl}
 
         // ---------- ELEMENTS ----------
         const sessionNotes = document.getElementById("sessionNotes");
@@ -478,10 +535,21 @@
         const lastGapDisplay = document.getElementById("lastGapDisplay");
         const mobsThisCycleDisplay = document.getElementById("mobsThisCycleDisplay");
         const xpHistoryTableBody = document.querySelector("#xpHistoryTable tbody");
+        const printXpTableBtn = document.getElementById("printXpTableBtn");
+
+        const usingPetCheckbox = document.getElementById("usingPetCheckbox");
+        const petSliderWrapper = document.getElementById("petSliderWrapper");
+        const petDamageSlider = document.getElementById("petDamageSlider");
+        const petSliderState = document.getElementById("petSliderState");
+
+        const masterRestartCheckbox = document.getElementById("masterRestartCheckbox");
+        const timerRestartList = document.getElementById("timerRestartList");
+        const timerRestartButtons = document.getElementById("timerRestartButtons");
 
         const mobMinutes = document.getElementById("mobMinutes");
         const mobSeconds = document.getElementById("mobSeconds");
         const mobStartBtn = document.getElementById("mobStartBtn");
+        const mobResetBtn = document.getElementById("mobResetBtn");
         const mobSoundToggleBtn = document.getElementById("mobSoundToggleBtn");
         const mobTimerDisplay = document.getElementById("mobTimerDisplay");
         const mobNotes = document.getElementById("mobNotes");
@@ -695,19 +763,103 @@
         // ---------- XP HISTORY TABLE ----------
         function renderXpHistory() {
             xpHistoryTableBody.innerHTML = "";
-            xpHistory.slice(0, 100).forEach(entry => {
+            xpHistory.slice(0, 100).forEach((entry, index) => {
                 const tr = document.createElement("tr");
+
                 const tdLvl = document.createElement("td");
                 const tdGap = document.createElement("td");
                 const tdMobs = document.createElement("td");
+                const tdNotes = document.createElement("td");
+                const tdUpdate = document.createElement("td");
+
                 tdLvl.textContent = entry.levelPercent + "%";
-                tdGap.textContent = entry.gap;
-                tdMobs.textContent = entry.mobs;
+
+                const gapInput = document.createElement("input");
+                gapInput.type = "text";
+                gapInput.value = entry.gap;
+                gapInput.className = "xp-edit-input";
+                tdGap.appendChild(gapInput);
+
+                const mobsInput = document.createElement("input");
+                mobsInput.type = "number";
+                mobsInput.value = entry.mobs;
+                mobsInput.className = "xp-edit-input";
+                tdMobs.appendChild(mobsInput);
+
+                const noteInput = document.createElement("input");
+                noteInput.type = "text";
+                noteInput.value = entry.note || "";
+                noteInput.className = "xp-note-input";
+                tdNotes.appendChild(noteInput);
+
+                const updateBtn = document.createElement("button");
+                updateBtn.textContent = "Update";
+                updateBtn.style.fontSize = "10px";
+                tdUpdate.appendChild(updateBtn);
+
+                updateBtn.addEventListener("click", () => {
+                    const oldGap = entry.gap;
+                    const oldMobs = entry.mobs;
+                    const oldNote = entry.note || "";
+                    entry.gap = gapInput.value.trim() || oldGap;
+                    entry.mobs = parseInt(mobsInput.value, 10) || oldMobs;
+                    entry.note = noteInput.value.trim();
+                    logLineWithRoster(
+                        `XP Table Row ${index + 1} updated: Gap="${entry.gap}", Mobs=${entry.mobs}, Notes="${entry.note || ""}"`
+                    );
+                    renderXpHistory();
+                });
+
                 tr.appendChild(tdLvl);
                 tr.appendChild(tdGap);
                 tr.appendChild(tdMobs);
+                tr.appendChild(tdNotes);
+                tr.appendChild(tdUpdate);
                 xpHistoryTableBody.appendChild(tr);
             });
+        }
+
+        function printXpTableToLog() {
+            if (!xpHistory.length) {
+                logLineWithRoster("XP Table is empty, nothing to print.");
+                return;
+            }
+            logLineWithRoster("XP Table Dump:");
+            xpHistory.forEach((entry, idx) => {
+                logLine(
+                    `Row ${idx + 1}: ${entry.levelPercent}% — Gap="${entry.gap}", Mobs=${entry.mobs}, Notes="${entry.note || ""}"`
+                );
+            });
+            xpTablePrinted = true;
+        }
+
+        printXpTableBtn.addEventListener("click", () => {
+            printXpTableToLog();
+        });
+
+        // ---------- PET LOGIC ----------
+        usingPetCheckbox.addEventListener("change", () => {
+            if (usingPetCheckbox.checked) {
+                petSliderWrapper.style.display = "block";
+            } else {
+                petSliderWrapper.style.display = "none";
+            }
+        });
+
+        petDamageSlider.addEventListener("input", () => {
+            const val = parseInt(petDamageSlider.value, 10);
+            if (val >= 50) {
+                petSliderState.textContent = "Current: YOU get full XP";
+            } else {
+                petSliderState.textContent = "Current: PET did more damage (XP penalty)";
+            }
+        });
+
+        function describePetXpSplit() {
+            if (!usingPetCheckbox.checked) return "No pet";
+            const val = parseInt(petDamageSlider.value, 10);
+            if (val >= 50) return "Full XP (you outdamaged pet)";
+            return "Pet penalty applied (50% XP)";
         }
 
         // ---------- SESSION ----------
@@ -781,6 +933,7 @@
             mobsThisCycle = 0;
             mobsThisCycleDisplay.textContent = "0";
             xpHistory = [];
+            xpTablePrinted = false;
             renderXpHistory();
         });
 
@@ -807,6 +960,11 @@
                 mobXpBtn.disabled = true;
 
                 logLineWithRoster("Session paused (XP tracking halted, mob timers continue).");
+
+                // auto-print XP table once when session is paused for the first time
+                if (!xpTablePrinted && xpHistory.length > 0) {
+                    printXpTableToLog();
+                }
             } else {
                 sessionPaused = false;
                 pauseSessionBtn.textContent = "Pause Session";
@@ -892,19 +1050,24 @@
             lastGapDisplay.textContent = lastGapText;
 
             const mobsForThis = mobsThisCycle;
-
             xpPercent = Math.min(100, xpPercent + 1);
             updateXpBar(xpPercent);
 
+            const petSplit = describePetXpSplit();
             const mobsText = `Mobs this 1%: ${mobsForThis}`;
             if (!isLate) {
-                logLineWithRoster(`XP +1% — Gap: ${lastGapText} — ${mobsText}`);
+                logLineWithRoster(`XP +1% — Gap: ${lastGapText} — ${mobsText} — ${petSplit}`);
             } else {
-                logLineWithRoster(`XP +1% (late input) — Gap: ${lastGapText} — ${mobsText}`);
+                logLineWithRoster(`XP +1% (late input) — Gap: ${lastGapText} — ${mobsText} — ${petSplit}`);
             }
 
             if (xpHistory.length < 100) {
-                xpHistory.push({ levelPercent: xpPercent, gap: lastGapText, mobs: mobsForThis });
+                xpHistory.push({
+                    levelPercent: xpPercent,
+                    gap: lastGapText,
+                    mobs: mobsForThis,
+                    note: ""
+                });
                 renderXpHistory();
             }
 
@@ -915,14 +1078,74 @@
         xpGainBtn.addEventListener("click", () => handleXpGain(false));
         xpGainLateBtn.addEventListener("click", () => handleXpGain(true));
 
+        function restartSelectedTimersFromMobXp(sourceLabel) {
+            const restarted = [];
+            Object.values(timerRegistry).forEach(entry => {
+                if (entry.checkboxEl && entry.checkboxEl.checked) {
+                    entry.restartFn();
+                    restarted.push(entry.labelFn());
+                }
+            });
+            if (restarted.length) {
+                logLineWithRoster(`Mob XP +1 (${sourceLabel}) — Restarted: ${restarted.join(", ")}`);
+            } else {
+                logLineWithRoster(`Mob XP +1 (${sourceLabel}) — No timers restarted.`);
+            }
+        }
+
         mobXpBtn.addEventListener("click", () => {
             if (!sessionActive || !xpTimerRunning || sessionPaused) return;
             mobsThisCycle++;
             mobsThisCycleDisplay.textContent = String(mobsThisCycle);
-            logLineWithRoster(`Mob XP +1 (total this cycle: ${mobsThisCycle})`);
+            const petSplit = describePetXpSplit();
+            logLineWithRoster(`Mob XP +1 — Total this cycle: ${mobsThisCycle} — ${petSplit}`);
+            if (masterRestartCheckbox.checked) {
+                restartSelectedTimersFromMobXp("Global");
+            }
         });
 
         // ---------- MAIN MOB TIMER ----------
+        function registerMainMobTimer() {
+            timerRegistry["mainMob"] = {
+                type: "cycle",
+                labelFn: () => "Main Mob Timer",
+                restartFn: () => {
+                    const mins = parseInt(mobMinutes.value, 10) || 0;
+                    const secs = parseInt(mobSeconds.value, 10) || 0;
+                    const totalMs = (mins * 60 + secs) * 1000;
+                    if (totalMs <= 0) return;
+                    if (mobTimerInterval) clearInterval(mobTimerInterval);
+                    mobTimerOriginalMs = totalMs;
+                    mobRemainingMs = totalMs;
+                    mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+                    mobStartBtn.classList.remove("flash");
+                    mobTimerRunning = true;
+                    mobStartBtn.textContent = "Pause";
+                    mobTimerStartMs = Date.now();
+                    mobTimerInterval = setInterval(() => {
+                        const elapsed = Date.now() - mobTimerStartMs;
+                        mobRemainingMs = mobTimerOriginalMs - elapsed;
+                        if (mobRemainingMs <= 0) {
+                            mobRemainingMs = 0;
+                            mobTimerDisplay.textContent = "00:00";
+                            clearInterval(mobTimerInterval);
+                            mobTimerInterval = null;
+                            mobTimerRunning = false;
+                            mobStartBtn.textContent = "Start";
+                            mobStartBtn.classList.add("flash");
+                            logLineWithRoster("Mob cycle timer finished.");
+                            if (mobSoundOn) makeBeep();
+                        } else {
+                            mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+                        }
+                    }, 500);
+                },
+                checkboxEl: null,
+                buttonEl: null
+            };
+            rebuildTimerRestartUI();
+        }
+
         mobSoundToggleBtn.addEventListener("click", () => {
             mobSoundOn = !mobSoundOn;
             mobSoundToggleBtn.textContent = "Sound Alarm: " + (mobSoundOn ? "ON" : "OFF");
@@ -934,40 +1157,106 @@
             const secs = parseInt(mobSeconds.value, 10) || 0;
             const totalMs = (mins * 60 + secs) * 1000;
 
-            if (totalMs <= 0) {
-                logLineWithRoster("Mob timer not started — duration must be > 0.");
-                return;
-            }
-
-            if (mobTimerInterval) clearInterval(mobTimerInterval);
-            mobRemainingMs = totalMs;
-            mobTimerDisplay.textContent = formatMs(mobRemainingMs);
-            mobStartBtn.classList.remove("flash");
-
-            mobTimerInterval = setInterval(() => {
-                mobRemainingMs -= 500;
-                if (mobRemainingMs <= 0) {
-                    mobRemainingMs = 0;
-                    mobTimerDisplay.textContent = "00:00";
-                    clearInterval(mobTimerInterval);
-                    mobTimerInterval = null;
-
-                    mobStartBtn.classList.add("flash");
-                    logLineWithRoster("Mob cycle timer finished.");
-                    if (mobSoundOn) makeBeep();
-                } else {
-                    mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+            if (!mobTimerRunning) {
+                if (totalMs <= 0 && mobRemainingMs <= 0) {
+                    logLineWithRoster("Mob timer not started — duration must be > 0.");
+                    return;
                 }
-            }, 500);
+                if (mobRemainingMs <= 0) {
+                    mobTimerOriginalMs = totalMs;
+                    mobRemainingMs = totalMs;
+                }
+                mobStartBtn.classList.remove("flash");
+                mobTimerRunning = true;
+                mobStartBtn.textContent = "Pause";
+                mobTimerStartMs = Date.now();
+                if (mobTimerInterval) clearInterval(mobTimerInterval);
+                mobTimerInterval = setInterval(() => {
+                    const elapsed = Date.now() - mobTimerStartMs;
+                    mobRemainingMs = mobTimerOriginalMs - elapsed;
+                    if (mobRemainingMs <= 0) {
+                        mobRemainingMs = 0;
+                        mobTimerDisplay.textContent = "00:00";
+                        clearInterval(mobTimerInterval);
+                        mobTimerInterval = null;
+                        mobTimerRunning = false;
+                        mobStartBtn.textContent = "Start";
+                        mobStartBtn.classList.add("flash");
+                        logLineWithRoster("Mob cycle timer finished.");
+                        if (mobSoundOn) makeBeep();
+                    } else {
+                        mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+                    }
+                }, 500);
+                logLineWithRoster(`Mob cycle timer started/resumed: ${mins}m ${secs}s.`);
+            } else {
+                mobTimerRunning = false;
+                mobStartBtn.textContent = "Continue";
+                if (mobTimerInterval) clearInterval(mobTimerInterval);
+                mobTimerInterval = null;
+                mobTimerOriginalMs = mobRemainingMs;
+                logLineWithRoster(`Mob cycle timer paused at ${formatMs(mobRemainingMs)}.`);
+            }
+        });
 
-            logLineWithRoster(`Mob cycle timer started: ${mins}m ${secs}s.`);
+        mobResetBtn.addEventListener("click", () => {
+            if (mobTimerInterval) clearInterval(mobTimerInterval);
+            mobTimerInterval = null;
+            mobTimerRunning = false;
+            mobStartBtn.textContent = "Start";
+            mobStartBtn.classList.remove("flash");
+            const mins = parseInt(mobMinutes.value, 10) || 0;
+            const secs = parseInt(mobSeconds.value, 10) || 0;
+            mobRemainingMs = (mins * 60 + secs) * 1000;
+            mobTimerOriginalMs = mobRemainingMs;
+            mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+            logLineWithRoster("Mob cycle timer reset.");
         });
 
         // ---------- EXTRA TIMERS (CYCLE + STOPWATCH) ----------
-        let extraTimerIdCounter = 1;
+        function rebuildTimerRestartUI() {
+            timerRestartList.innerHTML = "";
+            timerRestartButtons.innerHTML = "";
+
+            Object.entries(timerRegistry).forEach(([id, entry]) => {
+                const label = entry.labelFn();
+
+                const cbLabel = document.createElement("label");
+                const cb = document.createElement("input");
+                cb.type = "checkbox";
+                cb.dataset.timerId = id;
+                cbLabel.appendChild(cb);
+                cbLabel.appendChild(document.createTextNode(" " + label + " "));
+                timerRestartList.appendChild(cbLabel);
+
+                entry.checkboxEl = cb;
+
+                if (masterRestartCheckbox.checked) {
+                    const btn = document.createElement("button");
+                    btn.textContent = `+1 Mob (${label})`;
+                    btn.style.fontSize = "10px";
+                    btn.addEventListener("click", () => {
+                        if (!sessionActive || !xpTimerRunning || sessionPaused) return;
+                        mobsThisCycle++;
+                        mobsThisCycleDisplay.textContent = String(mobsThisCycle);
+                        const petSplit = describePetXpSplit();
+                        entry.restartFn();
+                        logLineWithRoster(`Mob XP +1 (${label}) — Timer restarted — ${petSplit}`);
+                    });
+                    timerRestartButtons.appendChild(btn);
+                    entry.buttonEl = btn;
+                } else {
+                    entry.buttonEl = null;
+                }
+            });
+        }
+
+        masterRestartCheckbox.addEventListener("change", () => {
+            rebuildTimerRestartUI();
+        });
 
         function createCycleTimer() {
-            const id = extraTimerIdCounter++;
+            const id = "cycle_" + (extraTimerIdCounter++);
             const wrapper = document.createElement("div");
             wrapper.className = "subtimer";
             wrapper.dataset.timerId = id;
@@ -1035,9 +1324,10 @@
             let remainingMs = 0;
             let running = false;
             let alarmOn = true;
+            let originalMs = 0;
 
             function labelOrDefault() {
-                return labelInput.value.trim() || `CycleTimer#${id}`;
+                return labelInput.value.trim() || `CycleTimer#${id.split("_")[1]}`;
             }
 
             function startTimer() {
@@ -1048,6 +1338,7 @@
                     logLineWithRoster("Extra cycle timer not started — duration must be > 0.");
                     return;
                 }
+                originalMs = totalMs;
                 remainingMs = totalMs;
                 display.textContent = formatMs(remainingMs);
                 wrapper.classList.remove("flash");
@@ -1130,6 +1421,7 @@
                 const mins = parseInt(minInput.value, 10) || 0;
                 const secs = parseInt(secInput.value, 10) || 0;
                 remainingMs = (mins * 60 + secs) * 1000;
+                originalMs = remainingMs;
                 display.textContent = formatMs(remainingMs);
                 wrapper.classList.remove("flash");
                 startPauseBtn.textContent = "Start";
@@ -1148,8 +1440,10 @@
                 const label = labelOrDefault();
                 if (confirm(`Delete extra cycle timer '${label}'?`)) {
                     if (interval) clearInterval(interval);
+                    delete timerRegistry[id];
                     wrapper.remove();
                     logLineWithRoster(`Extra cycle timer '${label}' deleted.`);
+                    rebuildTimerRestartUI();
                 }
             });
 
@@ -1164,10 +1458,46 @@
             });
 
             extraTimersContainer.appendChild(wrapper);
+
+            timerRegistry[id] = {
+                type: "cycle",
+                labelFn: labelOrDefault,
+                restartFn: () => {
+                    if (interval) clearInterval(interval);
+                    remainingMs = originalMs || ((parseInt(minInput.value, 10) || 0) * 60 + (parseInt(secInput.value, 10) || 0)) * 1000;
+                    if (remainingMs <= 0) return;
+                    display.textContent = formatMs(remainingMs);
+                    wrapper.classList.remove("flash");
+                    const label = labelOrDefault();
+                    logLineWithRoster(`Extra cycle timer '${label}' restarted.`);
+                    interval = setInterval(() => {
+                        remainingMs -= 500;
+                        if (remainingMs <= 0) {
+                            remainingMs = 0;
+                            display.textContent = "00:00";
+                            clearInterval(interval);
+                            interval = null;
+                            running = false;
+                            startPauseBtn.textContent = "Start";
+                            wrapper.classList.add("flash");
+                            const lbl = labelOrDefault();
+                            logLineWithRoster(`Extra cycle timer '${lbl}' finished.`);
+                            if (alarmOn) makeBeep();
+                        } else {
+                            display.textContent = formatMs(remainingMs);
+                        }
+                    }, 500);
+                    running = true;
+                    startPauseBtn.textContent = "Pause";
+                },
+                checkboxEl: null,
+                buttonEl: null
+            };
+            rebuildTimerRestartUI();
         }
 
         function createStopwatchTimer() {
-            const id = extraTimerIdCounter++;
+            const id = "stopwatch_" + (extraTimerIdCounter++);
             const wrapper = document.createElement("div");
             wrapper.className = "subtimer";
             wrapper.dataset.timerId = id;
@@ -1215,7 +1545,7 @@
             let startMs = null;
 
             function labelOrDefault() {
-                return labelInput.value.trim() || `Stopwatch#${id}`;
+                return labelInput.value.trim() || `Stopwatch#${id.split("_")[1]}`;
             }
 
             startBtn.addEventListener("click", () => {
@@ -1245,8 +1575,10 @@
                 const label = labelOrDefault();
                 if (confirm(`Delete stopwatch '${label}'?`)) {
                     if (interval) clearInterval(interval);
+                    delete timerRegistry[id];
                     wrapper.remove();
                     logLineWithRoster(`Stopwatch '${label}' deleted.`);
+                    rebuildTimerRestartUI();
                 }
             });
 
@@ -1261,6 +1593,17 @@
             });
 
             extraTimersContainer.appendChild(wrapper);
+
+            timerRegistry[id] = {
+                type: "stopwatch",
+                labelFn: labelOrDefault,
+                restartFn: () => {
+                    // stopwatches don't auto-restart on mob XP; no-op
+                },
+                checkboxEl: null,
+                buttonEl: null
+            };
+            rebuildTimerRestartUI();
         }
 
         addCycleTimerBtn.addEventListener("click", createCycleTimer);
@@ -1270,6 +1613,8 @@
         updateXpBar(0);
         updateGroupButtons();
         rebuildGroupMemberRows();
+        registerMainMobTimer();
     </script>
 </body>
 </html>
+```
