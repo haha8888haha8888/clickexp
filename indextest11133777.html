@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EQ P99 XP & Mob Tracker</title>
+    <style>
+        body {
+            background-color: #101820;
+            color: #f0e6c8;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        .section {
+            border: 1px solid #444;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #1b2430;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffcc66;
+        }
+        label {
+            margin-right: 5px;
+        }
+        select, input[type="number"], input[type="text"], textarea {
+            margin-right: 10px;
+            margin-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 60px;
+            resize: vertical;
+        }
+        button {
+            margin: 3px;
+            padding: 5px 10px;
+            background-color: #2f3b4f;
+            color: #f0e6c8;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+        #xpBarContainer {
+            margin-top: 5px;
+            width: 100%;
+            background-color: #333;
+            border: 1px solid #555;
+            height: 20px;
+            position: relative;
+        }
+        #xpBarFill {
+            background-color: #3cb371;
+            height: 100%;
+            width: 0%;
+        }
+        #xpBarText {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            top: 2px;
+        }
+        #log {
+            background-color: #000;
+            color: #0f0;
+            font-family: "Courier New", monospace;
+            font-size: 11px;
+            height: 220px;
+            overflow-y: auto;
+            padding: 5px;
+            border: 1px solid #555;
+        }
+        .timer-display {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .flash {
+            animation: flash 0.7s infinite alternate;
+        }
+        @keyframes flash {
+            from { background-color: #8b0000; }
+            to   { background-color: #ff4500; }
+        }
+        .group-row {
+            margin-left: 10px;
+            margin-bottom: 3px;
+            font-size: 12px;
+        }
+        .small-label {
+            font-size: 11px;
+            color: #ccc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        th, td {
+            border: 1px solid #555;
+            padding: 3px 4px;
+            text-align: center;
+        }
+        th {
+            background-color: #2a3445;
+        }
+        .subtimer {
+            border: 1px solid #555;
+            padding: 5px;
+            margin-top: 5px;
+            background-color: #151d28;
+        }
+    </style>
+</head>
+<body>
+    <h1>EverQuest P99 XP & Mob Tracker</h1>
+
+    <!-- SESSION NOTES -->
+    <div class="section">
+        <div class="section-title">Session Notes</div>
+        <textarea id="sessionNotes" placeholder="Anything about this camp, group, loot, patterns, etc."></textarea>
+        <button id="sessionNotesUpdateBtn">Update Session Notes</button>
+    </div>
+
+    <!-- HEADER: CHARACTER / GROUP / SESSION -->
+    <div class="section">
+        <div class="section-title">Character & Group Setup</div>
+        <div>
+            <label for="charNameInput">Name:</label>
+            <input id="charNameInput" type="text" placeholder="Optional" style="width:120px;">
+
+            <label for="classSelect">Class:</label>
+            <select id="classSelect">
+                <option value="NEC">Necromancer (NEC)</option>
+                <option value="ENC">Enchanter (ENC)</option>
+                <option value="MAG">Magician (MAG)</option>
+                <option value="WIZ">Wizard (WIZ)</option>
+                <option value="CLR">Cleric (CLR)</option>
+                <option value="DRU">Druid (DRU)</option>
+                <option value="SHM">Shaman (SHM)</option>
+                <option value="BRD">Bard (BRD)</option>
+                <option value="MNK">Monk (MNK)</option>
+                <option value="RNG">Ranger (RNG)</option>
+                <option value="ROG">Rogue (ROG)</option>
+                <option value="PAL">Paladin (PAL)</option>
+                <option value="SHD">Shadow Knight (SHD)</option>
+                <option value="WAR">Warrior (WAR)</option>
+                <option value="DELETE">DELETE MEMBER</option>
+            </select>
+
+            <label for="raceSelect">Race:</label>
+            <select id="raceSelect">
+                <option>Human</option>
+                <option>Erudite</option>
+                <option>Barbarian</option>
+                <option>Halfling</option>
+                <option>Dwarf</option>
+                <option>Gnome</option>
+                <option>Half-Elf</option>
+                <option>Wood Elf</option>
+                <option>High Elf</option>
+                <option>Dark Elf</option>
+                <option>Ogre</option>
+                <option>Troll</option>
+                <option>Iksar</option>
+            </select>
+
+            <label for="levelInput">Level:</label>
+            <input id="levelInput" type="number" min="1" max="60" value="51" style="width:60px;">
+
+            <label for="xpInput">Current XP %:</label>
+            <input id="xpInput" type="number" min="0" max="100" value="0" style="width:60px;">
+        </div>
+
+        <div style="margin-top:5px;">
+            <label for="charNotes">Character Notes:</label>
+            <input id="charNotes" type="text" placeholder="Root spots, charm targets, etc." style="width:260px;">
+            <button id="charNotesUpdateBtn">Update Character Notes</button>
+        </div>
+
+        <div style="margin-top:5px;">
+            <label>In Group?</label>
+            <button id="groupYesBtn">YES</button>
+            <button id="groupNoBtn">NO</button>
+
+            <span id="groupSizeWrapper" style="margin-left:10px; display:none;">
+                <label for="groupSizeInput">Total Members (1–6):</label>
+                <input id="groupSizeInput" type="number" min="1" max="6" value="1" style="width:50px;">
+                <button id="addMemberBtn">Add Member</button>
+                <button id="removeMemberBtn">Remove Member</button>
+            </span>
+        </div>
+
+        <div id="groupMembersContainer" style="margin-top:5px; display:none;">
+            <div style="font-size:12px; margin-bottom:3px;">You are Member 1 (set above). Configure Members 2–6 below:</div>
+            <div id="groupMemberRows"></div>
+        </div>
+
+        <div style="margin-top:5px;">
+            <button id="startSessionBtn">Start Session Log</button>
+            <button id="pauseSessionBtn" disabled>Pause Session</button>
+            <button id="exportLogBtn">Export Log</button>
+        </div>
+
+        <div id="charTitleDisplay" style="margin-top:5px; font-size:13px; color:#ccc;">
+            No session active.
+        </div>
+
+        <div id="xpBarContainer">
+            <div id="xpBarFill"></div>
+            <div id="xpBarText">XP: 0%</div>
+        </div>
+    </div>
+
+    <!-- XP TRACKING SECTION -->
+    <div class="section">
+        <div class="section-title">XP Tracking</div>
+
+        <button id="xpTimerToggleBtn">Track XP Timer: OFF</button>
+        <div class="timer-display">
+            XP Timer: <span id="xpTimerDisplay">0s</span>
+        </div>
+
+        <div>
+            <button id="xpGainBtn" disabled>1% EXP GAIN RECORD</button>
+            <button id="xpGainLateBtn" disabled>1% GAINED (IGNORE TIMER, INPUT LATE)</button>
+        </div>
+
+        <div style="margin-top:5px;">
+            <button id="mobXpBtn" disabled>MOB EXP GAINED TRACKER +1</button>
+        </div>
+
+        <div style="font-size:12px; margin-top:5px;">
+            Last 1% gap: <span id="lastGapDisplay">N/A</span><br>
+            Mobs this 1%: <span id="mobsThisCycleDisplay">0</span>
+        </div>
+
+        <div style="margin-top:8px;">
+            <span class="small-label">1% XP History (max 100 rows)</span>
+            <table id="xpHistoryTable">
+                <thead>
+                    <tr>
+                        <th>Current % Level</th>
+                        <th>Gap</th>
+                        <th>Mobs</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MOB CYCLE TIMER SECTION -->
+    <div class="section">
+        <div class="section-title">Mob Cycle Timer</div>
+        <label for="mobMinutes">Minutes:</label>
+        <input id="mobMinutes" type="number" min="0" value="22" style="width:60px;">
+        <label for="mobSeconds">Seconds:</label>
+        <input id="mobSeconds" type="number" min="0" max="59" value="0" style="width:60px;">
+
+        <button id="mobStartBtn">Start / Restart Timer</button>
+        <button id="mobSoundToggleBtn">Sound Alarm: ON</button>
+
+        <div style="margin-top:5px;">
+            <label for="mobNotes">Mob Timer Notes:</label>
+            <input id="mobNotes" type="text" placeholder="Named PH, spawn window, etc." style="width:260px;">
+            <button id="mobNotesUpdateBtn">Update Mob Timer Notes</button>
+        </div>
+
+        <div class="timer-display">
+            Mob Timer: <span id="mobTimerDisplay">00:00</span>
+        </div>
+
+        <div style="margin-top:8px;">
+            <button id="addCycleTimerBtn">Add Another Cycle Timer</button>
+            <button id="addStopwatchBtn">Add Reverse Timer (Stopwatch)</button>
+        </div>
+
+        <div id="extraTimersContainer" style="margin-top:5px;"></div>
+    </div>
+
+    <!-- LOG PANEL -->
+    <div class="section">
+        <div class="section-title">Session Log</div>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // ---------- UTILITIES ----------
+        function nowStamp() {
+            return new Date().toLocaleTimeString();
+        }
+
+        function logLine(text) {
+            const log = document.getElementById("log");
+            log.textContent += "[" + nowStamp() + "] " + text + "\n";
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function logUnloggedMembers() {
+            if (!inGroup || groupSize <= 1) return;
+            const rows = groupMemberRows.querySelectorAll(".group-row");
+            rows.forEach(row => {
+                if (row.dataset.logged === "true") return;
+                const idx = row.dataset.memberIndex;
+                const clsSel = row.querySelector(".gm-class");
+                const lvlInp = row.querySelector(".gm-level");
+                const raceSel = row.querySelector(".gm-race");
+                const nameInp = row.querySelector(".gm-name");
+                if (!clsSel || !lvlInp || !raceSel || !nameInp) return;
+                const cls = clsSel.value;
+                const lvl = parseInt(lvlInp.value, 10) || 1;
+                const race = raceSel.value;
+                const name = nameInp.value.trim();
+                if (!cls && !race && !name) return;
+                let line = `Member ${idx} info: Class: ${cls}, Race: ${race}, Level: ${lvl}`;
+                if (name) line += `, Name: ${name}`;
+                logLine(line);
+                row.dataset.logged = "true";
+            });
+        }
+
+        function logLineWithRoster(text) {
+            logUnloggedMembers();
+            logLine(text);
+        }
+
+        function getClassTitle(cls, lvl) {
+            lvl = parseInt(lvl, 10);
+            if (isNaN(lvl)) return "";
+
+            const map = {
+                "BRD": ["Minstrel", "Troubadour", "Virtuoso"],
+                "CLR": ["Vicar", "Templar", "High Priest"],
+                "DRU": ["Wanderer", "Preserver", "Hierophant"],
+                "ENC": ["Illusionist", "Beguiler", "Phantasmist"],
+                "MAG": ["Elementalist", "Conjurer", "Arch Mage"],
+                "MNK": ["Disciple", "Master", "Grandmaster"],
+                "NEC": ["Heretic", "Defiler", "Warlock"],
+                "PAL": ["Cavalier", "Knight", "Crusader"],
+                "RNG": ["Pathfinder", "Outrider", "Warder"],
+                "ROG": ["Rake", "Blackguard", "Assassin"],
+                "SHD": ["Reaver", "Revenant", "Grave Lord"],
+                "SHM": ["Mystic", "Luminary", "Oracle"],
+                "WAR": ["Champion", "Myrmidon", "Warlord"],
+                "WIZ": ["Channeler", "Evoker", "Sorcerer"]
+            };
+
+            if (lvl < 51) return "";
+            if (lvl >= 51 && lvl <= 54) return map[cls]?.[0] || "";
+            if (lvl >= 55 && lvl <= 59) return map[cls]?.[1] || "";
+            if (lvl === 60) return map[cls]?.[2] || "";
+            return "";
+        }
+
+        function updateXpBar(percent) {
+            percent = Math.max(0, Math.min(100, percent));
+            const fill = document.getElementById("xpBarFill");
+            const text = document.getElementById("xpBarText");
+            fill.style.width = percent + "%";
+            text.textContent = "XP: " + percent + "%";
+        }
+
+        function formatMs(ms) {
+            const totalSec = Math.max(0, Math.floor(ms / 1000));
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+        }
+
+        function makeBeep() {
+            try {
+                if (!window._audioCtx) {
+                    window._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const duration = 0.3;
+                const osc = window._audioCtx.createOscillator();
+                const gain = window._audioCtx.createGain();
+                osc.type = "square";
+                osc.frequency.value = 880;
+                osc.connect(gain);
+                gain.connect(window._audioCtx.destination);
+                gain.gain.setValueAtTime(0.2, window._audioCtx.currentTime);
+                osc.start();
+                osc.stop(window._audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function downloadLog() {
+            const logText = document.getElementById("log").textContent || "";
+            const now = new Date();
+            const pad = n => (n < 10 ? "0" + n : "" + n);
+            const yyyy = now.getFullYear();
+            const mm = pad(now.getMonth() + 1);
+            const dd = pad(now.getDate());
+            const hh = pad(now.getHours());
+            const mi = pad(now.getMinutes());
+            const ss = pad(now.getSeconds());
+            const filename = `eq_session_log_${yyyy}-${mm}-${dd}_${hh}-${mi}-${ss}.txt`;
+
+            const blob = new Blob([logText], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            logLine(`Log exported as ${filename}`);
+        }
+
+        // ---------- STATE ----------
+        let sessionActive = false;
+        let sessionPaused = false;
+
+        let xpPercent = 0;
+        let xpTimerRunning = false;
+        let xpTimerStartMs = null;
+        let xpTimerInterval = null;
+        let xpElapsedOffsetMs = 0;
+
+        let last1pTimeMs = null;
+        let lastGapText = "N/A";
+
+        let mobsThisCycle = 0;
+        let xpHistory = [];
+
+        let mobTimerInterval = null;
+        let mobRemainingMs = 0;
+        let mobSoundOn = true;
+
+        let inGroup = false;
+        let groupSize = 1;
+
+        // ---------- ELEMENTS ----------
+        const sessionNotes = document.getElementById("sessionNotes");
+        const sessionNotesUpdateBtn = document.getElementById("sessionNotesUpdateBtn");
+
+        const charNameInput = document.getElementById("charNameInput");
+        const classSelect = document.getElementById("classSelect");
+        const raceSelect = document.getElementById("raceSelect");
+        const levelInput = document.getElementById("levelInput");
+        const xpInput = document.getElementById("xpInput");
+        const charNotes = document.getElementById("charNotes");
+        const charNotesUpdateBtn = document.getElementById("charNotesUpdateBtn");
+        const startSessionBtn = document.getElementById("startSessionBtn");
+        const pauseSessionBtn = document.getElementById("pauseSessionBtn");
+        const exportLogBtn = document.getElementById("exportLogBtn");
+        const charTitleDisplay = document.getElementById("charTitleDisplay");
+
+        const groupYesBtn = document.getElementById("groupYesBtn");
+        const groupNoBtn = document.getElementById("groupNoBtn");
+        const groupSizeWrapper = document.getElementById("groupSizeWrapper");
+        const groupSizeInput = document.getElementById("groupSizeInput");
+        const addMemberBtn = document.getElementById("addMemberBtn");
+        const removeMemberBtn = document.getElementById("removeMemberBtn");
+        const groupMembersContainer = document.getElementById("groupMembersContainer");
+        const groupMemberRows = document.getElementById("groupMemberRows");
+
+        const xpTimerToggleBtn = document.getElementById("xpTimerToggleBtn");
+        const xpTimerDisplay = document.getElementById("xpTimerDisplay");
+        const xpGainBtn = document.getElementById("xpGainBtn");
+        const xpGainLateBtn = document.getElementById("xpGainLateBtn");
+        const mobXpBtn = document.getElementById("mobXpBtn");
+        const lastGapDisplay = document.getElementById("lastGapDisplay");
+        const mobsThisCycleDisplay = document.getElementById("mobsThisCycleDisplay");
+        const xpHistoryTableBody = document.querySelector("#xpHistoryTable tbody");
+
+        const mobMinutes = document.getElementById("mobMinutes");
+        const mobSeconds = document.getElementById("mobSeconds");
+        const mobStartBtn = document.getElementById("mobStartBtn");
+        const mobSoundToggleBtn = document.getElementById("mobSoundToggleBtn");
+        const mobTimerDisplay = document.getElementById("mobTimerDisplay");
+        const mobNotes = document.getElementById("mobNotes");
+        const mobNotesUpdateBtn = document.getElementById("mobNotesUpdateBtn");
+
+        const addCycleTimerBtn = document.getElementById("addCycleTimerBtn");
+        const addStopwatchBtn = document.getElementById("addStopwatchBtn");
+        const extraTimersContainer = document.getElementById("extraTimersContainer");
+
+        // ---------- NOTES BUTTONS ----------
+        sessionNotesUpdateBtn.addEventListener("click", () => {
+            const txt = sessionNotes.value.trim();
+            if (!txt) {
+                logLineWithRoster("Session notes cleared.");
+            } else {
+                logLineWithRoster(`Session notes updated: "${txt}"`);
+            }
+        });
+
+        charNotesUpdateBtn.addEventListener("click", () => {
+            const txt = charNotes.value.trim();
+            if (!txt) {
+                logLineWithRoster("Character notes cleared.");
+            } else {
+                logLineWithRoster(`Character notes updated: "${txt}"`);
+            }
+        });
+
+        mobNotesUpdateBtn.addEventListener("click", () => {
+            const txt = mobNotes.value.trim();
+            if (!txt) {
+                logLineWithRoster("Main mob timer notes cleared.");
+            } else {
+                logLineWithRoster(`Main mob timer notes updated: "${txt}"`);
+            }
+        });
+
+        // ---------- GROUP UI ----------
+        function updateGroupButtons() {
+            groupSizeInput.value = groupSize;
+            addMemberBtn.disabled = (groupSize >= 6);
+            removeMemberBtn.disabled = (groupSize <= 1);
+            groupYesBtn.disabled = inGroup;
+            groupNoBtn.disabled = !inGroup;
+        }
+
+        function rebuildGroupMemberRows() {
+            groupMemberRows.innerHTML = "";
+            for (let i = 2; i <= groupSize; i++) {
+                const row = document.createElement("div");
+                row.className = "group-row";
+                row.dataset.memberIndex = i;
+                row.dataset.logged = "false";
+
+                const label = document.createElement("span");
+                label.textContent = `Member ${i}: `;
+
+                const nameInput = document.createElement("input");
+                nameInput.type = "text";
+                nameInput.placeholder = "Name (optional)";
+                nameInput.style.width = "110px";
+                nameInput.className = "gm-name";
+
+                const noteInput = document.createElement("input");
+                noteInput.type = "text";
+                noteInput.placeholder = "Note";
+                noteInput.style.width = "120px";
+                noteInput.className = "gm-note";
+
+                const noteBtn = document.createElement("button");
+                noteBtn.textContent = "Update Notes";
+                noteBtn.className = "gm-note-update";
+
+                const clsSel = document.createElement("select");
+                clsSel.innerHTML = classSelect.innerHTML;
+                clsSel.className = "gm-class";
+
+                const lvlInput = document.createElement("input");
+                lvlInput.type = "number";
+                lvlInput.min = "1";
+                lvlInput.max = "60";
+                lvlInput.value = "50";
+                lvlInput.style.width = "50px";
+                lvlInput.className = "gm-level";
+
+                const raceSel = document.createElement("select");
+                raceSel.innerHTML = raceSelect.innerHTML;
+                raceSel.className = "gm-race";
+
+                row.appendChild(label);
+                row.appendChild(document.createTextNode("Class: "));
+                row.appendChild(clsSel);
+                row.appendChild(document.createTextNode(" Level: "));
+                row.appendChild(lvlInput);
+                row.appendChild(document.createTextNode(" Race: "));
+                row.appendChild(raceSel);
+                row.appendChild(document.createTextNode(" Name: "));
+                row.appendChild(nameInput);
+                row.appendChild(document.createTextNode(" Note: "));
+                row.appendChild(noteInput);
+                row.appendChild(noteBtn);
+
+                noteBtn.addEventListener("click", () => {
+                    const idx = row.dataset.memberIndex;
+                    const noteTxt = noteInput.value.trim();
+                    if (!noteTxt) {
+                        logLineWithRoster(`Member ${idx} notes cleared.`);
+                    } else {
+                        logLineWithRoster(`Member ${idx} notes updated: "${noteTxt}"`);
+                    }
+                });
+
+                groupMemberRows.appendChild(row);
+            }
+        }
+
+        function pauseXpTimerForGroupChange(newStateText) {
+            if (!xpTimerRunning) {
+                logLineWithRoster(`Group state changed: ${newStateText} (XP timer idle).`);
+                return;
+            }
+            const now = Date.now();
+            const elapsed = now - xpTimerStartMs + xpElapsedOffsetMs;
+            xpElapsedOffsetMs = elapsed;
+            if (xpTimerInterval) clearInterval(xpTimerInterval);
+            xpTimerInterval = null;
+            xpTimerDisplay.textContent = Math.floor(elapsed / 1000) + "s";
+            logLineWithRoster(`Group state changed: ${newStateText} (XP timer paused briefly).`);
+            xpTimerStartMs = Date.now();
+            xpTimerInterval = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - xpTimerStartMs + xpElapsedOffsetMs) / 1000);
+                xpTimerDisplay.textContent = elapsedSec + "s";
+            }, 500);
+            logLineWithRoster("Group time tracking updated.");
+        }
+
+        groupYesBtn.addEventListener("click", () => {
+            if (inGroup) return;
+            inGroup = true;
+            groupSizeWrapper.style.display = "inline";
+            groupMembersContainer.style.display = "block";
+            groupSize = Math.max(1, Math.min(6, parseInt(groupSizeInput.value, 10) || 1));
+            updateGroupButtons();
+            rebuildGroupMemberRows();
+            pauseXpTimerForGroupChange("JOINED GROUP");
+        });
+
+        groupNoBtn.addEventListener("click", () => {
+            if (!inGroup) return;
+            inGroup = false;
+            groupSize = 1;
+            groupSizeWrapper.style.display = "none";
+            groupMembersContainer.style.display = "none";
+            updateGroupButtons();
+            rebuildGroupMemberRows();
+            pauseXpTimerForGroupChange("LEFT GROUP (SOLO)");
+        });
+
+        groupSizeInput.addEventListener("change", () => {
+            let val = parseInt(groupSizeInput.value, 10) || 1;
+            val = Math.max(1, Math.min(6, val));
+            groupSize = val;
+            updateGroupButtons();
+            rebuildGroupMemberRows();
+        });
+
+        addMemberBtn.addEventListener("click", () => {
+            if (groupSize < 6) {
+                groupSize++;
+                updateGroupButtons();
+                rebuildGroupMemberRows();
+                const idx = groupSize;
+                logLineWithRoster(`Member ${idx} added (empty fields).`);
+            }
+        });
+
+        removeMemberBtn.addEventListener("click", () => {
+            if (groupSize <= 1) return;
+            const rows = Array.from(groupMemberRows.querySelectorAll(".group-row"));
+            let removed = false;
+            for (const row of rows) {
+                const clsSel = row.querySelector(".gm-class");
+                if (clsSel && clsSel.value === "DELETE") {
+                    const idx = row.dataset.memberIndex;
+                    const lvlInp = row.querySelector(".gm-level");
+                    const raceSel = row.querySelector(".gm-race");
+                    const nameInp = row.querySelector(".gm-name");
+                    const cls = clsSel.value;
+                    const lvl = parseInt(lvlInp.value, 10) || 1;
+                    const race = raceSel.value;
+                    const name = nameInp.value.trim();
+                    if (confirm(`Remove Member ${idx}?`)) {
+                        let line = `Member ${idx} removed (Class: ${cls}, Race: ${race}, Level: ${lvl}`;
+                        if (name) line += `, Name: ${name}`;
+                        line += ")";
+                        logLineWithRoster(line);
+                        row.remove();
+                        groupSize--;
+                        updateGroupButtons();
+                        rebuildGroupMemberRows();
+                        removed = true;
+                    }
+                    break;
+                }
+            }
+            if (!removed) {
+                logLineWithRoster("No member marked as DELETE. Set a member's class to DELETE MEMBER, then press Remove.");
+            }
+        });
+
+        // ---------- XP HISTORY TABLE ----------
+        function renderXpHistory() {
+            xpHistoryTableBody.innerHTML = "";
+            xpHistory.slice(0, 100).forEach(entry => {
+                const tr = document.createElement("tr");
+                const tdLvl = document.createElement("td");
+                const tdGap = document.createElement("td");
+                const tdMobs = document.createElement("td");
+                tdLvl.textContent = entry.levelPercent + "%";
+                tdGap.textContent = entry.gap;
+                tdMobs.textContent = entry.mobs;
+                tr.appendChild(tdLvl);
+                tr.appendChild(tdGap);
+                tr.appendChild(tdMobs);
+                xpHistoryTableBody.appendChild(tr);
+            });
+        }
+
+        // ---------- SESSION ----------
+        startSessionBtn.addEventListener("click", () => {
+            if (sessionActive) {
+                logLineWithRoster("Session already active. Start Session is locked.");
+                return;
+            }
+
+            const cls = classSelect.value;
+            const race = raceSelect.value;
+            const lvl = parseInt(levelInput.value, 10) || 1;
+            const xp = parseInt(xpInput.value, 10) || 0;
+            const name = charNameInput.value.trim();
+
+            sessionActive = true;
+            sessionPaused = false;
+            pauseSessionBtn.disabled = false;
+            pauseSessionBtn.textContent = "Pause Session";
+            startSessionBtn.disabled = true;
+
+            xpPercent = Math.max(0, Math.min(100, xp));
+            updateXpBar(xpPercent);
+
+            const title = getClassTitle(cls, lvl);
+            const baseClassText = title ? `Level ${lvl} ${title} (${cls})` : `Level ${lvl} ${cls}`;
+            const namePart = name ? `${name} — ` : "";
+            charTitleDisplay.textContent = `${namePart}${baseClassText} — Race: ${race}`;
+            logLineWithRoster(`Session started — ${namePart}${baseClassText}, Race: ${race}, XP: ${xpPercent}%`);
+
+            if (!inGroup || groupSize === 1) {
+                logLineWithRoster("Group: NO (solo)");
+            } else {
+                logLineWithRoster(`Group: YES — ${groupSize} total members`);
+                const youLine = `Member 1: ${cls} ${lvl} ${race} (you${name ? ", " + name : ""})`;
+                logLineWithRoster(youLine);
+
+                const rows = groupMemberRows.querySelectorAll(".group-row");
+                rows.forEach(row => {
+                    const idx = row.dataset.memberIndex;
+                    const cSel = row.querySelector(".gm-class");
+                    const lInp = row.querySelector(".gm-level");
+                    const rSel = row.querySelector(".gm-race");
+                    const nInp = row.querySelector(".gm-name");
+                    const noteInp = row.querySelector(".gm-note");
+                    const cVal = cSel.value;
+                    const lVal = parseInt(lInp.value, 10) || 1;
+                    const rVal = rSel.value;
+                    const nVal = nInp.value.trim();
+                    const noteVal = noteInp.value.trim();
+                    let line = `Member ${idx}: ${cVal} ${lVal} ${rVal}`;
+                    if (nVal) line += `, Name: ${nVal}`;
+                    if (noteVal) line += `, Note: ${noteVal}`;
+                    logLine(line);
+                    row.dataset.logged = "true";
+                });
+            }
+
+            xpTimerRunning = false;
+            xpTimerStartMs = null;
+            xpElapsedOffsetMs = 0;
+            last1pTimeMs = null;
+            lastGapText = "N/A";
+            lastGapDisplay.textContent = lastGapText;
+            xpTimerDisplay.textContent = "0s";
+            xpTimerToggleBtn.textContent = "Track XP Timer: OFF";
+            xpGainBtn.disabled = true;
+            xpGainLateBtn.disabled = true;
+            mobXpBtn.disabled = true;
+
+            mobsThisCycle = 0;
+            mobsThisCycleDisplay.textContent = "0";
+            xpHistory = [];
+            renderXpHistory();
+        });
+
+        pauseSessionBtn.addEventListener("click", () => {
+            if (!sessionActive) return;
+
+            if (!sessionPaused) {
+                sessionPaused = true;
+                pauseSessionBtn.textContent = "Resume Session";
+
+                if (xpTimerRunning) {
+                    const now = Date.now();
+                    const elapsed = now - xpTimerStartMs + xpElapsedOffsetMs;
+                    xpElapsedOffsetMs = elapsed;
+                    if (xpTimerInterval) clearInterval(xpTimerInterval);
+                    xpTimerInterval = null;
+                    xpTimerDisplay.textContent = Math.floor(elapsed / 1000) + "s";
+                }
+
+                xpTimerRunning = false;
+                xpTimerToggleBtn.textContent = "Track XP Timer: OFF";
+                xpGainBtn.disabled = true;
+                xpGainLateBtn.disabled = true;
+                mobXpBtn.disabled = true;
+
+                logLineWithRoster("Session paused (XP tracking halted, mob timers continue).");
+            } else {
+                sessionPaused = false;
+                pauseSessionBtn.textContent = "Pause Session";
+                logLineWithRoster("Session resumed.");
+
+                if (xpElapsedOffsetMs > 0) {
+                    xpTimerStartMs = Date.now();
+                    xpTimerInterval = setInterval(() => {
+                        const elapsedSec = Math.floor((Date.now() - xpTimerStartMs + xpElapsedOffsetMs) / 1000);
+                        xpTimerDisplay.textContent = elapsedSec + "s";
+                    }, 500);
+                    xpTimerRunning = true;
+                    xpTimerToggleBtn.textContent = "Track XP Timer: ON";
+                    xpGainBtn.disabled = false;
+                    xpGainLateBtn.disabled = false;
+                    mobXpBtn.disabled = false;
+                }
+            }
+        });
+
+        exportLogBtn.addEventListener("click", downloadLog);
+
+        // ---------- XP TIMER ----------
+        xpTimerToggleBtn.addEventListener("click", () => {
+            if (!sessionActive) {
+                logLineWithRoster("Cannot start XP timer — no active session.");
+                return;
+            }
+            if (sessionPaused) {
+                logLineWithRoster("Cannot change XP timer while session is paused.");
+                return;
+            }
+
+            if (!xpTimerRunning) {
+                xpTimerRunning = true;
+                xpTimerToggleBtn.textContent = "Track XP Timer: ON";
+                xpGainBtn.disabled = false;
+                xpGainLateBtn.disabled = false;
+                mobXpBtn.disabled = false;
+
+                xpTimerStartMs = Date.now();
+                if (!last1pTimeMs) {
+                    last1pTimeMs = Date.now();
+                }
+
+                if (xpTimerInterval) clearInterval(xpTimerInterval);
+                xpTimerInterval = setInterval(() => {
+                    const elapsedSec = Math.floor((Date.now() - xpTimerStartMs + xpElapsedOffsetMs) / 1000);
+                    xpTimerDisplay.textContent = elapsedSec + "s";
+                }, 500);
+
+                logLineWithRoster("XP timer started.");
+            } else {
+                xpTimerRunning = false;
+                xpTimerToggleBtn.textContent = "Track XP Timer: OFF";
+                xpGainBtn.disabled = true;
+                xpGainLateBtn.disabled = true;
+                mobXpBtn.disabled = true;
+
+                if (xpTimerInterval) clearInterval(xpTimerInterval);
+                xpTimerInterval = null;
+
+                const now = Date.now();
+                const elapsed = now - xpTimerStartMs + xpElapsedOffsetMs;
+                xpElapsedOffsetMs = elapsed;
+                xpTimerDisplay.textContent = Math.floor(elapsed / 1000) + "s";
+
+                logLineWithRoster("XP timer stopped.");
+            }
+        });
+
+        function handleXpGain(isLate) {
+            if (!sessionActive || !xpTimerRunning || sessionPaused) return;
+
+            const now = Date.now();
+            if (last1pTimeMs) {
+                const gapSec = Math.floor((now - last1pTimeMs) / 1000);
+                lastGapText = gapSec + "s";
+            } else {
+                lastGapText = "First 1% this session";
+            }
+            last1pTimeMs = now;
+            lastGapDisplay.textContent = lastGapText;
+
+            const mobsForThis = mobsThisCycle;
+
+            xpPercent = Math.min(100, xpPercent + 1);
+            updateXpBar(xpPercent);
+
+            const mobsText = `Mobs this 1%: ${mobsForThis}`;
+            if (!isLate) {
+                logLineWithRoster(`XP +1% — Gap: ${lastGapText} — ${mobsText}`);
+            } else {
+                logLineWithRoster(`XP +1% (late input) — Gap: ${lastGapText} — ${mobsText}`);
+            }
+
+            if (xpHistory.length < 100) {
+                xpHistory.push({ levelPercent: xpPercent, gap: lastGapText, mobs: mobsForThis });
+                renderXpHistory();
+            }
+
+            mobsThisCycle = 0;
+            mobsThisCycleDisplay.textContent = "0";
+        }
+
+        xpGainBtn.addEventListener("click", () => handleXpGain(false));
+        xpGainLateBtn.addEventListener("click", () => handleXpGain(true));
+
+        mobXpBtn.addEventListener("click", () => {
+            if (!sessionActive || !xpTimerRunning || sessionPaused) return;
+            mobsThisCycle++;
+            mobsThisCycleDisplay.textContent = String(mobsThisCycle);
+            logLineWithRoster(`Mob XP +1 (total this cycle: ${mobsThisCycle})`);
+        });
+
+        // ---------- MAIN MOB TIMER ----------
+        mobSoundToggleBtn.addEventListener("click", () => {
+            mobSoundOn = !mobSoundOn;
+            mobSoundToggleBtn.textContent = "Sound Alarm: " + (mobSoundOn ? "ON" : "OFF");
+            logLineWithRoster("Mob timer sound alarm turned " + (mobSoundOn ? "ON" : "OFF") + ".");
+        });
+
+        mobStartBtn.addEventListener("click", () => {
+            const mins = parseInt(mobMinutes.value, 10) || 0;
+            const secs = parseInt(mobSeconds.value, 10) || 0;
+            const totalMs = (mins * 60 + secs) * 1000;
+
+            if (totalMs <= 0) {
+                logLineWithRoster("Mob timer not started — duration must be > 0.");
+                return;
+            }
+
+            if (mobTimerInterval) clearInterval(mobTimerInterval);
+            mobRemainingMs = totalMs;
+            mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+            mobStartBtn.classList.remove("flash");
+
+            mobTimerInterval = setInterval(() => {
+                mobRemainingMs -= 500;
+                if (mobRemainingMs <= 0) {
+                    mobRemainingMs = 0;
+                    mobTimerDisplay.textContent = "00:00";
+                    clearInterval(mobTimerInterval);
+                    mobTimerInterval = null;
+
+                    mobStartBtn.classList.add("flash");
+                    logLineWithRoster("Mob cycle timer finished.");
+                    if (mobSoundOn) makeBeep();
+                } else {
+                    mobTimerDisplay.textContent = formatMs(mobRemainingMs);
+                }
+            }, 500);
+
+            logLineWithRoster(`Mob cycle timer started: ${mins}m ${secs}s.`);
+        });
+
+        // ---------- EXTRA TIMERS (CYCLE + STOPWATCH) ----------
+        let extraTimerIdCounter = 1;
+
+        function createCycleTimer() {
+            const id = extraTimerIdCounter++;
+            const wrapper = document.createElement("div");
+            wrapper.className = "subtimer";
+            wrapper.dataset.timerId = id;
+            wrapper.dataset.type = "cycle";
+
+            const labelInput = document.createElement("input");
+            labelInput.type = "text";
+            labelInput.placeholder = "Label (optional)";
+            labelInput.style.width = "140px";
+
+            const noteInput = document.createElement("input");
+            noteInput.type = "text";
+            noteInput.placeholder = "Notes";
+            noteInput.style.width = "140px";
+
+            const noteBtn = document.createElement("button");
+            noteBtn.textContent = "Update Notes";
+
+            const minInput = document.createElement("input");
+            minInput.type = "number";
+            minInput.min = "0";
+            minInput.value = "22";
+            minInput.style.width = "50px";
+
+            const secInput = document.createElement("input");
+            secInput.type = "number";
+            secInput.min = "0";
+            secInput.max = "59";
+            secInput.value = "0";
+            secInput.style.width = "50px";
+
+            const startPauseBtn = document.createElement("button");
+            startPauseBtn.textContent = "Start";
+
+            const resetBtn = document.createElement("button");
+            resetBtn.textContent = "Reset";
+
+            const alarmBtn = document.createElement("button");
+            alarmBtn.textContent = "Alarm: ON";
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "Delete";
+
+            const display = document.createElement("span");
+            display.style.marginLeft = "10px";
+            display.textContent = "00:00";
+
+            wrapper.appendChild(document.createTextNode("Cycle Timer — "));
+            wrapper.appendChild(labelInput);
+            wrapper.appendChild(document.createTextNode("  M:"));
+            wrapper.appendChild(minInput);
+            wrapper.appendChild(document.createTextNode(" S:"));
+            wrapper.appendChild(secInput);
+            wrapper.appendChild(startPauseBtn);
+            wrapper.appendChild(resetBtn);
+            wrapper.appendChild(alarmBtn);
+            wrapper.appendChild(deleteBtn);
+            wrapper.appendChild(display);
+            wrapper.appendChild(document.createElement("br"));
+            wrapper.appendChild(document.createTextNode("Notes: "));
+            wrapper.appendChild(noteInput);
+            wrapper.appendChild(noteBtn);
+
+            let interval = null;
+            let remainingMs = 0;
+            let running = false;
+            let alarmOn = true;
+
+            function labelOrDefault() {
+                return labelInput.value.trim() || `CycleTimer#${id}`;
+            }
+
+            function startTimer() {
+                const mins = parseInt(minInput.value, 10) || 0;
+                const secs = parseInt(secInput.value, 10) || 0;
+                const totalMs = (mins * 60 + secs) * 1000;
+                if (totalMs <= 0) {
+                    logLineWithRoster("Extra cycle timer not started — duration must be > 0.");
+                    return;
+                }
+                remainingMs = totalMs;
+                display.textContent = formatMs(remainingMs);
+                wrapper.classList.remove("flash");
+
+                const label = labelOrDefault();
+                logLineWithRoster(`Extra cycle timer '${label}' started: ${mins}m ${secs}s.`);
+
+                interval = setInterval(() => {
+                    remainingMs -= 500;
+                    if (remainingMs <= 0) {
+                        remainingMs = 0;
+                        display.textContent = "00:00";
+                        clearInterval(interval);
+                        interval = null;
+                        running = false;
+                        startPauseBtn.textContent = "Start";
+                        wrapper.classList.add("flash");
+                        const lbl = labelOrDefault();
+                        logLineWithRoster(`Extra cycle timer '${lbl}' finished.`);
+                        if (alarmOn) makeBeep();
+                    } else {
+                        display.textContent = formatMs(remainingMs);
+                    }
+                }, 500);
+                running = true;
+                startPauseBtn.textContent = "Pause";
+            }
+
+            function pauseTimer() {
+                if (interval) {
+                    clearInterval(interval);
+                    interval = null;
+                }
+                running = false;
+                startPauseBtn.textContent = "Continue";
+                const label = labelOrDefault();
+                logLineWithRoster(`Extra cycle timer '${label}' paused at ${formatMs(remainingMs)}.`);
+            }
+
+            function continueTimer() {
+                const label = labelOrDefault();
+                logLineWithRoster(`Extra cycle timer '${label}' continued.`);
+                interval = setInterval(() => {
+                    remainingMs -= 500;
+                    if (remainingMs <= 0) {
+                        remainingMs = 0;
+                        display.textContent = "00:00";
+                        clearInterval(interval);
+                        interval = null;
+                        running = false;
+                        startPauseBtn.textContent = "Start";
+                        wrapper.classList.add("flash");
+                        const lbl = labelOrDefault();
+                        logLineWithRoster(`Extra cycle timer '${lbl}' finished.`);
+                        if (alarmOn) makeBeep();
+                    } else {
+                        display.textContent = formatMs(remainingMs);
+                    }
+                }, 500);
+                running = true;
+                startPauseBtn.textContent = "Pause";
+            }
+
+            startPauseBtn.addEventListener("click", () => {
+                if (!running && remainingMs === 0) {
+                    startTimer();
+                } else if (running) {
+                    pauseTimer();
+                } else {
+                    continueTimer();
+                }
+            });
+
+            resetBtn.addEventListener("click", () => {
+                if (interval) {
+                    clearInterval(interval);
+                    interval = null;
+                }
+                running = false;
+                const mins = parseInt(minInput.value, 10) || 0;
+                const secs = parseInt(secInput.value, 10) || 0;
+                remainingMs = (mins * 60 + secs) * 1000;
+                display.textContent = formatMs(remainingMs);
+                wrapper.classList.remove("flash");
+                startPauseBtn.textContent = "Start";
+                const label = labelOrDefault();
+                logLineWithRoster(`Extra cycle timer '${label}' reset.`);
+            });
+
+            alarmBtn.addEventListener("click", () => {
+                alarmOn = !alarmOn;
+                alarmBtn.textContent = "Alarm: " + (alarmOn ? "ON" : "OFF");
+                const label = labelOrDefault();
+                logLineWithRoster(`Extra cycle timer '${label}' alarm turned ${alarmOn ? "ON" : "OFF"}.`);
+            });
+
+            deleteBtn.addEventListener("click", () => {
+                const label = labelOrDefault();
+                if (confirm(`Delete extra cycle timer '${label}'?`)) {
+                    if (interval) clearInterval(interval);
+                    wrapper.remove();
+                    logLineWithRoster(`Extra cycle timer '${label}' deleted.`);
+                }
+            });
+
+            noteBtn.addEventListener("click", () => {
+                const label = labelOrDefault();
+                const txt = noteInput.value.trim();
+                if (!txt) {
+                    logLineWithRoster(`Extra cycle timer '${label}' notes cleared.`);
+                } else {
+                    logLineWithRoster(`Extra cycle timer '${label}' notes updated: "${txt}"`);
+                }
+            });
+
+            extraTimersContainer.appendChild(wrapper);
+        }
+
+        function createStopwatchTimer() {
+            const id = extraTimerIdCounter++;
+            const wrapper = document.createElement("div");
+            wrapper.className = "subtimer";
+            wrapper.dataset.timerId = id;
+            wrapper.dataset.type = "stopwatch";
+
+            const labelInput = document.createElement("input");
+            labelInput.type = "text";
+            labelInput.placeholder = "Label (optional)";
+            labelInput.style.width = "140px";
+
+            const noteInput = document.createElement("input");
+            noteInput.type = "text";
+            noteInput.placeholder = "Notes";
+            noteInput.style.width = "140px";
+
+            const noteBtn = document.createElement("button");
+            noteBtn.textContent = "Update Notes";
+
+            const startBtn = document.createElement("button");
+            startBtn.textContent = "Start";
+            const stopBtn = document.createElement("button");
+            stopBtn.textContent = "Stop";
+            stopBtn.disabled = true;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "Delete";
+
+            const display = document.createElement("span");
+            display.style.marginLeft = "10px";
+            display.textContent = "00:00";
+
+            wrapper.appendChild(document.createTextNode("Stopwatch — "));
+            wrapper.appendChild(labelInput);
+            wrapper.appendChild(startBtn);
+            wrapper.appendChild(stopBtn);
+            wrapper.appendChild(deleteBtn);
+            wrapper.appendChild(display);
+            wrapper.appendChild(document.createElement("br"));
+            wrapper.appendChild(document.createTextNode("Notes: "));
+            wrapper.appendChild(noteInput);
+            wrapper.appendChild(noteBtn);
+
+            let interval = null;
+            let elapsedMs = 0;
+            let startMs = null;
+
+            function labelOrDefault() {
+                return labelInput.value.trim() || `Stopwatch#${id}`;
+            }
+
+            startBtn.addEventListener("click", () => {
+                if (interval) return;
+                startMs = Date.now();
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                const label = labelOrDefault();
+                logLineWithRoster(`Stopwatch '${label}' started.`);
+                interval = setInterval(() => {
+                    elapsedMs = Date.now() - startMs;
+                    display.textContent = formatMs(elapsedMs);
+                }, 500);
+            });
+
+            stopBtn.addEventListener("click", () => {
+                if (!interval) return;
+                clearInterval(interval);
+                interval = null;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                const label = labelOrDefault();
+                logLineWithRoster(`Stopwatch '${label}' stopped at ${formatMs(elapsedMs)}.`);
+            });
+
+            deleteBtn.addEventListener("click", () => {
+                const label = labelOrDefault();
+                if (confirm(`Delete stopwatch '${label}'?`)) {
+                    if (interval) clearInterval(interval);
+                    wrapper.remove();
+                    logLineWithRoster(`Stopwatch '${label}' deleted.`);
+                }
+            });
+
+            noteBtn.addEventListener("click", () => {
+                const label = labelOrDefault();
+                const txt = noteInput.value.trim();
+                if (!txt) {
+                    logLineWithRoster(`Stopwatch '${label}' notes cleared.`);
+                } else {
+                    logLineWithRoster(`Stopwatch '${label}' notes updated: "${txt}"`);
+                }
+            });
+
+            extraTimersContainer.appendChild(wrapper);
+        }
+
+        addCycleTimerBtn.addEventListener("click", createCycleTimer);
+        addStopwatchBtn.addEventListener("click", createStopwatchTimer);
+
+        // ---------- INIT ----------
+        updateXpBar(0);
+        updateGroupButtons();
+        rebuildGroupMemberRows();
+    </script>
+</body>
+</html>
