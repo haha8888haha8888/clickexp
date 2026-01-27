@@ -716,48 +716,132 @@
         });
 
         addMemberBtn.addEventListener("click", () => {
-            if (groupSize < 6) {
-                groupSize++;
-                updateGroupButtons();
-                rebuildGroupMemberRows();
-                const idx = groupSize;
-                logLineWithRoster(`Member ${idx} added (empty fields).`);
-            }
-        });
+    if (groupSize >= 6) return;
+
+    groupSize++;
+    updateGroupButtons();
+
+    const idx = groupSize;
+
+    // Create a new row WITHOUT rebuilding the others
+    const row = document.createElement("div");
+    row.className = "group-row";
+    row.dataset.memberIndex = idx;
+    row.dataset.logged = "false";
+
+    const label = document.createElement("span");
+    label.textContent = `Member ${idx}: `;
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = "Name (optional)";
+    nameInput.style.width = "110px";
+    nameInput.className = "gm-name";
+
+    const noteInput = document.createElement("input");
+    noteInput.type = "text";
+    noteInput.placeholder = "Note";
+    noteInput.style.width = "120px";
+    noteInput.className = "gm-note";
+
+    const noteBtn = document.createElement("button");
+    noteBtn.textContent = "Update Notes";
+    noteBtn.className = "gm-note-update";
+
+    const clsSel = document.createElement("select");
+    clsSel.innerHTML = classSelect.innerHTML;
+    clsSel.className = "gm-class";
+
+    const lvlInput = document.createElement("input");
+    lvlInput.type = "number";
+    lvlInput.min = "1";
+    lvlInput.max = "60";
+    lvlInput.value = "50";
+    lvlInput.style.width = "50px";
+    lvlInput.className = "gm-level";
+
+    const raceSel = document.createElement("select");
+    raceSel.innerHTML = raceSelect.innerHTML;
+    raceSel.className = "gm-race";
+
+    row.appendChild(label);
+    row.appendChild(document.createTextNode("Class: "));
+    row.appendChild(clsSel);
+    row.appendChild(document.createTextNode(" Level: "));
+    row.appendChild(lvlInput);
+    row.appendChild(document.createTextNode(" Race: "));
+    row.appendChild(raceSel);
+    row.appendChild(document.createTextNode(" Name: "));
+    row.appendChild(nameInput);
+    row.appendChild(document.createTextNode(" Note: "));
+    row.appendChild(noteInput);
+    row.appendChild(noteBtn);
+
+    noteBtn.addEventListener("click", () => {
+        const noteTxt = noteInput.value.trim();
+        if (!noteTxt) {
+            logLineWithRoster(`Member ${idx} notes cleared.`);
+        } else {
+            logLineWithRoster(`Member ${idx} notes updated: "${noteTxt}"`);
+        }
+    });
+
+    groupMemberRows.appendChild(row);
+
+    logLineWithRoster(`Member ${idx} added (empty fields).`);
+});
+
 
         removeMemberBtn.addEventListener("click", () => {
-            if (groupSize <= 1) return;
-            const rows = Array.from(groupMemberRows.querySelectorAll(".group-row"));
-            let removed = false;
-            for (const row of rows) {
-                const clsSel = row.querySelector(".gm-class");
-                if (clsSel && clsSel.value === "DELETE") {
-                    const idx = row.dataset.memberIndex;
-                    const lvlInp = row.querySelector(".gm-level");
-                    const raceSel = row.querySelector(".gm-race");
-                    const nameInp = row.querySelector(".gm-name");
-                    const cls = clsSel.value;
-                    const lvl = parseInt(lvlInp.value, 10) || 1;
-                    const race = raceSel.value;
-                    const name = nameInp.value.trim();
-                    if (confirm(`Remove Member ${idx}?`)) {
-                        let line = `Member ${idx} removed (Class: ${cls}, Race: ${race}, Level: ${lvl}`;
-                        if (name) line += `, Name: ${name}`;
-                        line += ")";
-                        logLineWithRoster(line);
-                        row.remove();
-                        groupSize--;
-                        updateGroupButtons();
-                        rebuildGroupMemberRows();
-                        removed = true;
-                    }
-                    break;
-                }
+    if (groupSize <= 1) return;
+
+    const rows = Array.from(groupMemberRows.querySelectorAll(".group-row"));
+    let removed = false;
+
+    for (const row of rows) {
+        const clsSel = row.querySelector(".gm-class");
+        if (clsSel && clsSel.value === "DELETE") {
+            const idx = row.dataset.memberIndex;
+
+            const lvlInp = row.querySelector(".gm-level");
+            const raceSel = row.querySelector(".gm-race");
+            const nameInp = row.querySelector(".gm-name");
+
+            const cls = clsSel.value;
+            const lvl = parseInt(lvlInp.value, 10) || 1;
+            const race = raceSel.value;
+            const name = nameInp.value.trim();
+
+            if (confirm(`Remove Member ${idx}?`)) {
+                let line = `Member ${idx} removed (Class: ${cls}, Race: ${race}, Level: ${lvl}`;
+                if (name) line += `, Name: ${name}`;
+                line += ")";
+                logLineWithRoster(line);
+
+                // Remove ONLY this row
+                row.remove();
+                groupSize--;
+
+                // Reindex remaining rows WITHOUT resetting their values
+                const remaining = Array.from(groupMemberRows.querySelectorAll(".group-row"));
+                remaining.forEach((r, i) => {
+                    const newIndex = i + 2; // Member 2–6
+                    r.dataset.memberIndex = newIndex;
+                    r.querySelector("span").textContent = `Member ${newIndex}: `;
+                });
+
+                updateGroupButtons();
+                removed = true;
             }
-            if (!removed) {
-                logLineWithRoster("No member marked as DELETE. Set a member's class to DELETE MEMBER, then press Remove.");
-            }
-        });
+            break;
+        }
+    }
+
+    if (!removed) {
+        logLineWithRoster("No member marked as DELETE. Set a member's class to DELETE MEMBER, then press Remove.");
+    }
+});
+
 
         // ---------- XP HISTORY TABLE ----------
         function renderXpHistory() {
