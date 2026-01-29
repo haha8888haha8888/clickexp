@@ -1,6 +1,4 @@
 
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -367,15 +365,228 @@
     <script>
         // ---------- UTILITIES ----------
 	const CloneUIMap = new Map();
+
+	const SWOOSH_START = "&#&&#&#&#&#&##&#&#& === SWOOSH START ===";
+	const SWOOSH_END   = "finfinfin*$*$*$*$*$*$*$*$$*$* === SWOOSH END ===";
+
+let DEBUG_ENABLED = true;
+let LOG_UNLOCKED = true;   // true = normal logging allowed, false = locked
+
+let CALL_A = 1;
+let CALL_B = 0;
+
+let INSTRUMENTATION_ENABLED = false;
+
+let SpellRegistry = {};
+let UserOverrides = {};
+let UserCustomSpells = [];
+let SpellClassAvailable = {};
+
+//letmesee
+
+// ===============================
+// MEGA DEBUG CONSOLE (CLICK TO OPEN)
+// ===============================
+
+(function createMegaDebugConsole() {
+
+    // Main console window
+    const dbg = document.createElement("div");
+    dbg.id = "megaDebugConsole";
+    dbg.style.position = "fixed";
+    dbg.style.top = "0";
+    dbg.style.left = "0";
+    dbg.style.right = "0";
+    dbg.style.height = "40vh";
+    dbg.style.background = "rgba(0,0,0,0.95)";
+    dbg.style.color = "#00ff00";
+    dbg.style.fontFamily = "monospace";
+    dbg.style.fontSize = "14px";
+    dbg.style.padding = "10px";
+    dbg.style.zIndex = "999999";
+    dbg.style.whiteSpace = "pre-wrap";
+    dbg.style.overflowY = "scroll";
+    dbg.style.borderBottom = "3px solid #0f0";
+    dbg.style.display = "none"; // stays hidden unless clicked
+
+    document.body.appendChild(dbg);
+
+    // Toggle button
+    const toggle = document.createElement("div");
+    toggle.textContent = "[DEBUG]";
+    toggle.style.position = "fixed";
+    toggle.style.top = "0";
+    toggle.style.right = "0";
+    toggle.style.background = "#111";
+    toggle.style.color = "#0f0";
+    toggle.style.padding = "6px 10px";
+    toggle.style.cursor = "pointer";
+    toggle.style.zIndex = "1000000";
+    toggle.style.fontFamily = "monospace";
+    toggle.style.fontSize = "14px";
+    toggle.style.border = "1px solid #0f0";
+
+    // Track whether user manually opened it
+    let debugEnabled = false;
+
+    toggle.onclick = () => {
+        debugEnabled = !debugEnabled;
+        dbg.style.display = debugEnabled ? "block" : "none";
+        if (debugEnabled) dbg.scrollTop = dbg.scrollHeight;
+    };
+
+    document.body.appendChild(toggle);
+
+    // Global debug writer (NO auto-open)
+    window.__DBG = function(msg) {
+        dbg.textContent += msg + "\n";
+        if (debugEnabled) dbg.scrollTop = dbg.scrollHeight;
+    };
+
+    // Crash catcher (writes to log, but does NOT auto-open)
+    window.onerror = function(message, source, lineno, colno, error) {
+        __DBG("🔥🔥🔥 SCRIPT CRASHED 🔥🔥🔥");
+        __DBG("Message: " + message);
+        __DBG("Source: " + source + ":" + lineno);
+        if (error && error.stack) __DBG("Stack:\n" + error.stack);
+    };
+
+})();
+
+
+__DBG("BOOT: script started.1337");
+__DBG(" GLOBAL LOG LOCK (Exclusive Write Control).");
+// =======================================
+// GLOBAL LOG LOCK (Exclusive Write Control)
+// =======================================
+
+
+
         function nowStamp() {
             return new Date().toLocaleTimeString();
         }
 
-        function logLine(text) {
-            const log = document.getElementById("log");
-            log.textContent += "[" + nowStamp() + "] " + text + "\n";
-            log.scrollTop = log.scrollHeight;
+function flipCallState(funcName) {
+    // flip the booleans
+    CALL_A = CALL_A === 1 ? 0 : 1;
+    CALL_B = CALL_B === 1 ? 0 : 1;
+
+    // log the function that fired
+    console.log(`[TRACE] ${funcName} fired | A=${CALL_A} B=${CALL_B}`);
+}
+
+function wrapFunction(obj, fnName) {
+    if (!INSTRUMENTATION_ENABLED) return;   // <-- HARD STOP
+
+    const original = obj[fnName];
+
+    if (typeof original !== "function") return;
+
+    // Skip the wrapper and the instrumentation function
+    if (fnName === "wrapFunction" || fnName === "instrumentAllFunctions") return;
+
+    obj[fnName] = function(...args) {
+        flipCallState(fnName);
+        return original.apply(this, args);
+    };
+}
+
+__DBG("past (function wrapFunction)133.");
+
+
+function instrumentAllFunctions(root) {
+    if (!INSTRUMENTATION_ENABLED) {
+        __DBG("Instrumentation disabled — skipping instrumentAllFunctions()");
+        return;
+    }
+
+    for (const key in root) {
+        try {
+            if (typeof root[key] === "function") {
+                wrapFunction(root, key);
+            }
+        } catch (e) {
+            __DBG("Instrumentation skip for key: " + key);
         }
+    }
+}
+
+__DBG("past (function instrumentAllFunctions(root))1122.");
+
+function debugLog(msg) {
+    if (!DEBUG_ENABLED) return;
+
+    // Write to console only, never to the UI log
+    console.log("[DEBUG " + nowStamp() + "] " + msg);
+}
+
+function logLine(text) {
+    if (!LOG_UNLOCKED) {
+        debugLog("logLine blocked (LOCKED): " + text);
+        return;
+    }
+
+    const log = document.getElementById("log");
+    log.textContent += "[" + nowStamp() + "] " + text + "\n";
+    log.scrollTop = log.scrollHeight;
+}
+__DBG("past (function logLine(text)).1111333");
+
+// Raw logger: bypasses LOG_UNLOCKED lock (used only by Swoosh Save)
+function logRaw(text) {
+    const log = document.getElementById("log");
+    if (!log) {
+        __DBG("logRaw: #log element NOT FOUND.");
+        return;
+    }
+    log.textContent += text + "\n";
+    log.scrollTop = log.scrollHeight;
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const log = document.getElementById("log");
+    if (log) {
+        __DBG("CHECK: #log element FOUND on DOMContentLoaded.");
+    } else {
+        __DBG("CHECK: #log element MISSING on DOMContentLoaded.");
+    }
+});
+
+
+function freezeLogForSwoosh() {
+    LOG_UNLOCKED = false;
+    return new Promise(resolve => setTimeout(resolve, 2000)); // 2 sec quiet time
+}
+
+async function swooshSave() {
+    await freezeLogForSwoosh();
+    __DBG("ENTER: swooshSave()Step 1: lock and wait");
+
+    const fullDatabase = {
+        timestamp: new Date().toISOString(),
+        registry: SpellRegistry,
+        overrides: UserOverrides,
+        custom: UserCustomSpells,
+        classes: SpellClassAvailable
+    };
+
+    logRaw(SWOOSH_START);
+    __DBG("ENTER: swooshSave Step 2: write swoosh block SWOOSH_START)");
+
+    logRaw(JSON.stringify(fullDatabase, null, 2));
+
+    logRaw(SWOOSH_END);
+    __DBG("ENTER: swooshSave SWOOSH_END)");
+
+    LOG_UNLOCKED = true;
+    __DBG("ENTER: swooshSave Step 3: unlock");
+
+    logLine("Swoosh Save Complete.");
+    __DBG("ENTER: swoosh Swoosh Save Complete.");
+}
+
+__DBG("past (function swooshSave()).1111333");
 
         function logUnloggedMembers() {
             if (!inGroup || groupSize <= 1) return;
@@ -432,7 +643,7 @@
             if (lvl === 60) return map[cls]?.[2] || "";
             return "";
         }
-
+__DBG("past (getClassTitle(cls, lvl)2211333");
         function updateXpBar(percent) {
             percent = Math.max(0, Math.min(100, percent));
             const fill = document.getElementById("xpBarFill");
@@ -465,7 +676,7 @@
                 osc.stop(window._audioCtx.currentTime + duration);
             } catch (e) {}
         }
-
+__DBG("past function makeBeep()22221111333");
         function downloadLog() {
             const logText = document.getElementById("log").textContent || "";
             const now = new Date();
@@ -573,7 +784,7 @@
         const addCycleTimerBtn = document.getElementById("addCycleTimerBtn");
         const addStopwatchBtn = document.getElementById("addStopwatchBtn");
         const extraTimersContainer = document.getElementById("extraTimersContainer");
-
+__DBG("past ---------- ELEMENTS ----------33331111333");
         // ---------- NOTES BUTTONS ----------
         sessionNotesUpdateBtn.addEventListener("click", () => {
             const txt = sessionNotes.value.trim();
@@ -680,7 +891,7 @@
                 groupMemberRows.appendChild(row);
             }
         }
-
+__DBG("past rebuildGroupMemberRows()44431111333");
         function pauseXpTimerForGroupChange(newStateText) {
             if (!xpTimerRunning) {
                 logLineWithRoster(`Group state changed: ${newStateText} (XP timer idle).`);
@@ -1721,7 +1932,7 @@
 // ===============================
 // All classes start as unavailable (faded + disabled)
 // When we add a class's spell list later, we will set SpellClassAvailable[CLASS] = true
-const SpellClassAvailable = {
+SpellClassAvailable = {
     CLR: false,
     DRU: false,
     SHM: false,
@@ -1757,7 +1968,7 @@ const SpellClassFlags = {
     WAR: false,
     MNK: false
 };
-
+__DBG("past CLASS SELECTION FLAGS()544431111333");
 // ===============================
 // 3. CREATE SPELL TIMER SECTION UI
 // ===============================
@@ -1844,6 +2055,170 @@ function enableSpellClass(classCode) {
         }
     });
 }
+
+
+function swooshLoadFromText(text) {
+    __DBG("ENTER: swooshLoadFromText()");
+    const lines = text.split("\n");
+
+    let endIndex = -1;
+    let startIndex = -1;
+
+    // ===============================
+    // Find newest END
+    // ===============================
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].includes(SWOOSH_END)) {
+            endIndex = i;
+            __DBG("FOUND: SWOOSH_END at line " + i);
+            break;
+        }
+    }
+    if (endIndex === -1) {
+        __DBG("ERROR: No SWOOSH_END found.");
+        logLine("No swoosh block found.");
+        return;
+    }
+
+    // ===============================
+    // Find matching START
+    // ===============================
+    for (let j = endIndex - 1; j >= 0; j--) {
+        if (lines[j].includes(SWOOSH_START)) {
+            startIndex = j;
+            __DBG("FOUND: SWOOSH_START at line " + j);
+            break;
+        }
+    }
+    if (startIndex === -1) {
+        __DBG("ERROR: SWOOSH_END found but no SWOOSH_START.");
+        logLine("Swoosh END found but no START marker.");
+        return;
+    }
+
+    // ===============================
+    // Extract JSON block
+    // ===============================
+    const swooshText = lines.slice(startIndex + 1, endIndex).join("\n");
+    __DBG("EXTRACTED swooshText length=" + swooshText.length);
+
+    let swoosh;
+    try {
+        swoosh = JSON.parse(swooshText);
+        __DBG("PARSE OK: swoosh JSON loaded.");
+    } catch (e) {
+        __DBG("PARSE ERROR: " + e.message);
+        logLine("Failed to parse swoosh block.");
+        return;
+    }
+
+    // ===============================
+    // Apply loaded data
+    // ===============================
+    __DBG("APPLY: Updating SpellRegistry, UserOverrides, UserCustomSpells, SpellClassAvailable");
+
+    SpellRegistry = swoosh.registry || {};
+    UserOverrides = swoosh.overrides || {};
+    UserCustomSpells = swoosh.custom || {};
+    SpellClassAvailable = swoosh.classes || {};
+
+    // ===============================
+    // Rebuild UI
+    // ===============================
+    rebuildSpellUI();
+
+    if (typeof updateSwooshListUI === "function") {
+        updateSwooshListUI(swoosh.timestamp);
+    } else {
+        __DBG("NOTE: updateSwooshListUI is not defined — skipping UI update.");
+    }
+
+    logLine("Swoosh Load Complete.");
+    __DBG("EXIT: swooshLoadFromText() — COMPLETE");
+}
+
+
+
+function rebuildSpellUI() {
+    // ===============================
+    // 1. Remove all existing spell list UI blocks
+    // ===============================
+    const oldLists = document.querySelectorAll("[id$='SpellList']");
+    oldLists.forEach(el => el.remove());
+
+    // ===============================
+    // 2. Re-enable classes based on swoosh database
+    // ===============================
+    for (const classCode in SpellClassAvailable) {
+        if (SpellClassAvailable[classCode]) {
+            enableSpellClass(classCode);
+        }
+    }
+
+    // ===============================
+    // 3. Rebuild spell lists from SpellRegistry
+    // ===============================
+    for (const classCode in SpellRegistry) {
+        const spells = SpellRegistry[classCode];
+        if (!spells) continue;
+
+        // Create container
+        const container = document.createElement("div");
+        container.id = `${classCode.toLowerCase()}SpellList`;
+        container.style.marginTop = "15px";
+        container.style.padding = "10px";
+        container.style.border = "1px solid #444";
+        container.style.background = "#111";
+        container.style.color = "white";
+        container.style.borderRadius = "6px";
+
+        // Title
+        const title = document.createElement("h4");
+        title.textContent = `${classCode} — Spells`;
+        title.style.marginTop = "0";
+        container.appendChild(title);
+
+        // Grid
+        const grid = document.createElement("div");
+        grid.style.display = "grid";
+        grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+        grid.style.gap = "6px 20px";
+        grid.style.marginTop = "10px";
+        container.appendChild(grid);
+
+        // Add spells
+        spells.forEach(spell => {
+            const cell = document.createElement("div");
+            cell.style.display = "flex";
+            cell.style.alignItems = "center";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.dataset.spellId = spell.id;
+            checkbox.style.marginRight = "6px";
+
+            const label = document.createElement("span");
+            label.textContent = spell.name;
+
+            cell.appendChild(checkbox);
+            cell.appendChild(label);
+            grid.appendChild(cell);
+
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked) {
+                    createSpellTimerUI(spell, container.id);
+                } else {
+                    removeSpellTimerUI(spell.id);
+                }
+            });
+        });
+
+        document.body.appendChild(container);
+    }
+
+    logLine("Spell UI rebuilt from Swoosh database.");
+}
+
 
 
 <!-- === SPELL TIMER SYSTEM: NECROMANCER TEST SPELLS (BLOCK #2 — UPGRADED) === -->
@@ -4521,6 +4896,449 @@ window.SpellData_BRD = [
     document.body.appendChild(container);
 })();
 
+__DBG("past BARD DISCIPLINE LIST UI()66644431111333");
+// ===============================
+// SPELL REGISTRY BOOTSTRAPPER (FULLY INSTRUMENTED)
+// ===============================
+
+__DBG("ENTER: SPELL REGISTRY BOOTSTRAPPER");
+
+//window.SpellRegistry = {};
+//window.UserOverrides = {};
+//window.UserCustomSpells = [];
+//window.SpellClassAvailable = {};
+
+//let SpellRegistry = window.SpellRegistry;
+//let UserOverrides = window.UserOverrides;
+//let UserCustomSpells = window.UserCustomSpells;
+//let SpellClassAvailable = window.SpellClassAvailable;
+
+
+(function bootstrapSpellRegistry() {
+    __DBG("ENTER: bootstrapSpellRegistry()");
+
+    let foundClasses = 0;
+    let skippedNonArrays = 0;
+    let skippedInvalidSpells = 0;
+
+    for (const key in window) {
+
+        // Only process SpellData_*
+        if (!key.startsWith("SpellData_")) {
+            continue;
+        }
+
+        __DBG("FOUND SpellData KEY: " + key);
+
+        const classCode = key.replace("SpellData_", "");
+        const spellArray = window[key];
+
+        // Validate array
+        if (!Array.isArray(spellArray)) {
+            __DBG("SKIP: " + key + " is NOT an array.");
+            skippedNonArrays++;
+            continue;
+        }
+
+        __DBG("PASS: " + key + " is a valid spell array.");
+        foundClasses++;
+
+        // Mark class as available
+        SpellClassAvailable[classCode] = true;
+        __DBG("CLASS AVAILABLE: " + classCode);
+
+        // Clone spells safely
+        SpellRegistry[classCode] = [];
+
+        spellArray.forEach((spell, idx) => {
+            if (spell && typeof spell === "object") {
+                SpellRegistry[classCode].push({ ...spell });
+            } else {
+                __DBG("SKIP INVALID SPELL: " + key + " index=" + idx);
+                skippedInvalidSpells++;
+            }
+        });
+
+        __DBG("CLASS " + classCode + " LOADED: " + SpellRegistry[classCode].length + " spells.");
+    }
+
+    __DBG("BOOTSTRAP SUMMARY:");
+    __DBG("  Classes found: " + foundClasses);
+    __DBG("  Non-arrays skipped: " + skippedNonArrays);
+    __DBG("  Invalid spells skipped: " + skippedInvalidSpells);
+
+    __DBG("EXIT: bootstrapSpellRegistry()");
+})();
+
+__DBG("PASS: SPELL REGISTRY BOOTSTRAPPER COMPLETE");
+
+
+__DBG("past SPELL REGISTRY BOOTSTRAPPER (SAFE VERSION)()66611144431111333");
+// <<keep this below all abilitys but above swoosh panel menu // swoosh
+// keep this below the boot strapper above the swoosh pannel >>
+
+// ===============================
+// AUTO-GENERATE FIRST SWOOSH SAVE (FIRST RUN) — FULLY INSTRUMENTED
+// ===============================
+
+__DBG("ENTER: autoFirstRunSwoosh()");
+
+(function autoFirstRunSwoosh() {
+
+    // Check if already loaded this session
+    if (window.__swooshLoadedOnce) {
+        __DBG("SKIP: __swooshLoadedOnce already TRUE.");
+        return;
+    }
+    __DBG("PASS: __swooshLoadedOnce is FALSE (first run).");
+
+    // Check if log already contains a swoosh block
+    const log = document.getElementById("log");
+
+    if (!log) {
+        __DBG("ERROR: #log element NOT FOUND during autoFirstRunSwoosh.");
+    } else {
+        __DBG("PASS: #log element FOUND.");
+    }
+
+    if (log && log.textContent.includes(SWOOSH_START)) {
+        __DBG("SKIP: Log already contains a swoosh block.");
+        return;
+    }
+
+    __DBG("PASS: No swoosh block found in log. Generating first-run swoosh.");
+
+    // Mark as generated
+    window.__swooshLoadedOnce = true;
+    __DBG("SET: __swooshLoadedOnce = TRUE");
+
+    // Generate initial swoosh block
+    freezeLogForSwoosh().then(() => {
+
+        __DBG("ENTER: freezeLogForSwoosh() resolved — writing initial swoosh.");
+
+        const fullDatabase = {
+            timestamp: new Date().toISOString(),
+            registry: SpellRegistry,
+            overrides: UserOverrides,
+            custom: UserCustomSpells,
+            classes: SpellClassAvailable
+        };
+
+        __DBG("WRITING: SWOOSH_START");
+        logRaw(SWOOSH_START);
+
+        __DBG("WRITING: JSON fullDatabase");
+        logRaw(JSON.stringify(fullDatabase, null, 2));
+
+        __DBG("WRITING: SWOOSH_END");
+        logRaw(SWOOSH_END);
+
+        LOG_UNLOCKED = true;
+        __DBG("SET: LOG_UNLOCKED = TRUE");
+
+        logLine("Initial Swoosh database generated (first run).");
+        __DBG("PASS: Initial swoosh generation COMPLETE.");
+
+    }).catch(err => {
+        __DBG("ERROR: freezeLogForSwoosh() rejected: " + err);
+    });
+
+})();
+
+__DBG("EXIT: autoFirstRunSwoosh()");
+
+
+// keep above swoosh panel, below swoosh load by text
+
+function triggerSwooshLoadDialog() {
+    __DBG("ENTER: triggerSwooshLoadDialog()");
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".txt,.log,.json";
+
+    input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (!file) {
+            __DBG("SKIP: No file selected in triggerSwooshLoadDialog().");
+            return;
+        }
+
+        __DBG("PASS: File selected: " + file.name);
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            const text = reader.result || "";
+            __DBG("PASS: File read complete, length=" + text.length);
+            try {
+                swooshLoadFromText(text);
+                __DBG("PASS: swooshLoadFromText() CALL RETURNED.");
+            } catch (e) {
+                __DBG("ERROR: swooshLoadFromText() threw: " + e.message);
+            }
+        };
+
+        reader.onerror = () => {
+            __DBG("ERROR: FileReader failed in triggerSwooshLoadDialog().");
+            logLine("Failed to read swoosh file.");
+        };
+
+        reader.readAsText(file);
+    });
+
+    input.click();
+}
+
+
+window.addEventListener("DOMContentLoaded", () => {
+    window.updateSwooshListUI = function(timestamp) {
+        const listDiv = document.getElementById("swooshList");
+        if (!listDiv) {
+            __DBG("updateSwooshListUI: #swooshList not found.");
+            return;
+        }
+
+        const label = timestamp
+            ? `Loaded Swoosh: ${new Date(timestamp).toLocaleString()}`
+            : "Loaded Swoosh: Loaded (no timestamp)";
+
+        listDiv.textContent = label;
+        __DBG("updateSwooshListUI: " + label);
+    };
+});
+
+__DBG("ENTER: SWOOSH PANEL");
+// ===============================
+// SWOOSH PANEL (FULLY INSTRUMENTED + DOWNLOAD BUTTON)
+// ===============================
+// ===============================
+// SWOOSH PANEL (SAVE / LOAD / DOWNLOAD / SYNC)
+// ===============================
+window.addEventListener("DOMContentLoaded", () => {
+    (function createSwooshPanel() {
+        __DBG("ENTER: createSwooshPanel()");
+
+        // --- PANEL CONTAINER ---
+        const panel = document.createElement("div");
+        panel.id = "swooshPanel";
+        panel.style.marginTop = "25px";
+        panel.style.padding = "12px";
+        panel.style.border = "1px solid #888";
+        panel.style.background = "#111";
+        panel.style.color = "white";
+        panel.style.borderRadius = "6px";
+        __DBG("PASS: Created swooshPanel DIV.");
+
+        // --- TITLE ---
+        const title = document.createElement("h3");
+        title.textContent = "Swoosh System — Save / Load";
+        panel.appendChild(title);
+        __DBG("PASS: Title appended to panel.");
+
+        // --- INFO TEXT ---
+        const info = document.createElement("div");
+        info.style.fontSize = "13px";
+        info.style.opacity = "0.8";
+        info.style.marginBottom = "10px";
+        info.innerHTML = `
+            The Swoosh System saves your entire spell database, including overrides and custom spells.<br>
+            Load or download your swoosh log to restore your personalized spell system. save first then download.
+        `;
+        panel.appendChild(info);
+        __DBG("PASS: Info block appended to panel.");
+
+        // --- BUTTON ROW ---
+        const btnRow = document.createElement("div");
+        btnRow.style.display = "flex";
+        btnRow.style.gap = "10px";
+        btnRow.style.marginBottom = "12px";
+        __DBG("PASS: Created swooshPanel BUTTON ROW.");
+
+        // ===============================
+        // SAVE BUTTON
+        // ===============================
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "Swoosh Save";
+        saveBtn.style.padding = "6px 12px";
+
+        saveBtn.addEventListener("click", () => {
+            __DBG("EVENT: Swoosh Save button CLICKED.");
+            try {
+                swooshSave();
+                __DBG("PASS: swooshSave() CALL RETURNED.");
+            } catch (e) {
+                __DBG("ERROR: swooshSave() threw: " + e.message);
+            }
+        });
+
+        btnRow.appendChild(saveBtn);
+        __DBG("PASS: Save button appended.");
+
+        // ===============================
+        // LOAD BUTTON
+        // ===============================
+        const loadBtn = document.createElement("button");
+        loadBtn.textContent = "Swoosh Load";
+        loadBtn.style.padding = "6px 12px";
+
+        loadBtn.addEventListener("click", () => {
+            __DBG("EVENT: Swoosh Load button CLICKED.");
+            try {
+                triggerSwooshLoadDialog();
+                __DBG("PASS: triggerSwooshLoadDialog() CALL RETURNED.");
+            } catch (e) {
+                __DBG("ERROR: triggerSwooshLoadDialog() threw: " + e.message);
+            }
+        });
+
+        btnRow.appendChild(loadBtn);
+        __DBG("PASS: Load button appended.");
+
+        // ===============================
+        // DOWNLOAD FULL LOG BUTTON
+        // ===============================
+        const downloadBtn = document.createElement("button");
+        downloadBtn.textContent = "Download Full Log";
+        downloadBtn.style.padding = "6px 12px";
+
+        downloadBtn.addEventListener("click", () => {
+            __DBG("EVENT: Download Full Log button CLICKED.");
+
+            try {
+                const logEl = document.getElementById("log");
+                if (!logEl) {
+                    __DBG("ERROR: #log element NOT FOUND.");
+                    alert("Log element not found — cannot download.");
+                    return;
+                }
+
+                const text = logEl.value || logEl.innerText || "";
+                __DBG("DOWNLOAD: Retrieved log text length=" + text.length);
+
+                const blob = new Blob([text], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+                const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                a.href = url;
+                a.download = `swoosh_log_${timestamp}.txt`;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                __DBG("PASS: Log download triggered.");
+            } catch (e) {
+                __DBG("ERROR: Download failed: " + e.message);
+                alert("Failed to download log: " + e.message);
+            }
+        });
+
+        btnRow.appendChild(downloadBtn);
+        __DBG("PASS: Download button appended.");
+
+        // ===============================
+        // SYNC ALL TIMERS BUTTON (NEW)
+        // ===============================
+        const syncBtn = document.createElement("button");
+        syncBtn.textContent = "Sync All Timers";
+        syncBtn.style.padding = "6px 12px";
+        syncBtn.style.opacity = "0.4";
+        syncBtn.style.pointerEvents = "none"; // disabled until swoosh loaded
+
+        syncBtn.addEventListener("click", () => {
+            __DBG("EVENT: Sync All Timers button CLICKED.");
+
+            try {
+                const engine = (typeof SpellTimerEngine !== "undefined") ? SpellTimerEngine : null;
+
+                if (!engine) {
+                    __DBG("SYNC ERROR: SpellTimerEngine not ready (global not defined).");
+                    alert("Engine not ready — cannot sync timers.");
+                    return;
+                }
+
+                // Resolve timers collection safely
+                let timersMap = null;
+
+                if (typeof timers !== "undefined") {
+                    timersMap = timers;
+                } else if (engine.timers && typeof engine.timers.forEach === "function") {
+                    timersMap = engine.timers;
+                }
+
+                if (!timersMap || typeof timersMap.forEach !== "function") {
+                    __DBG("SYNC ERROR: timers collection not available.");
+                    alert("Timers not available — nothing to sync.");
+                    return;
+                }
+
+                timersMap.forEach((t, spellId) => {
+                    __DBG("SYNC: Resetting " + spellId + " to override/computed duration.");
+                    engine.resetTimer(spellId);
+                });
+
+                __DBG("PASS: All timers synced.");
+                alert("All timers synced to overrides.");
+
+            } catch (e) {
+                __DBG("ERROR: Sync failed: " + e.message);
+                alert("Sync failed: " + e.message);
+            }
+        });
+
+        btnRow.appendChild(syncBtn);
+        __DBG("PASS: Sync button appended (initially disabled).");
+
+        panel.appendChild(btnRow);
+
+        // ===============================
+        // LOADED SWOOSH TITLE + DISPLAY
+        // ===============================
+        const listTitle = document.createElement("h4");
+        listTitle.textContent = "Loaded Swoosh:";
+        panel.appendChild(listTitle);
+
+        const swooshList = document.createElement("div");
+        swooshList.id = "swooshList";
+        swooshList.style.fontSize = "13px";
+        swooshList.style.opacity = "0.9";
+        swooshList.textContent = "None loaded.";
+        panel.appendChild(swooshList);
+
+        // ===============================
+        // HOOK INTO updateSwooshListUI
+        // ===============================
+        const oldUpdate = window.updateSwooshListUI;
+
+        window.updateSwooshListUI = function (timestamp) {
+            __DBG("HOOK: updateSwooshListUI called — enabling Sync button.");
+
+            if (typeof oldUpdate === "function") {
+                try {
+                    oldUpdate(timestamp);
+                } catch (e) {
+                    __DBG("WARNING: old updateSwooshListUI crashed early: " + e.message);
+                }
+            }
+
+            syncBtn.style.opacity = "1";
+            syncBtn.style.pointerEvents = "auto";
+        };
+
+        // ===============================
+        // APPEND PANEL TO BODY
+        // ===============================
+        document.body.appendChild(panel);
+        __DBG("PASS: swooshPanel appended to document.body.");
+        __DBG("EXIT: createSwooshPanel() COMPLETE.");
+    })();
+});
+
+__DBG("past SWOOSH PANEL (FULLY INSTRUMENTED)");  
 
 // ===============================
 // AUTO‑ENABLE CLASSES BASED ON SPELL DATA (BLOCK 3.99)
@@ -4626,6 +5444,10 @@ function formatTime(seconds) {
 
 // === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE (UPDATED WITH COOLDOWNS) ===
 const SpellTimerEngine = (function () {
+
+    // ===============================
+    // INTERNAL STATE
+    // ===============================
     const timers = new Map();      // spellId -> timerState
     const history = new Map();     // spellId -> [entries]
     const activeClasses = new Set();
@@ -4637,17 +5459,17 @@ const SpellTimerEngine = (function () {
         activeClassesChange: []
     };
 
-function captureNotes(t) {
-    const ui = t.ui;
-    if (ui?.notesArea) {
-        SpellTimerEngine.updateNotes(t.spellId, ui.notesArea.value);
-    }
-}
+    // ===============================
+    // INTERNAL HELPERS
+    // ===============================
+
     function emit(event, payload) {
         const list = listeners[event];
         if (!list) return;
         list.forEach(fn => {
-            try { fn(payload); } catch (e) { console.error("SpellTimerEngine listener error:", e); }
+            try { fn(payload); } catch (e) {
+                console.error("SpellTimerEngine listener error:", e);
+            }
         });
     }
 
@@ -4667,23 +5489,6 @@ function captureNotes(t) {
         emit("activeClassesChange", getActiveClasses());
     }
 
-    // Compute actual duration based on spell data + level
-    function computeDuration(spell, levelOverride = null) {
-        const min = spell.minDurationSeconds || 0;
-        const max = spell.maxDurationSeconds || min;
-
-        if (!spell.scalesWithLevel) return max;
-
-        const lvlMin = spell.spellLevelMin || 1;
-        const lvlMax = spell.spellLevelMax || lvlMin;
-
-        const lvl = Math.max(lvlMin, Math.min(levelOverride || lvlMax, lvlMax));
-        const pct = (lvl - lvlMin) / (lvlMax - lvlMin || 1);
-
-        return Math.round(min + pct * (max - min));
-    }
-
-    // Ensure spell has a stable ID
     function ensureSpellId(spell) {
         if (!spell) return null;
         if (!spell.id) {
@@ -4694,28 +5499,61 @@ function captureNotes(t) {
         return spell.id;
     }
 
+    function captureNotes(t) {
+        const ui = t.ui;
+        if (ui?.notesArea) {
+            updateNotes(t.spellId, ui.notesArea.value);
+        }
+    }
+
+    // ===============================
+    // CORE ENGINE FUNCTIONS
+    // ===============================
+
     function ensureTimer(spell) {
-        if (!spell) return null;
+        __DBG("ENTER: ensureTimer(" + (spell?.id || spell?.name || "UNKNOWN") + ")");
+
+        if (!spell) {
+            __DBG("ensureTimer: No spell provided — ABORT.");
+            return null;
+        }
 
         const spellId = ensureSpellId(spell);
-        if (!spellId) return null;
+        if (!spellId) {
+            __DBG("ensureTimer: Failed to resolve spellId — ABORT.");
+            return null;
+        }
 
         let t = timers.get(spellId);
+
         if (!t) {
-            const baseDur = computeDuration(spell);
+            __DBG("ensureTimer: Creating NEW timer for " + spellId);
+
+            let baseDur;
+
+            if (UserOverrides[spellId] &&
+                typeof UserOverrides[spellId].baseDuration === "number") {
+
+                baseDur = UserOverrides[spellId].baseDuration;
+                __DBG("ensureTimer: Using OVERRIDE duration for " + spellId + " => " + baseDur);
+
+            } else {
+                baseDur = SpellTimerEngine.computeDuration(spell);
+                __DBG("ensureTimer: Using COMPUTED duration for " + spellId + " => " + baseDur);
+            }
 
             t = {
                 spellId,
                 spellName: spell.name || spellId,
                 classCode: spell.class || null,
-                spell,                 // store full spell object
+                spell,
                 baseDuration: baseDur,
                 remaining: baseDur,
                 running: false,
                 startedAt: null,
                 elapsedAccum: 0,
                 notes: "",
-                levelOverride: null    // future UI support
+                levelOverride: null
             };
 
             timers.set(spellId, t);
@@ -4723,9 +5561,15 @@ function captureNotes(t) {
             if (t.classCode) {
                 activeClasses.add(t.classCode);
                 emit("activeClassesChange", getActiveClasses());
+                __DBG("ensureTimer: Added active class " + t.classCode);
             }
+
+            __DBG("ensureTimer: NEW timer created for " + spellId);
+        } else {
+            __DBG("ensureTimer: Existing timer found for " + spellId);
         }
 
+        __DBG("EXIT: ensureTimer(" + spellId + ")");
         return t;
     }
 
@@ -4751,56 +5595,60 @@ function captureNotes(t) {
         emit("timerUpdate", { type: type || "state", timer: { ...t } });
     }
 
-function startTimer(spellId) {
-    const t = timers.get(spellId);
-    if (!t || t.running) return;
+    function startTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t || t.running) return;
 
-    t.running = true;
-    t.startedAt = performance.now();
+        t.running = true;
+        t.startedAt = performance.now();
 
-    logLineWithRoster(`Started timer: ${t.spellName}`);
+        logLineWithRoster(`Started timer: ${t.spellName}`);
+        internalUpdateState(t, "state");
+    }
 
-    internalUpdateState(t, "state");
-}
+    function pauseTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t || !t.running) return;
 
+        const now = performance.now();
+        const delta = (now - t.startedAt) / 1000;
 
-function pauseTimer(spellId) {
-    const t = timers.get(spellId);
-    if (!t || !t.running) return;
+        t.elapsedAccum += delta;
+        t.startedAt = null;
+        t.running = false;
 
-    const now = performance.now();
-    const delta = (now - t.startedAt) / 1000;
+        t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
 
-    t.elapsedAccum += delta;
-    t.startedAt = null;
-    t.running = false;
+        logLineWithRoster(`Paused timer: ${t.spellName}`);
+        internalUpdateState(t, "state");
+    }
 
-    t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
+    function resetTimer(spellId) {
+        __DBG("ENTER: resetTimer(" + spellId + ")");
 
-    logLineWithRoster(`Paused timer: ${t.spellName}`);
+        const t = timers.get(spellId);
+        if (!t) {
+            __DBG("RESET: No timer found — ABORT.");
+            return;
+        }
 
-    internalUpdateState(t, "state");
-}
+        let newDur;
 
+        if (typeof t.baseDuration === "number" && t.baseDuration > 0) {
+            newDur = t.baseDuration;
+        } else {
+            newDur = SpellTimerEngine.computeDuration(t.spell, t.levelOverride);
+        }
 
-function resetTimer(spellId) {
-    const t = timers.get(spellId);
-    if (!t) return;
+        t.baseDuration = newDur;
+        t.remaining = newDur;
+        t.running = false;
+        t.startedAt = null;
+        t.elapsedAccum = 0;
 
-    const newDur = computeDuration(t.spell, t.levelOverride);
-
-    t.baseDuration = newDur;
-    t.remaining = newDur;
-    t.running = false;
-    t.startedAt = null;
-    t.elapsedAccum = 0;
-
-    // ⭐ DO NOT clear t.notes — preserve user notes
-
-    internalUpdateState(t, "reset");
-}
-
-
+        internalUpdateState(t, "reset");
+        __DBG("EXIT: resetTimer(" + spellId + ")");
+    }
 
     function finalizeElapsed(t) {
         if (t.running) {
@@ -4818,51 +5666,44 @@ function resetTimer(spellId) {
         t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
     }
 
-function completeTimer(spellId) {
-    const t = timers.get(spellId);
-    if (!t) return;
+    function completeTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t) return;
 
-    // ⭐ Capture notes exactly like Save Notes button
-    captureNotes(t);
+        captureNotes(t);
+        finalizeElapsed(t);
 
-    finalizeElapsed(t);
-    const actual = t.elapsedAccum || t.baseDuration || 0;
+        const actual = t.elapsedAccum || t.baseDuration || 0;
 
-    logLineWithRoster(`Completed: ${t.spellName} (Duration: ${formatTime(actual)})`);
-    logHistory(spellId, "Completed", actual, t.notes);
+        logLineWithRoster(`Completed: ${t.spellName} (Duration: ${formatTime(actual)})`);
+        logHistory(spellId, "Completed", actual, t.notes);
 
-    resetTimer(spellId);
-}
+        resetTimer(spellId);
+    }
 
+    function fadeEarlyTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t) return;
 
-function fadeEarlyTimer(spellId) {
-    const t = timers.get(spellId);
-    if (!t) return;
+        captureNotes(t);
+        finalizeElapsed(t);
 
-    // ⭐ Capture notes exactly like Save Notes button
-    captureNotes(t);
+        const actual = t.elapsedAccum || 0;
 
-    finalizeElapsed(t);
-    const actual = t.elapsedAccum || 0;
+        logLineWithRoster(`Faded Early: ${t.spellName} (Duration: ${formatTime(actual)})`);
+        logHistory(spellId, "Faded Early", actual, t.notes);
 
-    logLineWithRoster(`Faded Early: ${t.spellName} (Duration: ${formatTime(actual)})`);
-    logHistory(spellId, "Faded Early", actual, t.notes);
+        resetTimer(spellId);
+    }
 
-    resetTimer(spellId);
-}
+    function updateNotes(spellId, notes) {
+        const t = timers.get(spellId);
+        if (!t) return;
 
-function updateNotes(spellId, notes) {
-    const t = timers.get(spellId);
-    if (!t) return;
-
-    t.notes = notes || "";
-
-    // ⭐ Log to Session Log
-    logLineWithRoster(`Notes updated for ${t.spellName}: "${t.notes}"`);
-
-    internalUpdateState(t, "notes");
-}
-
+        t.notes = notes || "";
+        logLineWithRoster(`Notes updated for ${t.spellName}: "${t.notes}"`);
+        internalUpdateState(t, "notes");
+    }
 
     function logHistory(spellId, result, durationSeconds, notes) {
         if (!history.has(spellId)) history.set(spellId, []);
@@ -4902,7 +5743,6 @@ function updateNotes(spellId, notes) {
         listeners[eventName].push(handler);
     }
 
-    // --- NEW: spawn cooldown timer for disciplines with reuseSeconds ---
     function spawnCooldownTimer(t) {
         const reuse = t.spell && t.spell.reuseSeconds;
         if (!reuse) return;
@@ -4921,16 +5761,15 @@ function updateNotes(spellId, notes) {
             startTimer(cdSpell.id);
         }
     }
-
-// MAIN TICK LOOP
-// MAIN TICK LOOP
+// ===============================
+// TICK LOOP
+// ===============================
 function tickLoop() {
     const now = performance.now();
 
     timers.forEach(t => {
         if (!t.running) return;
 
-        // Compute elapsed + remaining
         const elapsed = t.elapsedAccum + (now - t.startedAt) / 1000;
         t.elapsed = elapsed;
 
@@ -4940,41 +5779,20 @@ function tickLoop() {
         const done = remaining <= 0.01;
 
         if (done) {
-
-            // Stop timer
             t.running = false;
             t.startedAt = null;
             t.elapsedAccum = t.baseDuration;
 
-            // ⭐ CAPTURE NOTES BEFORE AUTO-COMPLETE (same as Save Notes button)
             captureNotes(t);
 
-            // ⭐ AUTO-START COOLDOWN IF LINKED
             if (t.cooldownId) {
-                logLineWithRoster(`Cooldown started for ${t.spellName}`);
-
-                const cdBox = TimerUIMap.get(t.cooldownId);
-                if (cdBox) cdBox.style.display = "block";
-
-                const cdClone = CloneUIMap.get(t.cooldownId);
-                if (cdClone) cdClone.style.display = "block";
-
                 SpellTimerEngine.startTimer(t.cooldownId);
             }
 
-            // ⭐ Log auto-complete to Session Log
-            logLineWithRoster(
-                `Completed: ${t.spellName} (Duration: ${formatTime(t.baseDuration)})`
-            );
-
-            // ⭐ Update per-spell history table WITH NOTES
             logHistory(t.spellId, "Completed", t.baseDuration, t.notes);
-
-            // Notify UI
             internalUpdateState(t, "auto-complete");
 
         } else {
-            // Normal tick update
             internalUpdateState(t, "tick");
         }
     });
@@ -4982,29 +5800,52 @@ function tickLoop() {
     requestAnimationFrame(tickLoop);
 }
 
+    // ⭐ THIS MUST BE INDENTED — INSIDE THE IIFE
+    requestAnimationFrame(tickLoop);
 
-// START LOOP
-requestAnimationFrame(tickLoop);
+    // ⭐ computeDuration MUST ALSO BE INSIDE THE IIFE
+    function computeDuration(spell, levelOverride = null) {
+        const min = spell.minDurationSeconds || 0;
+        const max = spell.maxDurationSeconds || min;
 
-return {
-    createTimer,
-    removeTimer,
-    startTimer,
-    pauseTimer,
-    resetTimer,
-    completeTimer,
-    fadeEarlyTimer,
-    updateNotes,
-    logHistory,
-    getHistory,
-    getAverageDuration,
-    getActiveClasses,
-    on,
-    computeDuration
-};
-})();
+        if (!spell.scalesWithLevel) return max;
+
+        const lvlMin = spell.spellLevelMin || 1;
+        const lvlMax = spell.spellLevelMax || lvlMin;
+
+        const lvl = Math.max(lvlMin, Math.min(levelOverride || lvlMax, lvlMax));
+        const pct = (lvl - lvlMin) / (lvlMax - lvlMin || 1);
+
+        return Math.round(min + pct * (max - min));
+    }
+
+    return {
+        timers,
+        history,
+        activeClasses,
+        listeners,
+        createTimer,
+        removeTimer,
+        startTimer,
+        pauseTimer,
+        resetTimer,
+        completeTimer,
+        fadeEarlyTimer,
+        updateNotes,
+        logHistory,
+        getHistory,
+        getAverageDuration,
+        getActiveClasses,
+        on,
+        computeDuration
+    };
+
+})();  // END OF ENGINE
 
 
+
+
+__DBG("past MAIN TICK LOOP ()999");
 
 // ===============================
 // SPELL TIMER SYSTEM: BLOCK #6 ()— UI BUILDER (UPDATED)
@@ -5053,11 +5894,33 @@ function createSpellTimerUI(spell, parentContainerId) {
         cloneContainer.appendChild(cloneBox);
     }
 }
-
 function buildTimerBoxClone(spell, t) {
+    __DBG("ENTER: buildTimerBoxClone(" + spell.id + ")");
+
     const box = document.createElement("div");
     box.className = "section";
     box.style.marginTop = "6px";
+
+    // ===============================
+    // Save & Update button (SPELL TIMERS)
+    // ===============================
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save & Update";
+    saveBtn.style.marginBottom = "6px";
+
+    saveBtn.addEventListener("click", () => {
+        __DBG("EVENT: Save & Update clicked for spell timer: " + spell.id);
+
+        // Spell timers do not have editable duration/label/notes fields,
+        // so we pass nulls. The handler will update internal timer state + swoosh.
+        saveAndUpdateTimer(t, {
+            durationInput: null,
+            labelInput: null,
+            notesInput: null
+        });
+    });
+
+    box.appendChild(saveBtn);
 
     // ===============================
     // Title
@@ -5066,6 +5929,22 @@ function buildTimerBoxClone(spell, t) {
     title.className = "section-title";
     title.textContent = spell.name;
     box.appendChild(title);
+
+    // ===============================
+    // Duration Display (NEW — shows override!)
+    // ===============================
+    const durRow = document.createElement("div");
+    durRow.style.fontSize = "12px";
+    durRow.style.color = "#ccc";
+    durRow.style.marginBottom = "6px";
+
+    // Always show the REAL duration: the override if present
+    const effectiveDuration = t.baseDuration || SpellTimerEngine.computeDuration(spell);
+    durRow.textContent = "Duration (sec): " + effectiveDuration;
+
+    __DBG("CLONE UI: Duration display for " + spell.id + " = " + effectiveDuration);
+
+    box.appendChild(durRow);
 
     // ===============================
     // Progress Bar
@@ -5086,7 +5965,7 @@ function buildTimerBoxClone(spell, t) {
     box.appendChild(progOuter);
 
     // ===============================
-    // Time Labels (NEW)
+    // Time Labels
     // ===============================
     const timeElapsed = document.createElement("div");
     timeElapsed.style.fontSize = "12px";
@@ -5113,7 +5992,7 @@ function buildTimerBoxClone(spell, t) {
     btnRow.appendChild(makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)));
     btnRow.appendChild(makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)));
 
-    // ⭐ ONLY create cooldown button if this spell has a reuse timer
+    // Cooldown button
     if (spell.reuseSeconds) {
         const btnStartCooldown = makeBtn("Start Cooldown Reuse Timer Now", () => {
             if (t.cooldownId) {
@@ -5143,21 +6022,23 @@ function buildTimerBoxClone(spell, t) {
     // ===============================
     // Store UI refs for updates
     // ===============================
-box._ui = {
-    progFill,
-    timeElapsed,
-    timeRemaining,
-    notesArea: null,
-};
+    box._ui = {
+        progFill,
+        timeElapsed,
+        timeRemaining,
+        notesArea: null,
+        durationRow: durRow   // NEW — so live updates can refresh duration
+    };
 
-t.cloneUi = box._ui;   // ⭐ NEW
+    t.cloneUi = box._ui;
 
-return box;
-
+    __DBG("EXIT: buildTimerBoxClone(" + spell.id + ")");
+    return box;
 }
 
 
 
+__DBG("past block 6 ()999666");
 
 // PUBLIC: Remove timer UI
 function removeSpellTimerUI(spellId) {
@@ -5172,9 +6053,30 @@ function removeSpellTimerUI(spellId) {
     cleanupEmptyClassSections();
 }
 function buildTimerBox(spell, t) {
+    __DBG("ENTER: buildTimerBox(" + spell.id + ")");
+
     const box = document.createElement("div");
     box.className = "section";
     box.style.marginTop = "6px";
+
+    // ===============================
+    // Save & Update button
+    // ===============================
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save & Update";
+    saveBtn.style.marginBottom = "6px";
+
+    saveBtn.addEventListener("click", () => {
+        __DBG("EVENT: Save & Update clicked for spell timer: " + spell.id);
+
+        saveAndUpdateTimer(t, {
+            durationInput: null,
+            labelInput: null,
+            notesInput: null
+        });
+    });
+
+    box.appendChild(saveBtn);
 
     // ===============================
     // Title
@@ -5185,7 +6087,7 @@ function buildTimerBox(spell, t) {
     box.appendChild(title);
 
     // ===============================
-    // Duration Row
+    // Duration Row (OVERRIDE-AWARE)
     // ===============================
     const durRow = document.createElement("div");
     durRow.style.marginBottom = "6px";
@@ -5197,12 +6099,32 @@ function buildTimerBox(spell, t) {
     const durInput = document.createElement("input");
     durInput.type = "number";
     durInput.style.width = "70px";
-    durInput.value = SpellTimerEngine.computeDuration(spell);
+
+    // Use override if present
+    const effectiveDuration =
+        t.baseDuration ||
+        (UserOverrides[spell.id]?.baseDuration) ||
+        SpellTimerEngine.computeDuration(spell);
+
+    durInput.value = effectiveDuration;
+
+    __DBG("UI: Duration input for " + spell.id + " = " + effectiveDuration);
 
     durInput.addEventListener("change", () => {
         const newVal = Number(durInput.value) || 0;
+
+        __DBG("EVENT: Duration changed for " + spell.id + " => " + newVal);
+
+        // Update timer object
         t.baseDuration = newVal;
         t.remaining = newVal;
+
+        // Persist override
+        if (!UserOverrides[spell.id]) UserOverrides[spell.id] = {};
+        UserOverrides[spell.id].baseDuration = newVal;
+
+        __DBG("OVERRIDE STORED: UserOverrides[" + spell.id + "].baseDuration=" + newVal);
+
         SpellTimerEngine.resetTimer(spell.id);
     });
 
@@ -5249,15 +6171,36 @@ function buildTimerBox(spell, t) {
     // ===============================
     const btnRow = document.createElement("div");
 
-    btnRow.appendChild(makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id)));
-    btnRow.appendChild(makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id)));
-    btnRow.appendChild(makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id)));
-    btnRow.appendChild(makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)));
-    btnRow.appendChild(makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Start", () => {
+        __DBG("BTN: Start pressed for " + spell.id);
+        SpellTimerEngine.startTimer(spell.id);
+    }));
 
-    // Cooldown button (only for disciplines)
+    btnRow.appendChild(makeBtn("Pause", () => {
+        __DBG("BTN: Pause pressed for " + spell.id);
+        SpellTimerEngine.pauseTimer(spell.id);
+    }));
+
+    btnRow.appendChild(makeBtn("Reset", () => {
+        __DBG("BTN: Reset pressed for " + spell.id);
+        SpellTimerEngine.resetTimer(spell.id);
+    }));
+
+    btnRow.appendChild(makeBtn("Completed", () => {
+        __DBG("BTN: Completed pressed for " + spell.id);
+        SpellTimerEngine.completeTimer(spell.id);
+    }));
+
+    btnRow.appendChild(makeBtn("Faded Early", () => {
+        __DBG("BTN: Faded Early pressed for " + spell.id);
+        SpellTimerEngine.fadeEarlyTimer(spell.id);
+    }));
+
+    // Cooldown button
     if (spell.reuseSeconds) {
         const btnStartCooldown = makeBtn("Start Cooldown Reuse Timer Now", () => {
+            __DBG("BTN: Start Cooldown pressed for " + spell.id);
+
             if (t.cooldownId) {
                 const cdBox = TimerUIMap.get(t.cooldownId);
                 if (cdBox) cdBox.style.display = "block";
@@ -5275,6 +6218,7 @@ function buildTimerBox(spell, t) {
 
     // Info button
     btnRow.appendChild(makeBtn("Info", () => {
+        __DBG("BTN: Info pressed for " + spell.id);
         alert(
             `${spell.name}\n\n` +
             `${spell.description || "No description available."}\n\n` +
@@ -5284,6 +6228,7 @@ function buildTimerBox(spell, t) {
 
     // Show in Top Panel
     btnRow.appendChild(makeBtn("Show Top", () => {
+        __DBG("BTN: Show Top pressed for " + spell.id);
         const cloneBox = CloneUIMap.get(spell.id);
         if (cloneBox) cloneBox.style.display = "block";
     }));
@@ -5291,7 +6236,7 @@ function buildTimerBox(spell, t) {
     box.appendChild(btnRow);
 
     // ===============================
-    // Notes (with Save Notes button)
+    // Notes
     // ===============================
     const notesLabel = document.createElement("div");
     notesLabel.textContent = "Notes:";
@@ -5303,8 +6248,8 @@ function buildTimerBox(spell, t) {
     notesArea.value = t.notes || "";
     box.appendChild(notesArea);
 
-    // ⭐ NEW: Save Notes button
     const saveNotesBtn = makeBtn("Save Notes", () => {
+        __DBG("BTN: Save Notes pressed for " + spell.id);
         SpellTimerEngine.updateNotes(spell.id, notesArea.value);
     });
     saveNotesBtn.style.marginTop = "4px";
@@ -5339,34 +6284,43 @@ function buildTimerBox(spell, t) {
     // ===============================
     // Store UI references
     // ===============================
-box._ui = {
-    progFill,
-    timeElapsed,
-    timeRemaining,
-    notesArea,
-    histBody: htbody
-};
+    box._ui = {
+        progFill,
+        timeElapsed,
+        timeRemaining,
+        notesArea,
+        histBody: htbody,
+        durationInput: durInput
+    };
 
-t.ui = box._ui;   // NEW
+    t.ui = box._ui;
 
-return box;
-
+    __DBG("EXIT: buildTimerBox(" + spell.id + ")");
+    return box;
 }
 
 
 
+__DBG("function buildTimerBox ()999777666");
+
 function createDualTimerUI(spell) {
+    __DBG("ENTER: createDualTimerUI(" + spell.id + ")");
+
     const classSection = ensureClassSection(spell.class);
 
-    // --- MAIN TIMER ---
+    // ============================================================
+    // MAIN TIMER
+    // ============================================================
+    __DBG("DUAL: Creating MAIN timer for " + spell.id);
     const mainTimer = SpellTimerEngine.createTimer(spell);
 
-    // Build main timer UI
     const mainBox = buildTimerBox(spell, mainTimer);
     classSection.appendChild(mainBox);
     TimerUIMap.set(spell.id, mainBox);
 
-    // --- COOLDOWN TIMER SPELL OBJECT ---
+    // ============================================================
+    // COOLDOWN SPELL OBJECT
+    // ============================================================
     const cdSpell = {
         id: spell.id + "_CD",
         name: spell.name + " — Cooldown",
@@ -5376,6 +6330,11 @@ function createDualTimerUI(spell) {
         scalesWithLevel: false
     };
 
+    __DBG("DUAL: Creating COOLDOWN timer for " + cdSpell.id);
+
+    // ============================================================
+    // COOLDOWN TIMER (override-aware via ensureTimer + computeDuration)
+    // ============================================================
     const cdTimer = SpellTimerEngine.createTimer(cdSpell);
 
     // Build cooldown UI
@@ -5384,23 +6343,32 @@ function createDualTimerUI(spell) {
     classSection.appendChild(cdBox);
     TimerUIMap.set(cdSpell.id, cdBox);
 
-    // --- LINK THEM ---
+    // ============================================================
+    // LINK MAIN → COOLDOWN
+    // ============================================================
     mainTimer.cooldownId = cdSpell.id;
+    __DBG("DUAL: Linked " + spell.id + " → cooldown " + cdSpell.id);
 
-    // --- CLONE PANEL ---
+    // ============================================================
+    // CLONE PANEL
+    // ============================================================
     const cloneContainer = document.getElementById("spellTimerPanelContainer_clone");
 
+    __DBG("DUAL: Creating MAIN clone for " + spell.id);
     const mainClone = buildTimerBoxClone(spell, mainTimer);
     CloneUIMap.set(spell.id, mainClone);
     if (cloneContainer) cloneContainer.appendChild(mainClone);
 
+    __DBG("DUAL: Creating COOLDOWN clone for " + cdSpell.id);
     const cdClone = buildTimerBoxClone(cdSpell, cdTimer);
     cdClone.style.display = "none";
     CloneUIMap.set(cdSpell.id, cdClone);
     if (cloneContainer) cloneContainer.appendChild(cdClone);
 
+    __DBG("EXIT: createDualTimerUI(" + spell.id + ")");
     return mainBox;
 }
+
 
 // flash tracker
 
@@ -5467,7 +6435,7 @@ function cleanupEmptyClassSections() {
         }
     });
 }
-
+__DBG("Remove empty class sections ()999888666");
 // ENGINE EVENT LISTENERS
 SpellTimerEngine.on("timerUpdate", payload => {
     const t = payload.timer;
@@ -5518,7 +6486,7 @@ SpellTimerEngine.on("timerUpdate", payload => {
     });
 });   // ⭐ THIS WAS MISSING
 
-
+__DBG("PAST  ENGINE EVENT LISTENERS ()9990011");
 // Update history
 SpellTimerEngine.on("historyUpdate", payload => {
     const { spellId, entry } = payload;
@@ -5606,7 +6574,7 @@ SpellTimerEngine.on("historyUpdate", payload => {
     });
 
 })();
-
+__DBG("PAST SPELL TIMER SYSTEM: BLOCK #7  ()1119990011");
 <!-- === SPELL TIMER SYSTEM: BLOCK #8 — TOP CLONED PANEL SYSTEM === -->
 
 // ===============================
@@ -5684,6 +6652,72 @@ SpellTimerEngine.on("historyUpdate", payload => {
     }
 
 })();
+__DBG("PAST TOP CLONED PANEL SYSTEM   ()111110011");
+// ===============================
+// INSTRUMENT ALL FUNCTIONS
+// ===============================
+setTimeout(() => {
+    instrumentAllFunctions(window);
+    console.log("Function instrumentation complete.");
+}, 0);
+
+
+//
+function saveAndUpdateTimer(timerObj, dom) {
+    __DBG("ENTER: saveAndUpdateTimer()");
+
+    // ===============================
+    // Read DOM inputs safely
+    // ===============================
+    const newDuration = dom.durationInput
+        ? Number(dom.durationInput.value) || timerObj.baseDuration || timerObj.durationSeconds || 0
+        : (timerObj.baseDuration || timerObj.durationSeconds || 0);
+
+    const newLabel = dom.labelInput
+        ? dom.labelInput.value
+        : (timerObj.label || "");
+
+    const newNotes = dom.notesInput
+        ? dom.notesInput.value
+        : (timerObj.notes || "");
+
+    __DBG("READ: newDuration=" + newDuration + ", newLabel=" + newLabel);
+
+    // ===============================
+    // Update timer object
+    // ===============================
+    timerObj.baseDuration = newDuration;
+    timerObj.remaining = newDuration;
+    timerObj.label = newLabel;
+    timerObj.notes = newNotes;
+    timerObj.startTimestamp = Date.now();
+
+    // ===============================
+    // Persist override for swoosh
+    // ===============================
+    const spellId = timerObj.spellId || timerObj.id;
+
+    if (spellId) {
+        if (!UserOverrides[spellId]) {
+            UserOverrides[spellId] = {};
+        }
+        UserOverrides[spellId].baseDuration = newDuration;
+
+        __DBG("OVERRIDE STORED: UserOverrides[" + spellId + "].baseDuration=" + newDuration);
+    } else {
+        __DBG("WARN: saveAndUpdateTimer() — no spellId on timerObj, cannot persist override.");
+    }
+
+    // ===============================
+    // Log + Save
+    // ===============================
+    logLine(`Timer updated: ${timerObj.label || spellId} → ${newDuration} sec`);
+    swooshSave();
+
+    __DBG("EXIT: saveAndUpdateTimer()");
+}
+
+
 
 
 // ===============================
@@ -5699,7 +6733,7 @@ window.addEventListener("beforeunload", function (e) {
 });
 
 
-
+__DBG("PAST end to script end 0101337");
 </script>
 
 </body>
