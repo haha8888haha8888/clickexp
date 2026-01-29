@@ -74,16 +74,18 @@
             font-size: 12px;
             top: 2px;
         }
-        #log {
-            background-color: #000;
-            color: #0f0;
-            font-family: "Courier New", monospace;
-            font-size: 11px;
-            height: 220px;
-            overflow-y: auto;
-            padding: 5px;
-            border: 1px solid #555;
-        }
+#log {
+    background-color: #000;
+    color: #0f0;
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    height: 220px;
+    overflow-y: auto;
+    padding: 5px;
+    border: 1px solid #555;
+    white-space: pre-line;
+}
+
         .timer-display {
             font-size: 16px;
             font-weight: bold;
@@ -150,6 +152,16 @@
         .timer-restart-buttons {
             margin-top: 5px;
         }
+.button-flash {
+    animation: flashPulse 120ms ease-out;
+}
+
+@keyframes flashPulse {
+    0%   { transform: scale(1);     filter: brightness(1); }
+    50%  { transform: scale(0.96);  filter: brightness(1.4); }
+    100% { transform: scale(1);     filter: brightness(1); }
+}
+
     </style>
 </head>
 <body>
@@ -3407,6 +3419,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 30,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "+3 to +10 all resists depending on level.",
         description: "Grants resistance to all magic types."
     },
@@ -3421,6 +3434,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 40,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Immunity to fear.",
         description: "Grants immunity to fear effects."
     },
@@ -3435,6 +3449,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 53,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Ripostes every incoming blow.",
         description: "Perfectly times counterattacks, riposting all incoming hits."
     },
@@ -3449,6 +3464,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Greatly increases hit rate.",
         description: "Focuses vision to vastly increase hit accuracy."
     },
@@ -3463,6 +3479,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 55,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Avoids most attacks.",
         description: "Increases combat reflexes, avoiding most melee attacks."
     },
@@ -3477,6 +3494,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 57,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Dual wield + double attack every round.",
         description: "Increases combat sense, enabling dual wield and double attack each round."
     },
@@ -3491,6 +3509,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 58,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Increases attack speed.",
         description: "Focuses energy into arms, increasing attack speed."
     },
@@ -3505,6 +3524,7 @@ window.SpellData_ROG = [
         scalesWithLevel: false,
         spellLevelMin: 59,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "100% melee damage increase.",
         description: "Doubles all melee damage for the duration."
     }
@@ -3580,6 +3600,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 30,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "+20 all resists.",
         description: "Grants +20 to all resistances."
     },
@@ -3594,6 +3615,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 40,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Immunity to fear.",
         description: "Grants immunity to fear effects."
     },
@@ -3608,6 +3630,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 52,
         spellLevelMax: 60,
+	reuseSeconds: 420,
         notes: "50% increased avoidance.",
         description: "Increases chance to avoid attacks by 50%."
     },
@@ -3622,6 +3645,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 53,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Increases hit chance.",
         description: "Increases accuracy of all melee attacks."
     },
@@ -3636,6 +3660,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "All attacks crit.",
         description: "Causes every melee attack to land as a critical hit."
     },
@@ -3650,6 +3675,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 55,
         spellLevelMax: 60,
+	reuseSeconds: 600,
         notes: "Reduces DI by 50%.",
         description: "Reduces incoming damage interval by 50%."
     },
@@ -3664,6 +3690,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 56,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Ripostes all attacks.",
         description: "Ripostes every incoming blow."
     },
@@ -3678,6 +3705,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 57,
         spellLevelMax: 60,
+	reuseSeconds: 1620,
         notes: "Increases hit rate.",
         description: "Increases hit rate significantly."
     },
@@ -3692,6 +3720,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 58,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Increases melee damage.",
         description: "Increases melee damage output."
     },
@@ -3706,6 +3735,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 59,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Increases avoidance.",
         description: "Increases chance to evade attacks."
     },
@@ -3720,6 +3750,7 @@ window.SpellData_WAR = [
         scalesWithLevel: false,
         spellLevelMin: 60,
         spellLevelMax: 60,
+	reuseSeconds: 1620,
         notes: "+30% damage, take more damage.",
         description: "Increases damage output by 30% but increases damage taken."
     }
@@ -3795,6 +3826,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 30,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "+3 to +10 all resists.",
         description: "Grants resistance to all magic types."
     },
@@ -3809,6 +3841,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 40,
         spellLevelMax: 60,
+	reuseSeconds: 2400,
         notes: "Immunity to fear.",
         description: "Grants immunity to fear effects."
     },
@@ -3823,6 +3856,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 51,
         spellLevelMax: 60,
+	reuseSeconds: 240,
         notes: "60% melee damage reduction.",
         description: "Greatly decreases melee damage taken."
     },
@@ -3837,6 +3871,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 52,
         spellLevelMax: 60,
+	reuseSeconds: 240,
         notes: "Empowers next Flying Kick.",
         description: "Focuses energy into feet for a powerful Flying Kick."
     },
@@ -3851,6 +3886,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 53,
         spellLevelMax: 60,
+	reuseSeconds: 3180,
         notes: "Ripostes all attacks.",
         description: "Ripostes every attack from the front."
     },
@@ -3865,6 +3901,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 3240,
         notes: "Avoids all melee attacks.",
         description: "Allows avoidance of all melee attacks from any angle."
     },
@@ -3879,6 +3916,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 56,
         spellLevelMax: 60,
+	reuseSeconds: 1560,
         notes: "100% melee damage increase.",
         description: "Greatly increases melee damage output."
     },
@@ -3893,6 +3931,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 57,
         spellLevelMax: 60,
+	reuseSeconds: 1800,
         notes: "Increased attack speed.",
         description: "Increases attack rate and damage."
     },
@@ -3907,6 +3946,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 59,
         spellLevelMax: 60,
+	reuseSeconds: 480,
         notes: "Empowers next Dragon Punch.",
         description: "Focuses rage into hands for a powerful Dragon Punch."
     },
@@ -3921,6 +3961,7 @@ window.SpellData_MNK = [
         scalesWithLevel: false,
         spellLevelMin: 60,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "Empowers next Eagle Strike.",
         description: "Focuses energy into hands for a powerful Eagle Strike."
     }
@@ -4004,6 +4045,7 @@ window.SpellData_RNG = [
         scalesWithLevel: false,
         spellLevelMin: 51,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "+10 all resists.",
         description: "Increases all resistances by 10."
     },
@@ -4018,6 +4060,7 @@ window.SpellData_RNG = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Immunity to fear.",
         description: "Grants immunity to fear effects."
     },
@@ -4032,6 +4075,7 @@ window.SpellData_RNG = [
         scalesWithLevel: false,
         spellLevelMin: 55,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "+105% bow damage, +accuracy.",
         description: "Imbues bow with energy, increasing damage and accuracy."
     },
@@ -4046,6 +4090,7 @@ window.SpellData_RNG = [
         scalesWithLevel: false,
         spellLevelMin: 60,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "Parry all frontal melee attacks.",
         description: "Allows parrying of all melee attacks from the front."
     }
@@ -4125,6 +4170,7 @@ window.SpellData_SHD = [
         scalesWithLevel: false,
         spellLevelMin: 51,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "+10 all resists.",
         description: "Increases all resistances by 10."
     },
@@ -4139,6 +4185,7 @@ window.SpellData_SHD = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Immunity to fear.",
         description: "Grants immunity to fear effects."
     },
@@ -4153,6 +4200,7 @@ window.SpellData_SHD = [
         scalesWithLevel: false,
         spellLevelMin: 55,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "+50% Harm Touch damage, nearly unresistable.",
         description: "Empowers Harm Touch with increased damage and resist adjust."
     },
@@ -4167,6 +4215,7 @@ window.SpellData_SHD = [
         scalesWithLevel: false,
         spellLevelMin: 60,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "Heal for every melee hit.",
         description: "Converts melee damage dealt into healing."
     }
@@ -4242,6 +4291,7 @@ window.SpellData_PAL = [
         scalesWithLevel: false,
         spellLevelMin: 51,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "+10 all resists.",
         description: "Increases all resistances by 10."
     },
@@ -4256,6 +4306,7 @@ window.SpellData_PAL = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Immunity to fear.",
         description: "Grants immunity to fear effects."
     },
@@ -4270,6 +4321,7 @@ window.SpellData_PAL = [
         scalesWithLevel: false,
         spellLevelMin: 55,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "Crits vs all, crippling vs undead.",
         description: "Increases critical hit chance and crippling blows vs undead."
     },
@@ -4284,6 +4336,7 @@ window.SpellData_PAL = [
         scalesWithLevel: false,
         spellLevelMin: 60,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "100% spell resist.",
         description: "Resists all spells that are not unresistable."
     }
@@ -4359,6 +4412,7 @@ window.SpellData_BRD = [
         scalesWithLevel: false,
         spellLevelMin: 51,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "+10 all resists. Bard must stop singing before activating.",
         description: "Increases all resistances by 10. Cancels if songs are active."
     },
@@ -4373,6 +4427,7 @@ window.SpellData_BRD = [
         scalesWithLevel: false,
         spellLevelMin: 54,
         spellLevelMax: 60,
+	reuseSeconds: 3600,
         notes: "Immunity to fear. Bard must stop singing before activating.",
         description: "Grants immunity to fear effects. Cancels if songs are active."
     },
@@ -4387,6 +4442,7 @@ window.SpellData_BRD = [
         scalesWithLevel: false,
         spellLevelMin: 55,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "Auto-dodge frontal attacks + auto dual-wield. Bard must stop singing.",
         description: "Allows automatic dodging of frontal attacks and auto dual-wield."
     },
@@ -4401,6 +4457,7 @@ window.SpellData_BRD = [
         scalesWithLevel: false,
         spellLevelMin: 60,
         spellLevelMax: 60,
+	reuseSeconds: 4320,
         notes: "Acts as best instrument of every type (28 mod). Works on singing mod.",
         description: "Makes all songs behave as if using the best instrument of each type."
     }
@@ -4551,10 +4608,23 @@ document.addEventListener("SpellClassSelectionChanged", (e) => {
     });
 });
 
+// notes push
 
-<!-- === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE === -->
-<!-- === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE === -->
-// === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE (UPDATED) ===
+
+function formatTime(seconds) {
+    seconds = Math.max(0, Math.floor(seconds));
+
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+
+    if (h > 0) {
+        return `${h}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+    }
+    return `${m}:${s.toString().padStart(2,"0")}`;
+}
+
+// === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE (UPDATED WITH COOLDOWNS) ===
 const SpellTimerEngine = (function () {
     const timers = new Map();      // spellId -> timerState
     const history = new Map();     // spellId -> [entries]
@@ -4567,6 +4637,12 @@ const SpellTimerEngine = (function () {
         activeClassesChange: []
     };
 
+function captureNotes(t) {
+    const ui = t.ui;
+    if (ui?.notesArea) {
+        SpellTimerEngine.updateNotes(t.spellId, ui.notesArea.value);
+    }
+}
     function emit(event, payload) {
         const list = listeners[event];
         if (!list) return;
@@ -4675,43 +4751,56 @@ const SpellTimerEngine = (function () {
         emit("timerUpdate", { type: type || "state", timer: { ...t } });
     }
 
-    function startTimer(spellId) {
-        const t = timers.get(spellId);
-        if (!t || t.running) return;
-        t.running = true;
-        t.startedAt = performance.now();
-        internalUpdateState(t, "state");
-    }
+function startTimer(spellId) {
+    const t = timers.get(spellId);
+    if (!t || t.running) return;
 
-    function pauseTimer(spellId) {
-        const t = timers.get(spellId);
-        if (!t || !t.running) return;
+    t.running = true;
+    t.startedAt = performance.now();
 
-        const now = performance.now();
-        const delta = (now - t.startedAt) / 1000;
+    logLineWithRoster(`Started timer: ${t.spellName}`);
 
-        t.elapsedAccum += delta;
-        t.startedAt = null;
-        t.running = false;
+    internalUpdateState(t, "state");
+}
 
-        t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
-        internalUpdateState(t, "state");
-    }
 
-    function resetTimer(spellId) {
-        const t = timers.get(spellId);
-        if (!t) return;
+function pauseTimer(spellId) {
+    const t = timers.get(spellId);
+    if (!t || !t.running) return;
 
-        const newDur = computeDuration(t.spell, t.levelOverride);
+    const now = performance.now();
+    const delta = (now - t.startedAt) / 1000;
 
-        t.baseDuration = newDur;
-        t.remaining = newDur;
-        t.running = false;
-        t.startedAt = null;
-        t.elapsedAccum = 0;
+    t.elapsedAccum += delta;
+    t.startedAt = null;
+    t.running = false;
 
-        internalUpdateState(t, "reset");
-    }
+    t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
+
+    logLineWithRoster(`Paused timer: ${t.spellName}`);
+
+    internalUpdateState(t, "state");
+}
+
+
+function resetTimer(spellId) {
+    const t = timers.get(spellId);
+    if (!t) return;
+
+    const newDur = computeDuration(t.spell, t.levelOverride);
+
+    t.baseDuration = newDur;
+    t.remaining = newDur;
+    t.running = false;
+    t.startedAt = null;
+    t.elapsedAccum = 0;
+
+    // ⭐ DO NOT clear t.notes — preserve user notes
+
+    internalUpdateState(t, "reset");
+}
+
+
 
     function finalizeElapsed(t) {
         if (t.running) {
@@ -4729,34 +4818,51 @@ const SpellTimerEngine = (function () {
         t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
     }
 
-    function completeTimer(spellId) {
-        const t = timers.get(spellId);
-        if (!t) return;
+function completeTimer(spellId) {
+    const t = timers.get(spellId);
+    if (!t) return;
 
-        finalizeElapsed(t);
-        const actual = t.elapsedAccum || t.baseDuration || 0;
+    // ⭐ Capture notes exactly like Save Notes button
+    captureNotes(t);
 
-        logHistory(spellId, "Completed", actual, t.notes);
-        resetTimer(spellId);
-    }
+    finalizeElapsed(t);
+    const actual = t.elapsedAccum || t.baseDuration || 0;
 
-    function fadeEarlyTimer(spellId) {
-        const t = timers.get(spellId);
-        if (!t) return;
+    logLineWithRoster(`Completed: ${t.spellName} (Duration: ${formatTime(actual)})`);
+    logHistory(spellId, "Completed", actual, t.notes);
 
-        finalizeElapsed(t);
-        const actual = t.elapsedAccum || 0;
+    resetTimer(spellId);
+}
 
-        logHistory(spellId, "Faded Early", actual, t.notes);
-        resetTimer(spellId);
-    }
 
-    function updateNotes(spellId, notes) {
-        const t = timers.get(spellId);
-        if (!t) return;
-        t.notes = notes || "";
-        internalUpdateState(t, "notes");
-    }
+function fadeEarlyTimer(spellId) {
+    const t = timers.get(spellId);
+    if (!t) return;
+
+    // ⭐ Capture notes exactly like Save Notes button
+    captureNotes(t);
+
+    finalizeElapsed(t);
+    const actual = t.elapsedAccum || 0;
+
+    logLineWithRoster(`Faded Early: ${t.spellName} (Duration: ${formatTime(actual)})`);
+    logHistory(spellId, "Faded Early", actual, t.notes);
+
+    resetTimer(spellId);
+}
+
+function updateNotes(spellId, notes) {
+    const t = timers.get(spellId);
+    if (!t) return;
+
+    t.notes = notes || "";
+
+    // ⭐ Log to Session Log
+    logLineWithRoster(`Notes updated for ${t.spellName}: "${t.notes}"`);
+
+    internalUpdateState(t, "notes");
+}
+
 
     function logHistory(spellId, result, durationSeconds, notes) {
         if (!history.has(spellId)) history.set(spellId, []);
@@ -4796,54 +4902,108 @@ const SpellTimerEngine = (function () {
         listeners[eventName].push(handler);
     }
 
-    function tickLoop() {
-        const now = performance.now();
+    // --- NEW: spawn cooldown timer for disciplines with reuseSeconds ---
+    function spawnCooldownTimer(t) {
+        const reuse = t.spell && t.spell.reuseSeconds;
+        if (!reuse) return;
 
-        timers.forEach(t => {
-            if (!t.running) return;
+        const cdSpell = {
+            id: t.spellId + "_COOLDOWN",
+            name: t.spellName + " — COOLDOWN REUSE TIMER",
+            class: t.classCode,
+            minDurationSeconds: reuse,
+            maxDurationSeconds: reuse,
+            scalesWithLevel: false
+        };
 
-            const elapsed = t.elapsedAccum + (now - t.startedAt) / 1000;
-            t.elapsed = elapsed; // expose for break-zone logic
-
-            const remaining = Math.max(0, t.baseDuration - elapsed);
-            t.remaining = remaining;
-
-            const done = remaining <= 0.01;
-
-            if (done) {
-                t.running = false;
-                t.startedAt = null;
-                t.elapsedAccum = t.baseDuration;
-
-                logHistory(t.spellId, "Completed", t.baseDuration, t.notes);
-                internalUpdateState(t, "auto-complete");
-            } else {
-                internalUpdateState(t, "tick");
-            }
-        });
-
-        requestAnimationFrame(tickLoop);
+        const newTimer = createTimer(cdSpell);
+        if (newTimer) {
+            startTimer(cdSpell.id);
+        }
     }
 
-    requestAnimationFrame(tickLoop);
+// MAIN TICK LOOP
+// MAIN TICK LOOP
+function tickLoop() {
+    const now = performance.now();
 
-    return {
-        createTimer,
-        removeTimer,
-        startTimer,
-        pauseTimer,
-        resetTimer,
-        completeTimer,
-        fadeEarlyTimer,
-        updateNotes,
-        logHistory,
-        getHistory,
-        getAverageDuration,
-        getActiveClasses,
-        on,
-        computeDuration
-    };
+    timers.forEach(t => {
+        if (!t.running) return;
+
+        // Compute elapsed + remaining
+        const elapsed = t.elapsedAccum + (now - t.startedAt) / 1000;
+        t.elapsed = elapsed;
+
+        const remaining = Math.max(0, t.baseDuration - elapsed);
+        t.remaining = remaining;
+
+        const done = remaining <= 0.01;
+
+        if (done) {
+
+            // Stop timer
+            t.running = false;
+            t.startedAt = null;
+            t.elapsedAccum = t.baseDuration;
+
+            // ⭐ CAPTURE NOTES BEFORE AUTO-COMPLETE (same as Save Notes button)
+            captureNotes(t);
+
+            // ⭐ AUTO-START COOLDOWN IF LINKED
+            if (t.cooldownId) {
+                logLineWithRoster(`Cooldown started for ${t.spellName}`);
+
+                const cdBox = TimerUIMap.get(t.cooldownId);
+                if (cdBox) cdBox.style.display = "block";
+
+                const cdClone = CloneUIMap.get(t.cooldownId);
+                if (cdClone) cdClone.style.display = "block";
+
+                SpellTimerEngine.startTimer(t.cooldownId);
+            }
+
+            // ⭐ Log auto-complete to Session Log
+            logLineWithRoster(
+                `Completed: ${t.spellName} (Duration: ${formatTime(t.baseDuration)})`
+            );
+
+            // ⭐ Update per-spell history table WITH NOTES
+            logHistory(t.spellId, "Completed", t.baseDuration, t.notes);
+
+            // Notify UI
+            internalUpdateState(t, "auto-complete");
+
+        } else {
+            // Normal tick update
+            internalUpdateState(t, "tick");
+        }
+    });
+
+    requestAnimationFrame(tickLoop);
+}
+
+
+// START LOOP
+requestAnimationFrame(tickLoop);
+
+return {
+    createTimer,
+    removeTimer,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    completeTimer,
+    fadeEarlyTimer,
+    updateNotes,
+    logHistory,
+    getHistory,
+    getAverageDuration,
+    getActiveClasses,
+    on,
+    computeDuration
+};
 })();
+
 
 
 // ===============================
@@ -4868,43 +5028,48 @@ function fmtTime(sec) {
 function createSpellTimerUI(spell, parentContainerId) {
     if (!SPELL_TIMER_MASTER_CONTAINER) return;
 
-    // Ask engine to create timer state
+    // ⭐ NEW: cooldown spells use the dual-timer UI
+    if (spell.reuseSeconds) {
+        return createDualTimerUI(spell);
+    }
+
+    // ⭐ OLD BEHAVIOR for normal spells
     const t = SpellTimerEngine.createTimer(spell);
     if (!t) return;
 
-    // If UI already exists, do nothing
     if (TimerUIMap.has(spell.id)) return;
 
-    // Ensure class section exists (BOTTOM)
     const classSection = ensureClassSection(spell.class);
 
-    // Build bottom timer box
     const bottomBox = buildTimerBox(spell, t);
     classSection.appendChild(bottomBox);
     TimerUIMap.set(spell.id, bottomBox);
 
-    // Build top timer box (CLONE PANEL)
     const cloneBox = buildTimerBoxClone(spell, t);
     CloneUIMap.set(spell.id, cloneBox);
 
-    // Append clone to top panel container (but panel may be hidden)
     const cloneContainer = document.getElementById("spellTimerPanelContainer_clone");
     if (cloneContainer) {
         cloneContainer.appendChild(cloneBox);
     }
 }
+
 function buildTimerBoxClone(spell, t) {
     const box = document.createElement("div");
     box.className = "section";
     box.style.marginTop = "6px";
 
+    // ===============================
     // Title
+    // ===============================
     const title = document.createElement("div");
     title.className = "section-title";
     title.textContent = spell.name;
     box.appendChild(title);
 
-    // Progress bar
+    // ===============================
+    // Progress Bar
+    // ===============================
     const progOuter = document.createElement("div");
     progOuter.style.width = "100%";
     progOuter.style.height = "14px";
@@ -4916,11 +5081,30 @@ function buildTimerBoxClone(spell, t) {
     progFill.style.height = "100%";
     progFill.style.width = "0%";
     progFill.style.background = "#3cb371";
-    progOuter.appendChild(progFill);
 
+    progOuter.appendChild(progFill);
     box.appendChild(progOuter);
 
+    // ===============================
+    // Time Labels (NEW)
+    // ===============================
+    const timeElapsed = document.createElement("div");
+    timeElapsed.style.fontSize = "12px";
+    timeElapsed.style.color = "#ccc";
+    timeElapsed.style.marginBottom = "2px";
+    timeElapsed.textContent = "Elapsed: 0s";
+    box.appendChild(timeElapsed);
+
+    const timeRemaining = document.createElement("div");
+    timeRemaining.style.fontSize = "12px";
+    timeRemaining.style.color = "#ccc";
+    timeRemaining.style.marginBottom = "6px";
+    timeRemaining.textContent = "Remaining: 0s";
+    box.appendChild(timeRemaining);
+
+    // ===============================
     // Buttons (LIVE)
+    // ===============================
     const btnRow = document.createElement("div");
 
     btnRow.appendChild(makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id)));
@@ -4929,7 +5113,25 @@ function buildTimerBoxClone(spell, t) {
     btnRow.appendChild(makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)));
     btnRow.appendChild(makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)));
 
-    // NEW: Hide button
+    // ⭐ ONLY create cooldown button if this spell has a reuse timer
+    if (spell.reuseSeconds) {
+        const btnStartCooldown = makeBtn("Start Cooldown Reuse Timer Now", () => {
+            if (t.cooldownId) {
+                const cdBox = TimerUIMap.get(t.cooldownId);
+                if (cdBox) cdBox.style.display = "block";
+
+                const cdClone = CloneUIMap.get(t.cooldownId);
+                if (cdClone) cdClone.style.display = "block";
+
+                SpellTimerEngine.startTimer(t.cooldownId);
+            }
+        });
+
+        btnStartCooldown.style.marginLeft = "6px";
+        btnRow.appendChild(btnStartCooldown);
+    }
+
+    // Hide button
     const hideBtn = makeBtn("Hide", () => {
         box.style.display = "none";
     });
@@ -4938,11 +5140,22 @@ function buildTimerBoxClone(spell, t) {
 
     box.appendChild(btnRow);
 
+    // ===============================
     // Store UI refs for updates
-    box._ui = { progFill };
+    // ===============================
+box._ui = {
+    progFill,
+    timeElapsed,
+    timeRemaining,
+    notesArea: null,
+};
 
-    return box;
+t.cloneUi = box._ui;   // ⭐ NEW
+
+return box;
+
 }
+
 
 
 
@@ -4958,14 +5171,14 @@ function removeSpellTimerUI(spellId) {
 
     cleanupEmptyClassSections();
 }
-
-// Build the timer UI box
 function buildTimerBox(spell, t) {
     const box = document.createElement("div");
     box.className = "section";
     box.style.marginTop = "6px";
 
+    // ===============================
     // Title
+    // ===============================
     const title = document.createElement("div");
     title.className = "section-title";
     title.textContent = spell.name;
@@ -4984,8 +5197,6 @@ function buildTimerBox(spell, t) {
     const durInput = document.createElement("input");
     durInput.type = "number";
     durInput.style.width = "70px";
-
-    // Use engine to compute correct duration
     durInput.value = SpellTimerEngine.computeDuration(spell);
 
     durInput.addEventListener("change", () => {
@@ -5016,47 +5227,71 @@ function buildTimerBox(spell, t) {
     progOuter.appendChild(progFill);
     box.appendChild(progOuter);
 
-// ===============================
-// Buttons
-// ===============================
-const btnRow = document.createElement("div");
+    // ===============================
+    // Time Labels
+    // ===============================
+    const timeElapsed = document.createElement("div");
+    timeElapsed.style.fontSize = "12px";
+    timeElapsed.style.color = "#ccc";
+    timeElapsed.style.marginBottom = "2px";
+    timeElapsed.textContent = "Elapsed: 0s";
+    box.appendChild(timeElapsed);
 
-const btnStart = makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id));
-const btnPause = makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id));
-const btnReset = makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id));
-const btnDone  = makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id));
-const btnFade  = makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id));
-
-// NEW: Info button
-const btnInfo = makeBtn("Info", () => {
-    alert(
-        `${spell.name}\n\n` +
-        `${spell.description || "No description available."}\n\n` +
-        `Notes: ${spell.notes || "None"}`
-    );
-});
-
-// NEW: Show in Top Panel button
-const btnShowTop = makeBtn("Show Top", () => {
-    const cloneBox = CloneUIMap.get(spell.id);
-    if (cloneBox) {
-        cloneBox.style.display = "block";
-    }
-});
-
-btnRow.appendChild(btnStart);
-btnRow.appendChild(btnPause);
-btnRow.appendChild(btnReset);
-btnRow.appendChild(btnDone);
-btnRow.appendChild(btnFade);
-btnRow.appendChild(btnInfo);
-btnRow.appendChild(btnShowTop);
-
-box.appendChild(btnRow);
-
+    const timeRemaining = document.createElement("div");
+    timeRemaining.style.fontSize = "12px";
+    timeRemaining.style.color = "#ccc";
+    timeRemaining.style.marginBottom = "6px";
+    timeRemaining.textContent = "Remaining: 0s";
+    box.appendChild(timeRemaining);
 
     // ===============================
-    // Notes
+    // Buttons
+    // ===============================
+    const btnRow = document.createElement("div");
+
+    btnRow.appendChild(makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)));
+
+    // Cooldown button (only for disciplines)
+    if (spell.reuseSeconds) {
+        const btnStartCooldown = makeBtn("Start Cooldown Reuse Timer Now", () => {
+            if (t.cooldownId) {
+                const cdBox = TimerUIMap.get(t.cooldownId);
+                if (cdBox) cdBox.style.display = "block";
+
+                const cdClone = CloneUIMap.get(t.cooldownId);
+                if (cdClone) cdClone.style.display = "block";
+
+                SpellTimerEngine.startTimer(t.cooldownId);
+            }
+        });
+
+        btnStartCooldown.style.marginLeft = "6px";
+        btnRow.appendChild(btnStartCooldown);
+    }
+
+    // Info button
+    btnRow.appendChild(makeBtn("Info", () => {
+        alert(
+            `${spell.name}\n\n` +
+            `${spell.description || "No description available."}\n\n` +
+            `Notes: ${spell.notes || "None"}`
+        );
+    }));
+
+    // Show in Top Panel
+    btnRow.appendChild(makeBtn("Show Top", () => {
+        const cloneBox = CloneUIMap.get(spell.id);
+        if (cloneBox) cloneBox.style.display = "block";
+    }));
+
+    box.appendChild(btnRow);
+
+    // ===============================
+    // Notes (with Save Notes button)
     // ===============================
     const notesLabel = document.createElement("div");
     notesLabel.textContent = "Notes:";
@@ -5065,10 +5300,15 @@ box.appendChild(btnRow);
 
     const notesArea = document.createElement("textarea");
     notesArea.style.height = "50px";
-    notesArea.addEventListener("input", () => {
+    notesArea.value = t.notes || "";
+    box.appendChild(notesArea);
+
+    // ⭐ NEW: Save Notes button
+    const saveNotesBtn = makeBtn("Save Notes", () => {
         SpellTimerEngine.updateNotes(spell.id, notesArea.value);
     });
-    box.appendChild(notesArea);
+    saveNotesBtn.style.marginTop = "4px";
+    box.appendChild(saveNotesBtn);
 
     // ===============================
     // History Table
@@ -5097,25 +5337,99 @@ box.appendChild(btnRow);
     box.appendChild(histTable);
 
     // ===============================
-    // Store UI references for updates
+    // Store UI references
     // ===============================
-    box._ui = {
-        progFill,
-        notesArea,
-        histBody: htbody
+box._ui = {
+    progFill,
+    timeElapsed,
+    timeRemaining,
+    notesArea,
+    histBody: htbody
+};
+
+t.ui = box._ui;   // NEW
+
+return box;
+
+}
+
+
+
+function createDualTimerUI(spell) {
+    const classSection = ensureClassSection(spell.class);
+
+    // --- MAIN TIMER ---
+    const mainTimer = SpellTimerEngine.createTimer(spell);
+
+    // Build main timer UI
+    const mainBox = buildTimerBox(spell, mainTimer);
+    classSection.appendChild(mainBox);
+    TimerUIMap.set(spell.id, mainBox);
+
+    // --- COOLDOWN TIMER SPELL OBJECT ---
+    const cdSpell = {
+        id: spell.id + "_CD",
+        name: spell.name + " — Cooldown",
+        class: spell.class,
+        minDurationSeconds: spell.reuseSeconds,
+        maxDurationSeconds: spell.reuseSeconds,
+        scalesWithLevel: false
     };
 
-    return box;
+    const cdTimer = SpellTimerEngine.createTimer(cdSpell);
+
+    // Build cooldown UI
+    const cdBox = buildTimerBox(cdSpell, cdTimer);
+    cdBox.style.display = "none"; // hidden until needed
+    classSection.appendChild(cdBox);
+    TimerUIMap.set(cdSpell.id, cdBox);
+
+    // --- LINK THEM ---
+    mainTimer.cooldownId = cdSpell.id;
+
+    // --- CLONE PANEL ---
+    const cloneContainer = document.getElementById("spellTimerPanelContainer_clone");
+
+    const mainClone = buildTimerBoxClone(spell, mainTimer);
+    CloneUIMap.set(spell.id, mainClone);
+    if (cloneContainer) cloneContainer.appendChild(mainClone);
+
+    const cdClone = buildTimerBoxClone(cdSpell, cdTimer);
+    cdClone.style.display = "none";
+    CloneUIMap.set(cdSpell.id, cdClone);
+    if (cloneContainer) cloneContainer.appendChild(cdClone);
+
+    return mainBox;
 }
+
+// flash tracker
+
+function flashButton(btn) {
+    btn.classList.remove("button-flash");
+    void btn.offsetWidth; // forces reflow so animation can restart
+    btn.classList.add("button-flash");
+}
+
+document.addEventListener("click", (e) => {
+    if (e.target.tagName === "BUTTON") {
+        flashButton(e.target);
+    }
+});
 
 
 // Helper: make a styled button
-function makeBtn(label, fn) {
-    const b = document.createElement("button");
-    b.textContent = label;
-    b.addEventListener("click", fn);
-    return b;
+function makeBtn(label, onClick) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+
+    btn.addEventListener("click", (e) => {
+        flashButton(btn);   // ⭐ global flash
+        onClick(e);         // original behavior
+    });
+
+    return btn;
 }
+
 
 // Ensure class section exists
 function ensureClassSection(classCode) {
@@ -5153,7 +5467,6 @@ function cleanupEmptyClassSections() {
         }
     });
 }
-
 
 // ENGINE EVENT LISTENERS
 SpellTimerEngine.on("timerUpdate", payload => {
@@ -5193,11 +5506,17 @@ SpellTimerEngine.on("timerUpdate", payload => {
         else if (inBreakZone) ui.progFill.style.background = "#cc3333";
         else ui.progFill.style.background = "#e6c300";
 
-        // Notes sync
-        ui.notesArea.value = t.notes || "";
-    });
-});
+        // ⭐ Time labels
+        if (ui.timeElapsed) {
+            ui.timeElapsed.textContent = "Elapsed: " + formatTime(t.elapsed || 0);
+        }
 
+        if (ui.timeRemaining) {
+            ui.timeRemaining.textContent = "Remaining: " + formatTime(t.remaining || 0);
+        }
+
+    });
+});   // ⭐ THIS WAS MISSING
 
 
 // Update history
@@ -5218,6 +5537,7 @@ SpellTimerEngine.on("historyUpdate", payload => {
 
     body.appendChild(row);
 });
+
 
 <!-- === SPELL TIMER SYSTEM: BLOCK #7  — BOTTOM TIMER PANEL === -->
 // Creates the bottom Spell Timer panel and manages dynamic title updates
