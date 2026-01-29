@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -351,6 +354,7 @@
 
     <script>
         // ---------- UTILITIES ----------
+	const CloneUIMap = new Map();
         function nowStamp() {
             return new Date().toLocaleTimeString();
         }
@@ -1697,7 +1701,3641 @@
         updateGroupButtons();
         rebuildGroupMemberRows();
         registerMainMobTimer();
-    </script>
+
+<!-- === SPELL TIMER SYSTEM: CLASS SELECTOR (BLOCK #1) === -->
+
+// ===============================
+// 1. CLASS AVAILABILITY FLAGS
+// ===============================
+// All classes start as unavailable (faded + disabled)
+// When we add a class's spell list later, we will set SpellClassAvailable[CLASS] = true
+const SpellClassAvailable = {
+    CLR: false,
+    DRU: false,
+    SHM: false,
+    ENC: false,
+    NEC: false,
+    MAG: false,
+    WIZ: false,
+    BRD: false,
+    RNG: false,
+    ROG: false,
+    PAL: false,
+    SHD: false,
+    WAR: false,
+    MNK: false
+};
+
+// ===============================
+// 2. CLASS SELECTION FLAGS
+// ===============================
+const SpellClassFlags = {
+    CLR: false,
+    DRU: false,
+    SHM: false,
+    ENC: false,
+    NEC: false,
+    MAG: false,
+    WIZ: false,
+    BRD: false,
+    RNG: false,
+    ROG: false,
+    PAL: false,
+    SHD: false,
+    WAR: false,
+    MNK: false
+};
+
+// ===============================
+// 3. CREATE SPELL TIMER SECTION UI
+// ===============================
+(function createSpellTimerClassSelector() {
+    const container = document.createElement("div");
+    container.id = "spellTimerClassSelector";
+    container.style.marginTop = "25px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #666";
+    container.style.background = "#222";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h3");
+    title.textContent = "Spell Timer System — Select Class";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+const classGrid = [
+    // Row 1
+    ["ENC", "Enchanter"], ["BRD", "Bard"], ["PAL", "Paladin"], ["CLR", "Cleric"],
+    // Row 2
+    ["MAG", "Magician"], ["MNK", "Monk"], ["SHD", "Shadow Knight"], ["DRU", "Druid"],
+    // Row 3
+    ["NEC", "Necromancer"], ["RNG", "Ranger"], ["WAR", "Warrior"], ["SHM", "Shaman"],
+    // Row 4
+    ["WIZ", "Wizard"], ["ROG", "Rogue"]
+];
+
+
+// Build a 4-column grid
+const grid = document.createElement("div");
+grid.style.display = "grid";
+grid.style.gridTemplateColumns = "repeat(4, 1fr)";
+grid.style.gap = "6px 12px";
+
+classGrid.forEach(([code, label]) => {
+    const cell = document.createElement("div");
+    cell.style.display = "flex";
+    cell.style.alignItems = "center";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.disabled = true;
+    checkbox.style.marginRight = "6px";
+    checkbox.dataset.classCode = code;
+
+    const text = document.createElement("span");
+    text.textContent = label;
+    text.style.opacity = "0.4";
+
+    checkbox.addEventListener("change", () => {
+        SpellClassFlags[code] = checkbox.checked;
+
+        document.dispatchEvent(new CustomEvent("SpellClassSelectionChanged", {
+            detail: { flags: SpellClassFlags }
+        }));
+    });
+
+    cell.appendChild(checkbox);
+    cell.appendChild(text);
+    grid.appendChild(cell);
+});
+
+container.appendChild(grid);
+
+
+    document.body.appendChild(container);
+})();
+
+// ===============================
+// 4. FUNCTION TO ENABLE A CLASS LATER
+// ===============================
+// When we add a class's spell list, we call:
+// enableSpellClass("NEC");
+function enableSpellClass(classCode) {
+    SpellClassAvailable[classCode] = true;
+
+    const selector = document.querySelectorAll("#spellTimerClassSelector input[type='checkbox']");
+    selector.forEach(cb => {
+        if (cb.dataset.classCode === classCode) {
+            cb.disabled = false;
+            cb.nextSibling.style.opacity = "1.0"; // unfade label
+        }
+    });
+}
+
+
+<!-- === SPELL TIMER SYSTEM: NECROMANCER TEST SPELLS (BLOCK #2 — UPGRADED) === -->
+
+// ===============================
+// NECROMANCER TEST SPELL DATA
+// ===============================
+// ===============================
+// NECROMANCER SPELL DATA — BLOCK 1
+// Levels 1–4, 8–12, 16–20
+// ===============================
+
+window.SpellData_NEC = [
+
+    // ===============================
+    // LEVEL 1 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_DISEASE_CLOUD",
+        name: "Disease Cloud",
+        class: "NEC",
+        category: "DoT (Disease)",
+        minDurationSeconds: 180,   // 30 ticks
+        maxDurationSeconds: 360,   // 60 ticks
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 1,
+        spellLevelMax: 1,
+        notes: "Classic low-level disease DoT. Generates strong aggro.",
+        description: "Deals 5 direct damage + 1 damage per tick for 30–60 ticks.",
+    },
+
+    {
+        id: "NEC_INVIS_UNDEAD",
+        name: "Invisibility vs Undead",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 180,    // 3 min @ L1
+        maxDurationSeconds: 1620,   // 27 min @ L9+
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 1,
+        spellLevelMax: 9,
+        notes: "Single-target invisibility vs undead. Must be grouped with target.",
+        description: "Cloaks target in invisibility vs undead. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_MINOR_SHIELDING",
+        name: "Minor Shielding",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 1620,   // 27 minutes
+        maxDurationSeconds: 1620,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 1,
+        spellLevelMax: 1,
+        notes: "Basic HP/AC buff.",
+        description: "Increases max HP by 6–10 and AC by 3–4.",
+    },
+
+    {
+        id: "NEC_SIPHON_STRENGTH",
+        name: "Siphon Strength",
+        class: "NEC",
+        category: "Debuff",
+        minDurationSeconds: 180,   // 3 min @ L1
+        maxDurationSeconds: 360,   // 6 min @ L2+
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 1,
+        spellLevelMax: 2,
+        notes: "Drains STR from target and grants it to caster.",
+        description: "Decreases target STR by 5–10 and increases caster STR by same amount.",
+    },
+
+    // ===============================
+    // LEVEL 4 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_CLINGING_DARKNESS",
+        name: "Clinging Darkness",
+        class: "NEC",
+        category: "DoT (Snare)",
+        minDurationSeconds: 12,   // 2 ticks
+        maxDurationSeconds: 48,   // 8 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 4,
+        spellLevelMax: 12,
+        notes: "Low-level snare + DoT. Does not break early.",
+        description: "Deals 5 damage per tick for 2–8 ticks and snares target 24–30%.",
+    },
+
+    {
+        id: "NEC_ENDURE_COLD",
+        name: "Endure Cold",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 1620,
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 1,
+        spellLevelMax: 9,
+        notes: "Cold resist buff.",
+        description: "Increases cold resistance by 11–20. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_FEAR",
+        name: "Fear",
+        class: "NEC",
+        category: "Fear",
+        minDurationSeconds: 18,
+        maxDurationSeconds: 18,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 4,
+        spellLevelMax: 4,
+        notes: "Classic fear. Breaks early on resist checks.",
+        description: "Causes target to flee in terror for up to 18 seconds.",
+    },
+
+    {
+        id: "NEC_GRIM_AURA",
+        name: "Grim Aura",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 720,   // 12 min @ L4
+        maxDurationSeconds: 1620,  // 27 min @ L9+
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 4,
+        spellLevelMax: 9,
+        notes: "Does not stack with Firefist, Strength of Nature, Celestial Tranquility.",
+        description: "Increases ATK by 7–10. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_NUMB_THE_DEAD",
+        name: "Numb the Dead",
+        class: "NEC",
+        category: "Lull (Undead)",
+        minDurationSeconds: 84,   // 1.4 min @ L4
+        maxDurationSeconds: 120,  // 2 min @ L10
+        breakable: true,
+        scalesWithLevel: true,
+        spellLevelMin: 4,
+        spellLevelMax: 10,
+        notes: "Undead-only lull. Charisma affects success.",
+        description: "Reduces undead aggro radius. Breaks on resist.",
+    },
+
+    {
+        id: "NEC_POISON_BOLT",
+        name: "Poison Bolt",
+        class: "NEC",
+        category: "DoT (Poison)",
+        minDurationSeconds: 12,   // 2 ticks
+        maxDurationSeconds: 42,   // 7 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 4,
+        spellLevelMax: 12,
+        notes: "Low-level poison DoT.",
+        description: "Deals 6 direct damage + 5/tick for 2–7 ticks.",
+    },
+
+    // ===============================
+    // LEVEL 8 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_DEADEYE",
+        name: "Deadeye",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 1440,  // 24 min @ L8
+        maxDurationSeconds: 1620,  // 27 min @ L9
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 8,
+        spellLevelMax: 9,
+        notes: "Self-only See Invisible + Infravision.",
+        description: "Grants infravision and see invisibility. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_GATHER_SHADOWS",
+        name: "Gather Shadows",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 1200,  // 20 minutes
+        maxDurationSeconds: 1200,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 8,
+        spellLevelMax: 8,
+        notes: "Self invisibility.",
+        description: "Casts invisibility on the caster for 20 minutes.",
+    },
+
+    {
+        id: "NEC_IMPART_STRENGTH",
+        name: "Impart Strength",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 360,
+        maxDurationSeconds: 360,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 8,
+        spellLevelMax: 8,
+        notes: "Transfers 10 STR to target.",
+        description: "Caster loses 10 STR; target gains 10 STR for 6 minutes.",
+    },
+
+    {
+        id: "NEC_LESSER_SHIELDING",
+        name: "Lesser Shielding",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 1440,  // 24 min @ L8
+        maxDurationSeconds: 1620,  // 27 min @ L9
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 8,
+        spellLevelMax: 9,
+        notes: "HP/AC buff.",
+        description: "Increases HP by 20–30 and AC by 6–9.",
+    },
+
+    {
+        id: "NEC_VAMPIRIC_EMBRACE",
+        name: "Vampiric Embrace",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 108,   // 1.8 min @ L8
+        maxDurationSeconds: 420,   // 7 min @ L60
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 8,
+        spellLevelMax: 60,
+        notes: "Adds lifetap proc to melee attacks.",
+        description: "Grants a melee lifetap proc. Duration scales with level.",
+    },
+
+    // ===============================
+    // LEVEL 12 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_ENDURE_DISEASE",
+        name: "Endure Disease",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 1620,
+        maxDurationSeconds: 1620,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 12,
+        spellLevelMax: 12,
+        notes: "Disease resist buff.",
+        description: "Increases disease resistance by 19–20 for 27 minutes.",
+    },
+
+    {
+        id: "NEC_ENGULFING_DARKNESS",
+        name: "Engulfing Darkness",
+        class: "NEC",
+        category: "DoT (Snare)",
+        minDurationSeconds: 60,   // 10 ticks
+        maxDurationSeconds: 60,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 12,
+        spellLevelMax: 12,
+        notes: "Stronger snare + DoT upgrade.",
+        description: "Deals 11/tick for 10 ticks and snares target by 40%.",
+    },
+
+    {
+        id: "NEC_HEAT_BLOOD",
+        name: "Heat Blood",
+        class: "NEC",
+        category: "DoT (Fire)",
+        minDurationSeconds: 36,   // 6 ticks
+        maxDurationSeconds: 60,   // 10 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 12,
+        spellLevelMax: 20,
+        notes: "Classic fire DoT.",
+        description: "Deals 17 damage per tick for 6–10 ticks.",
+    },
+
+    {
+        id: "NEC_LEACH",
+        name: "Leach",
+        class: "NEC",
+        category: "DoT (Drain)",
+        minDurationSeconds: 36,   // 6 ticks
+        maxDurationSeconds: 54,   // 9 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 12,
+        spellLevelMax: 20,
+        notes: "Life drain DoT.",
+        description: "Deals 8/tick and heals caster for 8/tick for 6–9 ticks.",
+    },
+
+    {
+        id: "NEC_SCENT_OF_DUSK",
+        name: "Scent of Dusk",
+        class: "NEC",
+        category: "Debuff",
+        minDurationSeconds: 204,   // 3.4 min @ L12
+        maxDurationSeconds: 840,   // 14 min @ L65
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 12,
+        spellLevelMax: 65,
+        notes: "Reduces fire, poison, and disease resist.",
+        description: "Decreases fire/poison/disease resist by 7–9.",
+    },
+
+    {
+        id: "NEC_SPOOK_THE_DEAD",
+        name: "Spook the Dead",
+        class: "NEC",
+        category: "Fear (Undead)",
+        minDurationSeconds: 6,   // 1 tick
+        maxDurationSeconds: 18,  // 3 ticks
+        breakable: true,
+        scalesWithLevel: true,
+        spellLevelMin: 12,
+        spellLevelMax: 20,
+        notes: "Undead-only fear.",
+        description: "Fears undead for 1–3 ticks. Breaks early.",
+    },
+
+    {
+        id: "NEC_WAVE_OF_ENFEEBLEMENT",
+        name: "Wave of Enfeeblement",
+        class: "NEC",
+        category: "Debuff (AoE)",
+        minDurationSeconds: 72,   // 12 ticks
+        maxDurationSeconds: 120,  // 20 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 12,
+        spellLevelMax: 20,
+        notes: "AoE STR debuff.",
+        description: "Decreases STR by 11–15 for 12–20 ticks.",
+    },
+
+    // ===============================
+    // LEVEL 16–20 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_BANSHEE_AURA",
+        name: "Banshee Aura",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 252,   // 4.2 min @ L16
+        maxDurationSeconds: 540,   // 9 min @ L40+
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 16,
+        spellLevelMax: 40,
+        notes: "Damage shield. Requires pearl (not consumed).",
+        description: "Damage shield that scales with level. Duration increases with level.",
+    },
+
+    {
+        id: "NEC_HEART_FLUTTER",
+        name: "Heart Flutter",
+        class: "NEC",
+        category: "DoT (Disease)",
+        minDurationSeconds: 48,   // 8 ticks
+        maxDurationSeconds: 72,   // 12 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 16,
+        spellLevelMax: 24,
+        notes: "DoT + STR/AC debuff.",
+        description: "Deals 12/tick for 8–12 ticks and reduces STR/AC.",
+    },
+
+    {
+        id: "NEC_HUNGRY_EARTH",
+        name: "Hungry Earth",
+        class: "NEC",
+        category: "Root (Undead)",
+        minDurationSeconds: 48,   // 8 ticks
+        maxDurationSeconds: 48,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 16,
+        spellLevelMax: 16,
+        notes: "Undead-only root. Breaks on damage.",
+        description: "Roots undead for 8 ticks and deals 26–75 damage.",
+    },
+
+    {
+        id: "NEC_INFECTIOUS_CLOUD",
+        name: "Infectious Cloud",
+        class: "NEC",
+        category: "DoT (AoE)",
+        minDurationSeconds: 126,   // 21 ticks
+        maxDurationSeconds: 126,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 16,
+        spellLevelMax: 16,
+        notes: "AoE poison DoT.",
+        description: "Deals 20 direct damage + 5/tick for 21 ticks.",
+    },
+
+    {
+        id: "NEC_SHIELDING",
+        name: "Shielding",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,   // 36 minutes
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 16,
+        spellLevelMax: 16,
+        notes: "HP/AC/MR buff.",
+        description: "Increases HP by 46–50, AC by 12–13, and MR by 13.",
+    },
+
+    {
+        id: "NEC_SHIELDSKIN",
+        name: "Shieldskin",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 16,
+        spellLevelMax: 16,
+        notes: "Absorbs 27–55 damage. Consumes Cat's Eye Agate.",
+        description: "Absorbs a small amount of damage. Lasts 36 minutes.",
+    },
+
+    {
+        id: "NEC_SPIRIT_ARMOR",
+        name: "Spirit Armor",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 16,
+        spellLevelMax: 16,
+        notes: "AC buff.",
+        description: "Increases AC by 11–13 for 36 minutes.",
+    },
+
+    {
+        id: "NEC_ALLURE_OF_DEATH",
+        name: "Allure of Death",
+        class: "NEC",
+        category: "Buff (Lich)",
+        minDurationSeconds: 300,   // 5 min @ L20
+        maxDurationSeconds: 780,   // 13 min @ L60
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 20,
+        spellLevelMax: 60,
+        notes: "Lich line. Does not stack with clarity. Stacks with bard mana songs.",
+        description: "Drains 5 HP/tick and restores 4 mana/tick. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_DOMINATE_UNDEAD",
+        name: "Dominate Undead",
+        class: "NEC",
+        category: "Charm (Undead)",
+        minDurationSeconds: 420,    // 7 min @ L20
+        maxDurationSeconds: 1230,   // 20.5 min @ L65
+        breakable: true,
+        scalesWithLevel: true,
+        spellLevelMin: 20,
+        spellLevelMax: 65,
+        notes: "Charm undead up to level 32. Breaks randomly.",
+        description: "Charms an undead creature for 7–20.5 minutes. Breaks early on resist checks.",
+    },
+
+    {
+        id: "NEC_HARMSHIELD",
+        name: "Harmshield",
+        class: "NEC",
+        category: "Buff (Invulnerability)",
+        minDurationSeconds: 18,
+        maxDurationSeconds: 18,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 20,
+        spellLevelMax: 20,
+        notes: "Caster becomes immune to all damage but cannot attack or cast.",
+        description: "Grants complete damage immunity for 18 seconds. Cannot attack or cast while active.",
+    },
+
+    {
+        id: "NEC_SHADOW_COMPACT",
+        name: "Shadow Compact",
+        class: "NEC",
+        category: "Heal (HP Transfer)",
+        minDurationSeconds: 24,   // 4 ticks
+        maxDurationSeconds: 24,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 20,
+        spellLevelMax: 20,
+        notes: "Transfers HP from caster to target over time.",
+        description: "Caster loses 20 HP/tick while target is healed for 20 HP/tick for 4 ticks.",
+    },
+
+    {
+        id: "NEC_SHADOW_VORTEX",
+        name: "Shadow Vortex",
+        class: "NEC",
+        category: "Debuff",
+        minDurationSeconds: 0,     // Instant effect, no duration
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 20,
+        spellLevelMax: 20,
+        notes: "AC debuff that transfers AC to caster.",
+        description: "Reduces target AC by 9–12 and grants the same amount to the caster.",
+    },
+// ===============================
+// NECROMANCER SPELL DATA — BLOCK 2
+// Levels 24–29, 34–39
+// ===============================
+
+    // ===============================
+    // LEVEL 24 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_INTENSIFY_DEATH",
+        name: "Intensify Death",
+        class: "NEC",
+        category: "Buff (Pet)",
+        minDurationSeconds: 0,
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "Pet buff: increases attack speed, STR, and AC.",
+        description: "Increases pet attack speed by 22–30%, STR by 26–33, and AC by 6–8.",
+    },
+
+    {
+        id: "NEC_LEATHERSKIN",
+        name: "Leatherskin",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,   // 36 minutes
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "Absorbs 71–118 damage. Consumes a bloodstone.",
+        description: "Absorbs a moderate amount of damage. Lasts 36 minutes.",
+    },
+
+    {
+        id: "NEC_MAJOR_SHIELDING",
+        name: "Major Shielding",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "HP/AC/MR buff.",
+        description: "Increases HP by 69–75, AC by 16–18, and MR by 14.",
+    },
+
+    {
+        id: "NEC_RESIST_COLD",
+        name: "Resist Cold",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "Cold resist buff.",
+        description: "Increases cold resistance by 39–40 for 36 minutes.",
+    },
+
+    {
+        id: "NEC_REST_THE_DEAD",
+        name: "Rest the Dead",
+        class: "NEC",
+        category: "Lull (Undead)",
+        minDurationSeconds: 0,   // Duration not meaningful; lull breaks on resist
+        maxDurationSeconds: 0,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "Undead-only lull. Charisma affects success.",
+        description: "Reduces undead aggro radius. Breaks on resist.",
+    },
+
+    {
+        id: "NEC_SCENT_OF_SHADOW",
+        name: "Scent of Shadow",
+        class: "NEC",
+        category: "Debuff",
+        minDurationSeconds: 348,   // 5.8 min @ L24
+        maxDurationSeconds: 840,   // 14 min @ L65
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 24,
+        spellLevelMax: 65,
+        notes: "Reduces fire, poison, and disease resist.",
+        description: "Decreases fire/poison/disease resist by 14–18.",
+    },
+
+    {
+        id: "NEC_SCREAMING_TERROR",
+        name: "Screaming Terror",
+        class: "NEC",
+        category: "Mez",
+        minDurationSeconds: 18,   // 3 ticks
+        maxDurationSeconds: 18,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "Short mez with a chance to memblur.",
+        description: "Mesmerizes target for 3 ticks with a small chance to memblur.",
+    },
+
+    {
+        id: "NEC_SHADOW_SIGHT",
+        name: "Shadow Sight",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 24,
+        spellLevelMax: 24,
+        notes: "Ultravision buff.",
+        description: "Grants ultravision for 36 minutes.",
+    },
+
+    // ===============================
+    // LEVEL 29 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_BOIL_BLOOD",
+        name: "Boil Blood",
+        class: "NEC",
+        category: "DoT (Fire)",
+        minDurationSeconds: 96,   // 16 ticks
+        maxDurationSeconds: 126,  // 21 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 29,
+        spellLevelMax: 39,
+        notes: "Efficient fire DoT.",
+        description: "Deals 24 damage per tick for 16–21 ticks.",
+    },
+
+    {
+        id: "NEC_DOOMING_DARKNESS",
+        name: "Dooming Darkness",
+        class: "NEC",
+        category: "DoT (Snare)",
+        minDurationSeconds: 90,   // 15 ticks
+        maxDurationSeconds: 96,   // 16 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 29,
+        spellLevelMax: 39,
+        notes: "Stronger snare + DoT upgrade.",
+        description: "Deals 20/tick for 15–16 ticks and snares target by 49–60%.",
+    },
+
+    {
+        id: "NEC_PANIC_THE_DEAD",
+        name: "Panic the Dead",
+        class: "NEC",
+        category: "Fear (Undead)",
+        minDurationSeconds: 54,   // 9 ticks
+        maxDurationSeconds: 54,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 29,
+        spellLevelMax: 29,
+        notes: "Undead-only fear.",
+        description: "Fears undead for 9 ticks. Breaks early.",
+    },
+
+    {
+        id: "NEC_VAMPIRIC_CURSE",
+        name: "Vampiric Curse",
+        class: "NEC",
+        category: "DoT (Drain)",
+        minDurationSeconds: 54,   // 9 ticks
+        maxDurationSeconds: 54,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 29,
+        spellLevelMax: 29,
+        notes: "Life drain DoT.",
+        description: "Deals 21/tick and heals caster for 21/tick for 9 ticks.",
+    },
+
+    // ===============================
+    // LEVEL 34 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_BEGUILE_UNDEAD",
+        name: "Beguile Undead",
+        class: "NEC",
+        category: "Charm (Undead)",
+        minDurationSeconds: 660,   // 11 min
+        maxDurationSeconds: 1200,  // 20 min
+        breakable: true,
+        scalesWithLevel: true,
+        spellLevelMin: 34,
+        spellLevelMax: 60,
+        notes: "Charm undead up to level 51. Breaks randomly.",
+        description: "Charms undead for 11–20 minutes. Breaks early on resist.",
+    },
+
+    {
+        id: "NEC_CALL_OF_BONES",
+        name: "Call of Bones",
+        class: "NEC",
+        category: "Buff (Lich)",
+        minDurationSeconds: 300,   // 5 min @ L34
+        maxDurationSeconds: 780,   // 13 min @ L60
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 34,
+        spellLevelMax: 60,
+        notes: "Lich line. Skeleton illusion.",
+        description: "Drains 10 HP/tick and restores 8 mana/tick. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_GREATER_SHIELDING",
+        name: "Greater Shielding",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 34,
+        spellLevelMax: 34,
+        notes: "HP/AC/MR buff.",
+        description: "Increases HP by 94–100, AC by 21–30, and MR by 16.",
+    },
+
+    {
+        id: "NEC_INVOKE_FEAR",
+        name: "Invoke Fear",
+        class: "NEC",
+        category: "Fear",
+        minDurationSeconds: 42,   // 7 ticks
+        maxDurationSeconds: 42,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 34,
+        spellLevelMax: 34,
+        notes: "Standard fear spell.",
+        description: "Fears target for 7 ticks. Breaks early.",
+    },
+
+    {
+        id: "NEC_RESIST_DISEASE",
+        name: "Resist Disease",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 34,
+        spellLevelMax: 34,
+        notes: "Disease resist buff.",
+        description: "Increases disease resistance by 40 for 36 minutes.",
+    },
+
+    {
+        id: "NEC_ROOT",
+        name: "Root",
+        class: "NEC",
+        category: "Root",
+        minDurationSeconds: 48,   // 8 ticks
+        maxDurationSeconds: 48,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 34,
+        spellLevelMax: 34,
+        notes: "Breaks on direct damage.",
+        description: "Roots target for 8 ticks. Breaks early on damage.",
+    },
+
+    {
+        id: "NEC_STEELSKIN",
+        name: "Steelskin",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 34,
+        spellLevelMax: 34,
+        notes: "Absorbs 168–230 damage. Consumes a jasper.",
+        description: "Absorbs a large amount of damage. Lasts 36 minutes.",
+    },
+
+    {
+        id: "NEC_SURGE_OF_ENFEEBLEMENT",
+        name: "Surge of Enfeeblement",
+        class: "NEC",
+        category: "Debuff (PBAoE)",
+        minDurationSeconds: 600,   // 100 ticks
+        maxDurationSeconds: 600,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 34,
+        spellLevelMax: 34,
+        notes: "Large-radius STR debuff.",
+        description: "Decreases STR by 22–30 for 100 ticks.",
+    },
+
+    {
+        id: "NEC_VENOM_OF_THE_SNAKE",
+        name: "Venom of the Snake",
+        class: "NEC",
+        category: "DoT (Poison)",
+        minDurationSeconds: 42,   // 7 ticks
+        maxDurationSeconds: 48,   // 8 ticks
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 34,
+        spellLevelMax: 39,
+        notes: "Strong poison DoT.",
+        description: "Deals 40 direct + 59/tick for 7–8 ticks.",
+    },
+
+    // ===============================
+    // LEVEL 39 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_AUGMENT_DEATH",
+        name: "Augment Death",
+        class: "NEC",
+        category: "Buff (Pet)",
+        minDurationSeconds: 0,
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 39,
+        spellLevelMax: 39,
+        notes: "Major pet buff.",
+        description: "Increases pet attack speed by 49–55%, STR by 39–45, and AC by 10–12.",
+    },
+
+    {
+        id: "NEC_CHILLING_EMBRACE",
+        name: "Chilling Embrace",
+        class: "NEC",
+        category: "DoT (Poison)",
+        minDurationSeconds: 96,   // 16 ticks
+        maxDurationSeconds: 96,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 39,
+        spellLevelMax: 39,
+        notes: "Velious-era poison DoT.",
+        description: "Deals 40 damage per tick for 16 ticks.",
+    },
+
+    {
+        id: "NEC_SCENT_OF_DARKNESS",
+        name: "Scent of Darkness",
+        class: "NEC",
+        category: "Debuff",
+        minDurationSeconds: 0,   // Duration not meaningful
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 39,
+        spellLevelMax: 39,
+        notes: "Reduces fire, poison, and disease resist.",
+        description: "Decreases fire/poison/disease resist by 24–27.",
+    },
+
+    {
+        id: "NEC_SCOURGE",
+        name: "Scourge",
+        class: "NEC",
+        category: "DoT (Disease)",
+        minDurationSeconds: 126,   // 21 ticks
+        maxDurationSeconds: 126,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 39,
+        spellLevelMax: 39,
+        notes: "Strong disease DoT.",
+        description: "Deals 40 direct + 24/tick for 21 ticks.",
+    },
+// ===============================
+// NECROMANCER SPELL DATA — BLOCK 3
+// Levels 44–49, 50–60
+// ===============================
+
+    // ===============================
+    // LEVEL 44 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_ARCH_SHIELDING",
+        name: "Arch Shielding",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,   // 36 minutes
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 44,
+        spellLevelMax: 44,
+        notes: "High-tier HP/AC/MR buff.",
+        description: "Increases HP by 144–150, AC by 25–36, and MR by 20.",
+    },
+
+    {
+        id: "NEC_ASYSTOLE",
+        name: "Asystole",
+        class: "NEC",
+        category: "DoT (Disease)",
+        minDurationSeconds: 60,   // 10 ticks
+        maxDurationSeconds: 60,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 44,
+        spellLevelMax: 44,
+        notes: "Strong STR/AC debuff + DoT.",
+        description: "Deals 69/tick for 10 ticks and reduces STR by 37–40 and AC by 16–18.",
+    },
+
+    {
+        id: "NEC_DEAD_MAN_FLOATING",
+        name: "Dead Man Floating",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 44,
+        spellLevelMax: 44,
+        notes: "Levitation + see invis + water breathing + poison resist.",
+        description: "Grants levitation, see invis, water breathing, and +64–70 poison resist.",
+    },
+
+    {
+        id: "NEC_DIAMONDSKIN",
+        name: "Diamondskin",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 44,
+        spellLevelMax: 44,
+        notes: "Absorbs 245–394 damage. Consumes a peridot.",
+        description: "Large damage absorb shield lasting 36 minutes.",
+    },
+
+    // ===============================
+    // LEVEL 49 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_BOND_OF_DEATH",
+        name: "Bond of Death",
+        class: "NEC",
+        category: "DoT (Drain)",
+        minDurationSeconds: 54,   // 9 ticks
+        maxDurationSeconds: 54,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 49,
+        spellLevelMax: 49,
+        notes: "Strong life-drain DoT.",
+        description: "Deals 80/tick and heals caster for 80/tick for 9 ticks.",
+    },
+
+    {
+        id: "NEC_CAJOLLE_UNDEAD",
+        name: "Cajole Undead",
+        class: "NEC",
+        category: "Charm (Undead)",
+        minDurationSeconds: 900,   // 15 min
+        maxDurationSeconds: 1140,  // 19 min
+        breakable: true,
+        scalesWithLevel: true,
+        spellLevelMin: 49,
+        spellLevelMax: 60,
+        notes: "Charms undead up to level 51. Breaks randomly.",
+        description: "Charms undead for 15–19 minutes. Breaks early on resist.",
+    },
+
+    {
+        id: "NEC_CASCADING_DARKNESS",
+        name: "Cascading Darkness",
+        class: "NEC",
+        category: "DoT (Snare)",
+        minDurationSeconds: 96,   // 16 ticks
+        maxDurationSeconds: 96,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 49,
+        spellLevelMax: 49,
+        notes: "High-level snare + DoT.",
+        description: "Deals 72/tick for 16 ticks and snares target by 60%.",
+    },
+
+    {
+        id: "NEC_DEAD_MEN_FLOATING",
+        name: "Dead Men Floating",
+        class: "NEC",
+        category: "Buff (Group)",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 49,
+        spellLevelMax: 49,
+        notes: "Group version of Dead Man Floating.",
+        description: "Applies Dead Man Floating to the entire group.",
+    },
+
+    {
+        id: "NEC_IGNITE_BLOOD",
+        name: "Ignite Blood",
+        class: "NEC",
+        category: "DoT (Fire)",
+        minDurationSeconds: 126,   // 21 ticks
+        maxDurationSeconds: 126,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 49,
+        spellLevelMax: 49,
+        notes: "High-efficiency fire DoT.",
+        description: "Deals 56/tick for 21 ticks.",
+    },
+
+    {
+        id: "NEC_LICH",
+        name: "Lich",
+        class: "NEC",
+        category: "Buff (Lich)",
+        minDurationSeconds: 300,   // 5 min @ L49
+        maxDurationSeconds: 780,   // 13 min @ L60
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 49,
+        spellLevelMax: 60,
+        notes: "Lich line. Bloody skeleton illusion.",
+        description: "Drains 22 HP/tick and restores 20 mana/tick. Duration scales with level.",
+    },
+
+    {
+        id: "NEC_PARALYZING_EARTH",
+        name: "Paralyzing Earth",
+        class: "NEC",
+        category: "Root",
+        minDurationSeconds: 180,   // 30 ticks
+        maxDurationSeconds: 180,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 49,
+        spellLevelMax: 49,
+        notes: "Long-duration root. Breaks on direct damage.",
+        description: "Roots target for 30 ticks. Breaks early on damage.",
+    },
+
+    // ===============================
+    // LEVEL 50 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_IMPROVED_INVIS_UNDEAD",
+        name: "Improved Invis vs Undead",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 180,   // 3 min @ L1
+        maxDurationSeconds: 1620,  // 27 min @ L9+
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 1,
+        spellLevelMax: 9,
+        notes: "Improved invisibility vs undead.",
+        description: "Grants invisibility vs undead. Duration scales with level.",
+    },
+
+    // ===============================
+    // LEVEL 51 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_DREAD_OF_NIGHT",
+        name: "Dread of Night",
+        class: "NEC",
+        category: "Fear (Undead)",
+        minDurationSeconds: 48,   // 8 ticks
+        maxDurationSeconds: 48,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 51,
+        notes: "Undead-only fear.",
+        description: "Fears undead for 8 ticks. Breaks early.",
+    },
+
+    {
+        id: "NEC_ENVENOMED_BOLT",
+        name: "Envenomed Bolt",
+        class: "NEC",
+        category: "DoT (Poison)",
+        minDurationSeconds: 48,   // 8 ticks
+        maxDurationSeconds: 48,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 51,
+        notes: "High-damage poison DoT.",
+        description: "Deals 110 direct damage, then 146/tick for 8 ticks.",
+    },
+
+    {
+        id: "NEC_SPLURT",
+        name: "Splurt",
+        class: "NEC",
+        category: "DoT (Magic)",
+        minDurationSeconds: 102,   // 17 ticks
+        maxDurationSeconds: 102,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 51,
+        notes: "Damage increases every tick.",
+        description: "Starts at 11 damage and increases by 12 each tick for 17 ticks.",
+    },
+
+    // ===============================
+    // LEVEL 52 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_MANASKIN",
+        name: "Manaskin",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 52,
+        spellLevelMax: 52,
+        notes: "Absorbs 521–600 damage. Adds +1 mana regen.",
+        description: "Large damage absorb shield with mana regen.",
+    },
+
+    {
+        id: "NEC_PLAGUE",
+        name: "Plague",
+        class: "NEC",
+        category: "DoT (Disease)",
+        minDurationSeconds: 132,   // 22 ticks
+        maxDurationSeconds: 132,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 52,
+        spellLevelMax: 52,
+        notes: "Long-duration disease DoT.",
+        description: "Deals 60 direct damage, then 55/tick for 22 ticks.",
+    },
+
+    {
+        id: "NEC_SCENT_OF_TERRIS",
+        name: "Scent of Terris",
+        class: "NEC",
+        category: "Debuff",
+        minDurationSeconds: 0,
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 52,
+        spellLevelMax: 52,
+        notes: "High-tier resist debuff.",
+        description: "Decreases fire/poison/disease resist by 33–36.",
+    },
+
+    // ===============================
+    // LEVEL 53 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_ENSTILL",
+        name: "Enstill",
+        class: "NEC",
+        category: "Root",
+        minDurationSeconds: 96,   // 16 ticks
+        maxDurationSeconds: 96,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 53,
+        spellLevelMax: 53,
+        notes: "Breaks on direct damage.",
+        description: "Roots target for 16 ticks. Breaks early on damage.",
+    },
+
+    // ===============================
+    // LEVEL 54 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_SHIELD_OF_THE_MAGI",
+        name: "Shield of the Magi",
+        class: "NEC",
+        category: "Buff",
+        minDurationSeconds: 2160,
+        maxDurationSeconds: 2160,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 54,
+        notes: "High-tier HP/AC/MR buff.",
+        description: "Increases HP by 232–250, AC by 29–31, and MR by 22–24.",
+    },
+
+    {
+        id: "NEC_THRALL_OF_BONES",
+        name: "Thrall of Bones",
+        class: "NEC",
+        category: "Charm (Undead)",
+        minDurationSeconds: 1020,   // 17 min
+        maxDurationSeconds: 1200,   // 20 min
+        breakable: true,
+        scalesWithLevel: true,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Charms undead up to level 53.",
+        description: "Charms undead for 17–20 minutes. Breaks early.",
+    },
+
+    // ===============================
+    // LEVEL 55 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_AUGMENTATION_OF_DEATH",
+        name: "Augmentation of Death",
+        class: "NEC",
+        category: "Buff (Pet)",
+        minDurationSeconds: 0,
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 55,
+        notes: "Major pet buff.",
+        description: "Increases pet attack speed by 65%, STR by 52–55, and AC by 14–15.",
+    },
+
+    {
+        id: "NEC_SKIN_OF_THE_SHADOW",
+        name: "Skin of the Shadow",
+        class: "NEC",
+        category: "Utility",
+        minDurationSeconds: 0,   // Night-only effect
+        maxDurationSeconds: 0,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 55,
+        notes: "Night-only invisibility + ultravision.",
+        description: "Grants invisibility, ultravision, and increased sight range at night.",
+    },
+
+    // ===============================
+    // LEVEL 56 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_CESSATION_OF_COR",
+        name: "Cessation of Cor",
+        class: "NEC",
+        category: "DoT (Disease)",
+        minDurationSeconds: 66,   // 11 ticks
+        maxDurationSeconds: 66,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 56,
+        spellLevelMax: 56,
+        notes: "High-damage disease DoT.",
+        description: "Deals 100/tick for 11 ticks and reduces STR by 50 and AC by 19–21.",
+    },
+
+    {
+        id: "NEC_TREPIDATION",
+        name: "Trepidation",
+        class: "NEC",
+        category: "Fear",
+        minDurationSeconds: 36,   // 6 ticks
+        maxDurationSeconds: 36,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 56,
+        spellLevelMax: 56,
+        notes: "Standard fear spell.",
+        description: "Fears target for 6 ticks. Breaks early.",
+    },
+
+    // ===============================
+    // LEVEL 57 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_VEXING_MORDINIA",
+        name: "Vexing Mordinia",
+        class: "NEC",
+        category: "DoT (Drain)",
+        minDurationSeconds: 60,   // 10 ticks
+        maxDurationSeconds: 60,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 57,
+        spellLevelMax: 57,
+        notes: "High-level life-drain DoT.",
+        description: "Deals 122/tick for 10 ticks and heals caster for 122/tick (9 ticks).",
+    },
+
+    // ===============================
+    // LEVEL 58 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_IMMOBILIZE",
+        name: "Immobilize",
+        class: "NEC",
+        category: "Root",
+        minDurationSeconds: 60,   // 10 ticks
+        maxDurationSeconds: 60,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 58,
+        spellLevelMax: 58,
+        notes: "Breaks on direct damage.",
+        description: "Roots target for 10 ticks. Breaks early on damage.",
+    },
+
+    {
+        id: "NEC_PYROCRUOR",
+        name: "Pyrocruor",
+        class: "NEC",
+        category: "DoT (Fire)",
+        minDurationSeconds: 114,   // 19 ticks
+        maxDurationSeconds: 114,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 58,
+        spellLevelMax: 58,
+        notes: "High-damage fire DoT.",
+        description: "Deals 111/tick for 19 ticks.",
+    },
+
+    {
+        id: "NEC_QUIVERING_VEIL_OF_XARN",
+        name: "Quivering Veil of Xarn",
+        class: "NEC",
+        category: "Buff (Invulnerability)",
+        minDurationSeconds: 18,
+        maxDurationSeconds: 18,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 58,
+        spellLevelMax: 58,
+        notes: "Heals 150 HP and grants 18 seconds of invulnerability.",
+        description: "Heals caster for 150 and grants 18 seconds of damage immunity.",
+    },
+
+    // ===============================
+    // LEVEL 59 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_DEVOURING_DARKNESS",
+        name: "Devouring Darkness",
+        class: "NEC",
+        category: "DoT (Snare)",
+        minDurationSeconds: 78,   // 13 ticks
+        maxDurationSeconds: 78,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 59,
+        spellLevelMax: 59,
+        notes: "High-level snare + DoT.",
+        description: "Deals 107/tick for 13 ticks and snares target by 69–70%.",
+    },
+
+    // ===============================
+    // LEVEL 60 SPELLS
+    // ===============================
+
+    {
+        id: "NEC_ARCH_LICH",
+        name: "Arch Lich",
+        class: "NEC",
+        category: "Buff (Lich)",
+        minDurationSeconds: 300,   // 5 min @ L60 minimum scaling
+        maxDurationSeconds: 780,   // 13 min @ L60 (max scaling)
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "Top-tier lich form. Spectre illusion. Does not stack with clarity.",
+        description: "Drains 20 HP/tick and restores 20 mana/tick. Grants spectre illusion.",
+    },
+
+    {
+        id: "NEC_DEMI_LICH",
+        name: "Demi Lich",
+        class: "NEC",
+        category: "Buff (Lich)",
+        minDurationSeconds: 300,   // 5 min @ L60 minimum scaling
+        maxDurationSeconds: 780,   // 13 min @ L60 (max scaling)
+        breakable: false,
+        scalesWithLevel: true,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "High-tier lich form. Bloody skeleton illusion. Does not stack with clarity.",
+        description: "Drains 48 HP/tick and restores 31 mana/tick. Grants bloody skeleton illusion.",
+    },
+
+    {
+        id: "NEC_ENSLAVE_DEATH",
+        name: "Enslave Death",
+        class: "NEC",
+        category: "Charm (Undead)",
+        minDurationSeconds: 30,   // 5 ticks
+        maxDurationSeconds: 30,
+        breakable: true,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "Very short-duration but extremely powerful undead charm.",
+        description: "Charms undead for 5 ticks. Very difficult to resist but breaks early.",
+    },
+
+]; // 
+
+
+
+
+
+
+// ===============================
+// NECROMANCER SPELL LIST UI
+// ===============================
+// ===============================
+// NECROMANCER SPELL LIST UI (GRID LIKE CLASS SELECTOR)
+// ===============================
+(function loadNecromancerSpellList() {
+
+    const container = document.createElement("div");
+    container.id = "necSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Necromancer — Spell List";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    // Create a grid wrapper EXACTLY like class selector
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)"; // 3 columns
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    // Add each spell as a grid cell
+    SpellData_NEC.forEach(spell => {
+
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        // When checked → create timer
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "necSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+
+// ===============================
+// ROGUE DISCIPLINE DATA
+// ===============================
+window.SpellData_ROG = [
+    {
+        id: "ROG_RESISTANT",
+        name: "Resistant Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300, // patch note: increased to 5 min
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 30,
+        spellLevelMax: 60,
+        notes: "+3 to +10 all resists depending on level.",
+        description: "Grants resistance to all magic types."
+    },
+    {
+        id: "ROG_FEARLESS",
+        name: "Fearless Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 11,
+        maxDurationSeconds: 11,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 40,
+        spellLevelMax: 60,
+        notes: "Immunity to fear.",
+        description: "Grants immunity to fear effects."
+    },
+    {
+        id: "ROG_COUNTERATTACK",
+        name: "Counterattack Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 9,
+        maxDurationSeconds: 9,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 53,
+        spellLevelMax: 60,
+        notes: "Ripostes every incoming blow.",
+        description: "Perfectly times counterattacks, riposting all incoming hits."
+    },
+    {
+        id: "ROG_DEADEYE",
+        name: "Deadeye Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 18,
+        maxDurationSeconds: 18,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Greatly increases hit rate.",
+        description: "Focuses vision to vastly increase hit accuracy."
+    },
+    {
+        id: "ROG_NIMBLE",
+        name: "Nimble Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 12,
+        maxDurationSeconds: 12,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 60,
+        notes: "Avoids most attacks.",
+        description: "Increases combat reflexes, avoiding most melee attacks."
+    },
+    {
+        id: "ROG_KINESTHETICS",
+        name: "Kinesthetics Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 18,
+        maxDurationSeconds: 18,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 57,
+        spellLevelMax: 60,
+        notes: "Dual wield + double attack every round.",
+        description: "Increases combat sense, enabling dual wield and double attack each round."
+    },
+    {
+        id: "ROG_BLINDING_SPEED",
+        name: "Blinding Speed Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 18,
+        maxDurationSeconds: 18,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 58,
+        spellLevelMax: 60,
+        notes: "Increases attack speed.",
+        description: "Focuses energy into arms, increasing attack speed."
+    },
+    {
+        id: "ROG_DUELIST",
+        name: "Duelist Discipline",
+        class: "ROG",
+        category: "Discipline",
+        minDurationSeconds: 12,
+        maxDurationSeconds: 12,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 59,
+        spellLevelMax: 60,
+        notes: "100% melee damage increase.",
+        description: "Doubles all melee damage for the duration."
+    }
+];
+
+// ===============================
+// ROGUE DISCIPLINE LIST UI
+// ===============================
+(function loadRogueDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "rogSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Rogue — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    SpellData_ROG.forEach(spell => {
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "rogSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+// ===============================
+// WARRIOR DISCIPLINE DATA
+// ===============================
+window.SpellData_WAR = [
+    {
+        id: "WAR_RESISTANT",
+        name: "Resistant Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 30,
+        spellLevelMax: 60,
+        notes: "+20 all resists.",
+        description: "Grants +20 to all resistances."
+    },
+    {
+        id: "WAR_FEARLESS",
+        name: "Fearless Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 12,
+        maxDurationSeconds: 12,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 40,
+        spellLevelMax: 60,
+        notes: "Immunity to fear.",
+        description: "Grants immunity to fear effects."
+    },
+    {
+        id: "WAR_EVASIVE",
+        name: "Evasive Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 52,
+        spellLevelMax: 60,
+        notes: "50% increased avoidance.",
+        description: "Increases chance to avoid attacks by 50%."
+    },
+    {
+        id: "WAR_CHARGE",
+        name: "Charge Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 14,
+        maxDurationSeconds: 14,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 53,
+        spellLevelMax: 60,
+        notes: "Increases hit chance.",
+        description: "Increases accuracy of all melee attacks."
+    },
+    {
+        id: "WAR_MIGHTY_STRIKE",
+        name: "Mighty Strike Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 10,
+        maxDurationSeconds: 10,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "All attacks crit.",
+        description: "Causes every melee attack to land as a critical hit."
+    },
+    {
+        id: "WAR_DEFENSIVE",
+        name: "Defensive Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 60,
+        notes: "Reduces DI by 50%.",
+        description: "Reduces incoming damage interval by 50%."
+    },
+    {
+        id: "WAR_FURIOUS",
+        name: "Furious Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 9,
+        maxDurationSeconds: 9,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 56,
+        spellLevelMax: 60,
+        notes: "Ripostes all attacks.",
+        description: "Ripostes every incoming blow."
+    },
+    {
+        id: "WAR_PRECISION",
+        name: "Precision Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 57,
+        spellLevelMax: 60,
+        notes: "Increases hit rate.",
+        description: "Increases hit rate significantly."
+    },
+    {
+        id: "WAR_FELSTRIKE",
+        name: "Felstrike Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 12,
+        maxDurationSeconds: 12,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 58,
+        spellLevelMax: 60,
+        notes: "Increases melee damage.",
+        description: "Increases melee damage output."
+    },
+    {
+        id: "WAR_FORTITUDE",
+        name: "Fortitude Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 8,
+        maxDurationSeconds: 8,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 59,
+        spellLevelMax: 60,
+        notes: "Increases avoidance.",
+        description: "Increases chance to evade attacks."
+    },
+    {
+        id: "WAR_AGGRESSIVE",
+        name: "Aggressive Discipline",
+        class: "WAR",
+        category: "Discipline",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "+30% damage, take more damage.",
+        description: "Increases damage output by 30% but increases damage taken."
+    }
+];
+
+// ===============================
+// WARRIOR DISCIPLINE LIST UI
+// ===============================
+(function loadWarriorDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "warSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Warrior — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    SpellData_WAR.forEach(spell => {
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "warSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+// ===============================
+// MONK DISCIPLINE DATA
+// ===============================
+window.SpellData_MNK = [
+    {
+        id: "MNK_RESISTANT",
+        name: "Resistant Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 30,
+        spellLevelMax: 60,
+        notes: "+3 to +10 all resists.",
+        description: "Grants resistance to all magic types."
+    },
+    {
+        id: "MNK_FEARLESS",
+        name: "Fearless Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 11,
+        maxDurationSeconds: 11,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 40,
+        spellLevelMax: 60,
+        notes: "Immunity to fear.",
+        description: "Grants immunity to fear effects."
+    },
+    {
+        id: "MNK_STONESTANCE",
+        name: "Stonestance Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 12,
+        maxDurationSeconds: 12,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 60,
+        notes: "60% melee damage reduction.",
+        description: "Greatly decreases melee damage taken."
+    },
+    {
+        id: "MNK_THUNDERKICK",
+        name: "Thunderkick Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 180, // next flying kick or 3 min
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 52,
+        spellLevelMax: 60,
+        notes: "Empowers next Flying Kick.",
+        description: "Focuses energy into feet for a powerful Flying Kick."
+    },
+    {
+        id: "MNK_WHIRLWIND",
+        name: "Whirlwind Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 9,
+        maxDurationSeconds: 9,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 53,
+        spellLevelMax: 60,
+        notes: "Ripostes all attacks.",
+        description: "Ripostes every attack from the front."
+    },
+    {
+        id: "MNK_VOIDDANCE",
+        name: "Voiddance Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 8,
+        maxDurationSeconds: 8,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Avoids all melee attacks.",
+        description: "Allows avoidance of all melee attacks from any angle."
+    },
+    {
+        id: "MNK_INNERFLAME",
+        name: "Innerflame Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 12,
+        maxDurationSeconds: 12,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 56,
+        spellLevelMax: 60,
+        notes: "100% melee damage increase.",
+        description: "Greatly increases melee damage output."
+    },
+    {
+        id: "MNK_HUNDRED_FISTS",
+        name: "Hundred Fists Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 15,
+        maxDurationSeconds: 15,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 57,
+        spellLevelMax: 60,
+        notes: "Increased attack speed.",
+        description: "Increases attack rate and damage."
+    },
+    {
+        id: "MNK_SILENTFIST",
+        name: "Silentfist Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 59,
+        spellLevelMax: 60,
+        notes: "Empowers next Dragon Punch.",
+        description: "Focuses rage into hands for a powerful Dragon Punch."
+    },
+    {
+        id: "MNK_ASHENHAND",
+        name: "Ashenhand Discipline",
+        class: "MNK",
+        category: "Discipline",
+        minDurationSeconds: 180,
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "Empowers next Eagle Strike.",
+        description: "Focuses energy into hands for a powerful Eagle Strike."
+    }
+];
+
+// ===============================
+// MONK DISCIPLINE LIST UI
+// ===============================
+(function loadMonkDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "mnkSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Monk — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    // Grid wrapper
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    // Add each discipline
+    SpellData_MNK.forEach(spell => {
+
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "mnkSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+<!-- === SPELL TIMER SYSTEM: RANGER TEST SPELLS (BLOCK #3) === -->
+
+// ===============================
+// RANGER TEST SPELL DATA
+// ===============================
+// ===============================
+// RANGER DISCIPLINE DATA
+// ===============================
+window.SpellData_RNG = [
+    {
+        id: "RNG_RESISTANT",
+        name: "Resistant Discipline",
+        class: "RNG",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300, // patch note: increased to 5 min
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 60,
+        notes: "+10 all resists.",
+        description: "Increases all resistances by 10."
+    },
+    {
+        id: "RNG_FEARLESS",
+        name: "Fearless Discipline",
+        class: "RNG",
+        category: "Discipline",
+        minDurationSeconds: 11,
+        maxDurationSeconds: 11,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Immunity to fear.",
+        description: "Grants immunity to fear effects."
+    },
+    {
+        id: "RNG_TRUESHOT",
+        name: "Trueshot Discipline",
+        class: "RNG",
+        category: "Discipline",
+        minDurationSeconds: 120,
+        maxDurationSeconds: 120,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 60,
+        notes: "+105% bow damage, +accuracy.",
+        description: "Imbues bow with energy, increasing damage and accuracy."
+    },
+    {
+        id: "RNG_WEAPON_SHIELD",
+        name: "Weapon Shield Discipline",
+        class: "RNG",
+        category: "Discipline",
+        minDurationSeconds: 20,
+        maxDurationSeconds: 20,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "Parry all frontal melee attacks.",
+        description: "Allows parrying of all melee attacks from the front."
+    }
+];
+
+
+// ===============================
+// RANGER SPELL LIST UI
+// ===============================
+// ===============================
+// RANGER DISCIPLINE LIST UI
+// ===============================
+(function loadRangerDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "rngSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Ranger — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    SpellData_RNG.forEach(spell => {
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "rngSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+// ===============================
+// SHADOW KNIGHT DISCIPLINE DATA
+// ===============================
+window.SpellData_SHD = [
+    {
+        id: "SHD_RESISTANT",
+        name: "Resistant Discipline",
+        class: "SHD",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 60,
+        notes: "+10 all resists.",
+        description: "Increases all resistances by 10."
+    },
+    {
+        id: "SHD_FEARLESS",
+        name: "Fearless Discipline",
+        class: "SHD",
+        category: "Discipline",
+        minDurationSeconds: 11,
+        maxDurationSeconds: 11,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Immunity to fear.",
+        description: "Grants immunity to fear effects."
+    },
+    {
+        id: "SHD_UNHOLY_AURA",
+        name: "Unholy Aura Discipline",
+        class: "SHD",
+        category: "Discipline",
+        minDurationSeconds: 180, // Next Harm Touch or 3 min
+        maxDurationSeconds: 180,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 60,
+        notes: "+50% Harm Touch damage, nearly unresistable.",
+        description: "Empowers Harm Touch with increased damage and resist adjust."
+    },
+    {
+        id: "SHD_LEECHCURSE",
+        name: "Leechcurse Discipline",
+        class: "SHD",
+        category: "Discipline",
+        minDurationSeconds: 20,
+        maxDurationSeconds: 20,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "Heal for every melee hit.",
+        description: "Converts melee damage dealt into healing."
+    }
+];
+
+// ===============================
+// SHADOW KNIGHT DISCIPLINE LIST UI
+// ===============================
+(function loadShadowKnightDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "shdSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Shadow Knight — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    SpellData_SHD.forEach(spell => {
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "shdSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+// ===============================
+// PALADIN DISCIPLINE DATA
+// ===============================
+window.SpellData_PAL = [
+    {
+        id: "PAL_RESISTANT",
+        name: "Resistant Discipline",
+        class: "PAL",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 60,
+        notes: "+10 all resists.",
+        description: "Increases all resistances by 10."
+    },
+    {
+        id: "PAL_FEARLESS",
+        name: "Fearless Discipline",
+        class: "PAL",
+        category: "Discipline",
+        minDurationSeconds: 11,
+        maxDurationSeconds: 11,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Immunity to fear.",
+        description: "Grants immunity to fear effects."
+    },
+    {
+        id: "PAL_HOLYFORGE",
+        name: "Holyforge Discipline",
+        class: "PAL",
+        category: "Discipline",
+        minDurationSeconds: 120,
+        maxDurationSeconds: 300, // patch note: increased to 5 min
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 60,
+        notes: "Crits vs all, crippling vs undead.",
+        description: "Increases critical hit chance and crippling blows vs undead."
+    },
+    {
+        id: "PAL_SANCTIFICATION",
+        name: "Sanctification Discipline",
+        class: "PAL",
+        category: "Discipline",
+        minDurationSeconds: 15,
+        maxDurationSeconds: 15,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "100% spell resist.",
+        description: "Resists all spells that are not unresistable."
+    }
+];
+
+// ===============================
+// PALADIN DISCIPLINE LIST UI
+// ===============================
+(function loadPaladinDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "palSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Paladin — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    SpellData_PAL.forEach(spell => {
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "palSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+// ===============================
+// BARD DISCIPLINE DATA
+// ===============================
+window.SpellData_BRD = [
+    {
+        id: "BRD_RESISTANT",
+        name: "Resistant Discipline",
+        class: "BRD",
+        category: "Discipline",
+        minDurationSeconds: 60,
+        maxDurationSeconds: 300, // patch note: increased to 5 minutes
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 51,
+        spellLevelMax: 60,
+        notes: "+10 all resists. Bard must stop singing before activating.",
+        description: "Increases all resistances by 10. Cancels if songs are active."
+    },
+    {
+        id: "BRD_FEARLESS",
+        name: "Fearless Discipline",
+        class: "BRD",
+        category: "Discipline",
+        minDurationSeconds: 11,
+        maxDurationSeconds: 11,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 54,
+        spellLevelMax: 60,
+        notes: "Immunity to fear. Bard must stop singing before activating.",
+        description: "Grants immunity to fear effects. Cancels if songs are active."
+    },
+    {
+        id: "BRD_DEFTDANCE",
+        name: "Deftdance Discipline",
+        class: "BRD",
+        category: "Discipline",
+        minDurationSeconds: 15, // patch note: increased to 15 seconds
+        maxDurationSeconds: 15,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 55,
+        spellLevelMax: 60,
+        notes: "Auto-dodge frontal attacks + auto dual-wield. Bard must stop singing.",
+        description: "Allows automatic dodging of frontal attacks and auto dual-wield."
+    },
+    {
+        id: "BRD_PURETONE",
+        name: "Puretone Discipline",
+        class: "BRD",
+        category: "Discipline",
+        minDurationSeconds: 240, // patch note: increased to 4 minutes
+        maxDurationSeconds: 240,
+        breakable: false,
+        scalesWithLevel: false,
+        spellLevelMin: 60,
+        spellLevelMax: 60,
+        notes: "Acts as best instrument of every type (28 mod). Works on singing mod.",
+        description: "Makes all songs behave as if using the best instrument of each type."
+    }
+];
+
+// ===============================
+// BARD DISCIPLINE LIST UI
+// ===============================
+(function loadBardDisciplineList() {
+
+    const container = document.createElement("div");
+    container.id = "brdSpellList";
+    container.style.marginTop = "15px";
+    container.style.padding = "10px";
+    container.style.border = "1px solid #444";
+    container.style.background = "#111";
+    container.style.color = "white";
+    container.style.borderRadius = "6px";
+
+    const title = document.createElement("h4");
+    title.textContent = "Bard — Disciplines";
+    title.style.marginTop = "0";
+    container.appendChild(title);
+
+    // Grid wrapper
+    const grid = document.createElement("div");
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+    grid.style.gap = "6px 20px";
+    grid.style.marginTop = "10px";
+    container.appendChild(grid);
+
+    // Add each discipline
+    SpellData_BRD.forEach(spell => {
+
+        const cell = document.createElement("div");
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.spellId = spell.id;
+        checkbox.style.marginRight = "6px";
+
+        const label = document.createElement("span");
+        label.textContent = spell.name;
+
+        cell.appendChild(checkbox);
+        cell.appendChild(label);
+        grid.appendChild(cell);
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                createSpellTimerUI(spell, "brdSpellList");
+            } else {
+                removeSpellTimerUI(spell.id);
+            }
+        });
+    });
+
+    document.body.appendChild(container);
+})();
+
+
+// ===============================
+// AUTO‑ENABLE CLASSES BASED ON SPELL DATA (BLOCK 3.99)
+// ===============================
+
+// Map class codes to the expected spell data variable name
+const SpellDataSources = {
+    NEC: "SpellData_NEC",
+    RNG: "SpellData_RNG",
+    SHM: "SpellData_SHM",
+    ENC: "SpellData_ENC",
+    MAG: "SpellData_MAG",
+    WIZ: "SpellData_WIZ",
+    CLR: "SpellData_CLR",
+    DRU: "SpellData_DRU",
+    BRD: "SpellData_BRD",
+    MNK: "SpellData_MNK",
+    ROG: "SpellData_ROG",
+    PAL: "SpellData_PAL",
+    SHD: "SpellData_SHD",
+    WAR: "SpellData_WAR"
+};
+
+// Enable only classes that have spell data arrays
+window.addEventListener("DOMContentLoaded", () => {
+
+    Object.entries(SpellDataSources).forEach(([classCode, varName]) => {
+
+        const exists = (typeof window[varName] !== "undefined");
+
+        if (exists) {
+            // Enable this class in the selector
+            enableSpellClass(classCode);
+        } else {
+            // Disable this class in the selector
+            const selector = document.querySelectorAll("#spellTimerClassSelector input[type='checkbox']");
+            selector.forEach(cb => {
+                if (cb.dataset.classCode === classCode) {
+                    cb.disabled = true;
+                    cb.nextSibling.style.opacity = "0.4"; // fade label
+                }
+            });
+        }
+    });
+
+});
+
+
+// ===============================
+// SPELL TIMER SYSTEM: CLASS VISIBILITY CONTROL (BLOCK #4)
+// ===============================
+
+// Map class codes to their spell list container IDs
+const SpellListContainers = {
+    NEC: "necSpellList",
+    ROG: "rogSpellList",
+    WAR: "warSpellList",
+    MNK: "mnkSpellList",
+    RNG: "rngSpellList",
+    SHD: "shdSpellList",
+    PAL: "palSpellList",
+    BRD: "brdSpellList",
+};
+
+
+// Hide all spell lists AFTER they are created
+window.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        Object.values(SpellListContainers).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = "none";
+        });
+    }, 50);
+});
+
+// Show/hide spell lists when class selection changes
+document.addEventListener("SpellClassSelectionChanged", (e) => {
+    const flags = e.detail.flags;
+
+    Object.entries(SpellListContainers).forEach(([classCode, elementId]) => {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        el.style.display = flags[classCode] ? "block" : "none";
+    });
+});
+
+
+<!-- === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE === -->
+<!-- === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE === -->
+// === SPELL TIMER SYSTEM: BLOCK #5 — CORE TIMER ENGINE (UPDATED) ===
+const SpellTimerEngine = (function () {
+    const timers = new Map();      // spellId -> timerState
+    const history = new Map();     // spellId -> [entries]
+    const activeClasses = new Set();
+
+    const listeners = {
+        timerUpdate: [],
+        timerRemove: [],
+        historyUpdate: [],
+        activeClassesChange: []
+    };
+
+    function emit(event, payload) {
+        const list = listeners[event];
+        if (!list) return;
+        list.forEach(fn => {
+            try { fn(payload); } catch (e) { console.error("SpellTimerEngine listener error:", e); }
+        });
+    }
+
+    function getActiveClasses() {
+        return Array.from(activeClasses);
+    }
+
+    function recalcActiveClassesFor(classCode) {
+        if (!classCode) return;
+        let stillHas = false;
+        timers.forEach(t => {
+            if (t.classCode === classCode) stillHas = true;
+        });
+        if (!stillHas) {
+            activeClasses.delete(classCode);
+        }
+        emit("activeClassesChange", getActiveClasses());
+    }
+
+    // Compute actual duration based on spell data + level
+    function computeDuration(spell, levelOverride = null) {
+        const min = spell.minDurationSeconds || 0;
+        const max = spell.maxDurationSeconds || min;
+
+        if (!spell.scalesWithLevel) return max;
+
+        const lvlMin = spell.spellLevelMin || 1;
+        const lvlMax = spell.spellLevelMax || lvlMin;
+
+        const lvl = Math.max(lvlMin, Math.min(levelOverride || lvlMax, lvlMax));
+        const pct = (lvl - lvlMin) / (lvlMax - lvlMin || 1);
+
+        return Math.round(min + pct * (max - min));
+    }
+
+    // Ensure spell has a stable ID
+    function ensureSpellId(spell) {
+        if (!spell) return null;
+        if (!spell.id) {
+            const cls = spell.class || "GEN";
+            const base = (spell.name || "SPELL").replace(/\s+/g, "_").toUpperCase();
+            spell.id = `${cls}_${base}`;
+        }
+        return spell.id;
+    }
+
+    function ensureTimer(spell) {
+        if (!spell) return null;
+
+        const spellId = ensureSpellId(spell);
+        if (!spellId) return null;
+
+        let t = timers.get(spellId);
+        if (!t) {
+            const baseDur = computeDuration(spell);
+
+            t = {
+                spellId,
+                spellName: spell.name || spellId,
+                classCode: spell.class || null,
+                spell,                 // store full spell object
+                baseDuration: baseDur,
+                remaining: baseDur,
+                running: false,
+                startedAt: null,
+                elapsedAccum: 0,
+                notes: "",
+                levelOverride: null    // future UI support
+            };
+
+            timers.set(spellId, t);
+
+            if (t.classCode) {
+                activeClasses.add(t.classCode);
+                emit("activeClassesChange", getActiveClasses());
+            }
+        }
+
+        return t;
+    }
+
+    function createTimer(spell) {
+        const t = ensureTimer(spell);
+        if (!t) return null;
+        emit("timerUpdate", { type: "create", timer: { ...t } });
+        return t;
+    }
+
+    function removeTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t) {
+            emit("timerRemove", { spellId });
+            return;
+        }
+        timers.delete(spellId);
+        recalcActiveClassesFor(t.classCode);
+        emit("timerRemove", { spellId });
+    }
+
+    function internalUpdateState(t, type) {
+        emit("timerUpdate", { type: type || "state", timer: { ...t } });
+    }
+
+    function startTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t || t.running) return;
+        t.running = true;
+        t.startedAt = performance.now();
+        internalUpdateState(t, "state");
+    }
+
+    function pauseTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t || !t.running) return;
+
+        const now = performance.now();
+        const delta = (now - t.startedAt) / 1000;
+
+        t.elapsedAccum += delta;
+        t.startedAt = null;
+        t.running = false;
+
+        t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
+        internalUpdateState(t, "state");
+    }
+
+    function resetTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t) return;
+
+        const newDur = computeDuration(t.spell, t.levelOverride);
+
+        t.baseDuration = newDur;
+        t.remaining = newDur;
+        t.running = false;
+        t.startedAt = null;
+        t.elapsedAccum = 0;
+
+        internalUpdateState(t, "reset");
+    }
+
+    function finalizeElapsed(t) {
+        if (t.running) {
+            const now = performance.now();
+            const delta = (now - t.startedAt) / 1000;
+            t.elapsedAccum += delta;
+            t.startedAt = null;
+            t.running = false;
+        }
+
+        if (t.baseDuration > 0 && t.elapsedAccum === 0) {
+            t.elapsedAccum = t.baseDuration;
+        }
+
+        t.remaining = Math.max(0, t.baseDuration - t.elapsedAccum);
+    }
+
+    function completeTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t) return;
+
+        finalizeElapsed(t);
+        const actual = t.elapsedAccum || t.baseDuration || 0;
+
+        logHistory(spellId, "Completed", actual, t.notes);
+        resetTimer(spellId);
+    }
+
+    function fadeEarlyTimer(spellId) {
+        const t = timers.get(spellId);
+        if (!t) return;
+
+        finalizeElapsed(t);
+        const actual = t.elapsedAccum || 0;
+
+        logHistory(spellId, "Faded Early", actual, t.notes);
+        resetTimer(spellId);
+    }
+
+    function updateNotes(spellId, notes) {
+        const t = timers.get(spellId);
+        if (!t) return;
+        t.notes = notes || "";
+        internalUpdateState(t, "notes");
+    }
+
+    function logHistory(spellId, result, durationSeconds, notes) {
+        if (!history.has(spellId)) history.set(spellId, []);
+
+        const entry = {
+            timestamp: new Date(),
+            result,
+            durationSeconds: durationSeconds || 0,
+            notes: notes || ""
+        };
+
+        history.get(spellId).push(entry);
+
+        emit("historyUpdate", {
+            spellId,
+            entry,
+            history: history.get(spellId).slice()
+        });
+    }
+
+    function getHistory(spellId) {
+        return history.has(spellId) ? history.get(spellId).slice() : [];
+    }
+
+    function getAverageDuration(spellId) {
+        const h = history.get(spellId);
+        if (!h || !h.length) return 0;
+        const sum = h.reduce((acc, e) => acc + (e.durationSeconds || 0), 0);
+        return sum / h.length;
+    }
+
+    function on(eventName, handler) {
+        if (!listeners[eventName]) {
+            console.warn("SpellTimerEngine.on: unknown event", eventName);
+            return;
+        }
+        listeners[eventName].push(handler);
+    }
+
+    function tickLoop() {
+        const now = performance.now();
+
+        timers.forEach(t => {
+            if (!t.running) return;
+
+            const elapsed = t.elapsedAccum + (now - t.startedAt) / 1000;
+            t.elapsed = elapsed; // expose for break-zone logic
+
+            const remaining = Math.max(0, t.baseDuration - elapsed);
+            t.remaining = remaining;
+
+            const done = remaining <= 0.01;
+
+            if (done) {
+                t.running = false;
+                t.startedAt = null;
+                t.elapsedAccum = t.baseDuration;
+
+                logHistory(t.spellId, "Completed", t.baseDuration, t.notes);
+                internalUpdateState(t, "auto-complete");
+            } else {
+                internalUpdateState(t, "tick");
+            }
+        });
+
+        requestAnimationFrame(tickLoop);
+    }
+
+    requestAnimationFrame(tickLoop);
+
+    return {
+        createTimer,
+        removeTimer,
+        startTimer,
+        pauseTimer,
+        resetTimer,
+        completeTimer,
+        fadeEarlyTimer,
+        updateNotes,
+        logHistory,
+        getHistory,
+        getAverageDuration,
+        getActiveClasses,
+        on,
+        computeDuration
+    };
+})();
+
+
+// ===============================
+// SPELL TIMER SYSTEM: BLOCK #6 ()— UI BUILDER (UPDATED)
+// ===============================
+
+// Where the bottom panel will insert timers (Block 7 will create this container)
+let SPELL_TIMER_MASTER_CONTAINER = null;
+
+// Map spellId -> DOM container for the timer
+const TimerUIMap = new Map();
+
+// Helper: format seconds as mm:ss
+function fmtTime(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// PUBLIC: Create a timer UI for a spell
+function createSpellTimerUI(spell, parentContainerId) {
+    if (!SPELL_TIMER_MASTER_CONTAINER) return;
+
+    // Ask engine to create timer state
+    const t = SpellTimerEngine.createTimer(spell);
+    if (!t) return;
+
+    // If UI already exists, do nothing
+    if (TimerUIMap.has(spell.id)) return;
+
+    // Ensure class section exists (BOTTOM)
+    const classSection = ensureClassSection(spell.class);
+
+    // Build bottom timer box
+    const bottomBox = buildTimerBox(spell, t);
+    classSection.appendChild(bottomBox);
+    TimerUIMap.set(spell.id, bottomBox);
+
+    // Build top timer box (CLONE PANEL)
+    const cloneBox = buildTimerBoxClone(spell, t);
+    CloneUIMap.set(spell.id, cloneBox);
+
+    // Append clone to top panel container (but panel may be hidden)
+    const cloneContainer = document.getElementById("spellTimerPanelContainer_clone");
+    if (cloneContainer) {
+        cloneContainer.appendChild(cloneBox);
+    }
+}
+function buildTimerBoxClone(spell, t) {
+    const box = document.createElement("div");
+    box.className = "section";
+    box.style.marginTop = "6px";
+
+    // Title
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = spell.name;
+    box.appendChild(title);
+
+    // Progress bar
+    const progOuter = document.createElement("div");
+    progOuter.style.width = "100%";
+    progOuter.style.height = "14px";
+    progOuter.style.background = "#333";
+    progOuter.style.border = "1px solid #555";
+    progOuter.style.marginBottom = "6px";
+
+    const progFill = document.createElement("div");
+    progFill.style.height = "100%";
+    progFill.style.width = "0%";
+    progFill.style.background = "#3cb371";
+    progOuter.appendChild(progFill);
+
+    box.appendChild(progOuter);
+
+    // Buttons (LIVE)
+    const btnRow = document.createElement("div");
+
+    btnRow.appendChild(makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)));
+    btnRow.appendChild(makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)));
+
+    // NEW: Hide button
+    const hideBtn = makeBtn("Hide", () => {
+        box.style.display = "none";
+    });
+    hideBtn.style.marginLeft = "6px";
+    btnRow.appendChild(hideBtn);
+
+    box.appendChild(btnRow);
+
+    // Store UI refs for updates
+    box._ui = { progFill };
+
+    return box;
+}
+
+
+
+// PUBLIC: Remove timer UI
+function removeSpellTimerUI(spellId) {
+    const box = TimerUIMap.get(spellId);
+    if (box && box.parentNode) {
+        box.parentNode.removeChild(box);
+    }
+    TimerUIMap.delete(spellId);
+
+    SpellTimerEngine.removeTimer(spellId);
+
+    cleanupEmptyClassSections();
+}
+
+// Build the timer UI box
+function buildTimerBox(spell, t) {
+    const box = document.createElement("div");
+    box.className = "section";
+    box.style.marginTop = "6px";
+
+    // Title
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = spell.name;
+    box.appendChild(title);
+
+    // ===============================
+    // Duration Row
+    // ===============================
+    const durRow = document.createElement("div");
+    durRow.style.marginBottom = "6px";
+
+    const durLabel = document.createElement("span");
+    durLabel.textContent = "Duration (sec): ";
+    durRow.appendChild(durLabel);
+
+    const durInput = document.createElement("input");
+    durInput.type = "number";
+    durInput.style.width = "70px";
+
+    // Use engine to compute correct duration
+    durInput.value = SpellTimerEngine.computeDuration(spell);
+
+    durInput.addEventListener("change", () => {
+        const newVal = Number(durInput.value) || 0;
+        t.baseDuration = newVal;
+        t.remaining = newVal;
+        SpellTimerEngine.resetTimer(spell.id);
+    });
+
+    durRow.appendChild(durInput);
+    box.appendChild(durRow);
+
+    // ===============================
+    // Progress Bar
+    // ===============================
+    const progOuter = document.createElement("div");
+    progOuter.style.width = "100%";
+    progOuter.style.height = "14px";
+    progOuter.style.background = "#333";
+    progOuter.style.border = "1px solid #555";
+    progOuter.style.marginBottom = "6px";
+
+    const progFill = document.createElement("div");
+    progFill.style.height = "100%";
+    progFill.style.width = "0%";
+    progFill.style.background = "#3cb371";
+
+    progOuter.appendChild(progFill);
+    box.appendChild(progOuter);
+
+    // ===============================
+    // Buttons
+    // ===============================
+const btnRow = document.createElement("div"); const btnStart = makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id)); const btnPause = makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id)); const btnReset = makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id)); const btnDone = makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)); const btnFade = makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)); // NEW: Info button const btnInfo = makeBtn("Info", () => { alert( `${spell.name}\n\n` + `${spell.description || "No description available."}\n\n` + `Notes: ${spell.notes || "None"}` ); }); // NEW: Show in Top Panel button const btnShowTop = makeBtn("Show Top", () => { const cloneBox = CloneUIMap.get(spell.id); if (cloneBox) { cloneBox.style.display = "block"; } }); btnRow.appendChild(btnStart); btnRow.appendChild(btnPause); btnRow.appendChild(btnReset); btnRow.appendChild(btnDone); btnRow.appendChild(btnFade); btnRow.appendChild(btnInfo); btnRow.appendChild(btnShowTop); box.appendChild(btnRow);
+
+    // ===============================
+    // Notes
+    // ===============================
+    const notesLabel = document.createElement("div");
+    notesLabel.textContent = "Notes:";
+    notesLabel.style.marginTop = "6px";
+    box.appendChild(notesLabel);
+
+    const notesArea = document.createElement("textarea");
+    notesArea.style.height = "50px";
+    notesArea.addEventListener("input", () => {
+        SpellTimerEngine.updateNotes(spell.id, notesArea.value);
+    });
+    box.appendChild(notesArea);
+
+    // ===============================
+    // History Table
+    // ===============================
+    const histTitle = document.createElement("div");
+    histTitle.textContent = "History:";
+    histTitle.style.marginTop = "6px";
+    histTitle.style.fontWeight = "bold";
+    box.appendChild(histTitle);
+
+    const histTable = document.createElement("table");
+
+    const hthead = document.createElement("thead");
+    hthead.innerHTML = `
+        <tr>
+            <th>Time</th>
+            <th>Result</th>
+            <th>Duration</th>
+            <th>Notes</th>
+        </tr>`;
+    histTable.appendChild(hthead);
+
+    const htbody = document.createElement("tbody");
+    histTable.appendChild(htbody);
+
+    box.appendChild(histTable);
+
+    // ===============================
+    // Store UI references for updates
+    // ===============================
+    box._ui = {
+        progFill,
+        notesArea,
+        histBody: htbody
+    };
+
+    return box;
+}
+
+
+// Helper: make a styled button
+function makeBtn(label, fn) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.addEventListener("click", fn);
+    return b;
+}
+
+// Ensure class section exists
+function ensureClassSection(classCode) {
+    const id = "timer_section_" + classCode;
+    let sec = document.getElementById(id);
+    if (sec) return sec;
+
+    sec = document.createElement("div");
+    sec.id = id;
+    sec.className = "section";
+    sec.style.marginTop = "10px";
+
+    const title = document.createElement("div");
+    title.className = "section-title";
+    title.textContent = classCode + " Timers";
+    sec.appendChild(title);
+
+    SPELL_TIMER_MASTER_CONTAINER.appendChild(sec);
+    return sec;
+}
+
+// Remove empty class sections
+function cleanupEmptyClassSections() {
+    if (!SPELL_TIMER_MASTER_CONTAINER) return;
+
+    const children = [...SPELL_TIMER_MASTER_CONTAINER.children];
+    children.forEach(sec => {
+        if (sec.id && sec.id.startsWith("timer_section_")) {
+            // A class section always has:
+            //   1 child = the title only
+            //   >1 children = title + timers
+            if (sec.children.length <= 1) {
+                SPELL_TIMER_MASTER_CONTAINER.removeChild(sec);
+            }
+        }
+    });
+}
+
+
+// ENGINE EVENT LISTENERS
+SpellTimerEngine.on("timerUpdate", payload => {
+    const t = payload.timer;
+
+    const bottomBox = TimerUIMap.get(t.spellId);
+    const cloneBox  = CloneUIMap.get(t.spellId);
+
+    const boxes = [bottomBox, cloneBox].filter(b => b && b._ui);
+    if (boxes.length === 0) return;
+
+    const spell = t.spell;
+
+    let inBreakZone = false;
+    if (spell.breakable) {
+        if (spell.category?.includes("Charm") && (t.elapsed || 0) >= spell.minDurationSeconds) {
+            inBreakZone = true;
+        }
+        if (spell.category?.includes("Fear") || spell.category?.includes("Root")) {
+            inBreakZone = true;
+        }
+    }
+
+    boxes.forEach(box => {
+        const ui = box._ui;
+
+        // Progress bar width
+        if (t.baseDuration > 0) {
+            const pct = ((t.baseDuration - t.remaining) / t.baseDuration) * 100;
+            ui.progFill.style.width = pct + "%";
+        } else {
+            ui.progFill.style.width = "0%";
+        }
+
+        // Progress bar color
+        if (!spell.breakable) ui.progFill.style.background = "#3cb371";
+        else if (inBreakZone) ui.progFill.style.background = "#cc3333";
+        else ui.progFill.style.background = "#e6c300";
+
+        // Notes sync
+        ui.notesArea.value = t.notes || "";
+    });
+});
+
+
+
+// Update history
+SpellTimerEngine.on("historyUpdate", payload => {
+    const { spellId, entry } = payload;
+    const box = TimerUIMap.get(spellId);
+    if (!box || !box._ui) return;
+
+    const body = box._ui.histBody;
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+        <td>${entry.timestamp.toLocaleTimeString()}</td>
+        <td>${entry.result}</td>
+        <td>${fmtTime(entry.durationSeconds)}</td>
+        <td>${entry.notes}</td>
+    `;
+
+    body.appendChild(row);
+});
+
+<!-- === SPELL TIMER SYSTEM: BLOCK #7  — BOTTOM TIMER PANEL === -->
+// Creates the bottom Spell Timer panel and manages dynamic title updates
+
+(function initBottomSpellTimerPanel() {
+
+    // Create the master panel wrapper
+    const panel = document.createElement("div");
+    panel.id = "spellTimerPanel";
+    panel.className = "section";
+    panel.style.marginTop = "20px";
+
+    // Title
+    const title = document.createElement("div");
+    title.id = "spellTimerPanelTitle";
+    title.className = "section-title";
+    title.textContent = "Spell Timers";
+    panel.appendChild(title);
+
+    // Container where class sections + timers will be inserted
+    const container = document.createElement("div");
+    container.id = "spellTimerPanelContainer";
+    panel.appendChild(container);
+
+    // Attach panel to bottom of page
+    document.body.appendChild(panel);
+
+    // IMPORTANT: Expose the correct container to the UI builder
+    // This ensures all timers are inserted into #spellTimerPanelContainer
+    SPELL_TIMER_MASTER_CONTAINER = container;
+
+    // CLASS NAME MAP (for dynamic title updates)
+    const CLASS_NAMES = {
+        NEC: "Necromancer",
+        RNG: "Ranger",
+        SHM: "Shaman",
+        ENC: "Enchanter",
+        MAG: "Magician",
+        WIZ: "Wizard",
+        CLR: "Cleric",
+        DRU: "Druid",
+        BRD: "Bard",
+        MNK: "Monk",
+        ROG: "Rogue",
+        PAL: "Paladin",
+        SHD: "Shadow Knight",
+        WAR: "Warrior"
+    };
+
+    // Update title when active classes change
+    SpellTimerEngine.on("activeClassesChange", classList => {
+        let base = "Spell Timers";
+
+        if (classList.length > 0) {
+            const names = classList
+                .map(c => CLASS_NAMES[c] || c)
+                .join(" + ");
+            base += " + " + names;
+        }
+
+        title.textContent = base;
+
+        // Also update cloned panel title (Block 8 will create it)
+        const cloneTitle = document.getElementById("spellTimerPanelTitle_clone");
+        if (cloneTitle) cloneTitle.textContent = base;
+    });
+
+})();
+
+<!-- === SPELL TIMER SYSTEM: BLOCK #8 — TOP CLONED PANEL SYSTEM === -->
+
+// Top Cloned Panel System
+// - Creates a mirror of the bottom Spell Timer panel
+// - Appears directly under the <h1> header
+// - Fully synced with bottom panel
+// - Updates title dynamically
+// - Mirrors class sections + timers
+
+(function initTopClonedPanelSystem() {
+
+    // Locate the <h1> header
+    const header = document.querySelector("h1");
+    if (!header) {
+        console.warn("Top clone panel: <h1> header not found.");
+        return;
+    }
+
+    // Create the cloned panel container (initially hidden)
+    const clonePanel = document.createElement("div");
+    clonePanel.id = "spellTimerPanel_clone";
+    clonePanel.className = "section";
+    clonePanel.style.marginTop = "10px";
+    clonePanel.style.display = "none";
+
+    // Title
+    const cloneTitle = document.createElement("div");
+    cloneTitle.id = "spellTimerPanelTitle_clone";
+    cloneTitle.className = "section-title";
+    cloneTitle.textContent = "Spell Timers";
+    clonePanel.appendChild(cloneTitle);
+
+    // Container for cloned class sections
+    const cloneContainer = document.createElement("div");
+    cloneContainer.id = "spellTimerPanelContainer_clone";
+    clonePanel.appendChild(cloneContainer);
+
+    // Insert cloned panel directly under the header
+    header.insertAdjacentElement("afterend", clonePanel);
+
+
+    // --- CLONE BUTTON (appears in bottom panel) ---
+    const bottomPanel = document.getElementById("spellTimerPanel");
+    if (bottomPanel) {
+        const cloneBtn = document.createElement("button");
+        cloneBtn.textContent = "Clone Panel to Top";
+        cloneBtn.style.marginBottom = "8px";
+
+cloneBtn.addEventListener("click", () => {
+    const isVisible = clonePanel.style.display !== "none";
+
+    if (isVisible) {
+        clonePanel.style.display = "none";
+        cloneBtn.textContent = "Clone Panel to Top";
+    } else {
+        clonePanel.style.display = "block";
+        cloneBtn.textContent = "Hide Top Panel";
+    }
+});
+
+
+        bottomPanel.insertBefore(cloneBtn, bottomPanel.firstChild);
+    }
+
+
+})();
+
+// ===============================
+// REFRESH / CLOSE WARNING
+// ===============================
+window.addEventListener("beforeunload", function (e) {
+    // Custom message (not all browsers show it, but the warning still triggers)
+    const message = "Warning: This page does NOT save any data. Refreshing will wipe all timers, notes, and history. Save your logs before leaving.";
+
+    e.preventDefault();
+    e.returnValue = message; // Required for Chrome/Edge
+    return message;
+});
+
+
+
+</script>
+
 </body>
 </html>
-tytyty
+yesyesyes
