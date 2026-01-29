@@ -5016,10 +5016,44 @@ function buildTimerBox(spell, t) {
     progOuter.appendChild(progFill);
     box.appendChild(progOuter);
 
-    // ===============================
-    // Buttons
-    // ===============================
-const btnRow = document.createElement("div"); const btnStart = makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id)); const btnPause = makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id)); const btnReset = makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id)); const btnDone = makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id)); const btnFade = makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id)); // NEW: Info button const btnInfo = makeBtn("Info", () => { alert( `${spell.name}\n\n` + `${spell.description || "No description available."}\n\n` + `Notes: ${spell.notes || "None"}` ); }); // NEW: Show in Top Panel button const btnShowTop = makeBtn("Show Top", () => { const cloneBox = CloneUIMap.get(spell.id); if (cloneBox) { cloneBox.style.display = "block"; } }); btnRow.appendChild(btnStart); btnRow.appendChild(btnPause); btnRow.appendChild(btnReset); btnRow.appendChild(btnDone); btnRow.appendChild(btnFade); btnRow.appendChild(btnInfo); btnRow.appendChild(btnShowTop); box.appendChild(btnRow);
+// ===============================
+// Buttons
+// ===============================
+const btnRow = document.createElement("div");
+
+const btnStart = makeBtn("Start", () => SpellTimerEngine.startTimer(spell.id));
+const btnPause = makeBtn("Pause", () => SpellTimerEngine.pauseTimer(spell.id));
+const btnReset = makeBtn("Reset", () => SpellTimerEngine.resetTimer(spell.id));
+const btnDone  = makeBtn("Completed", () => SpellTimerEngine.completeTimer(spell.id));
+const btnFade  = makeBtn("Faded Early", () => SpellTimerEngine.fadeEarlyTimer(spell.id));
+
+// NEW: Info button
+const btnInfo = makeBtn("Info", () => {
+    alert(
+        `${spell.name}\n\n` +
+        `${spell.description || "No description available."}\n\n` +
+        `Notes: ${spell.notes || "None"}`
+    );
+});
+
+// NEW: Show in Top Panel button
+const btnShowTop = makeBtn("Show Top", () => {
+    const cloneBox = CloneUIMap.get(spell.id);
+    if (cloneBox) {
+        cloneBox.style.display = "block";
+    }
+});
+
+btnRow.appendChild(btnStart);
+btnRow.appendChild(btnPause);
+btnRow.appendChild(btnReset);
+btnRow.appendChild(btnDone);
+btnRow.appendChild(btnFade);
+btnRow.appendChild(btnInfo);
+btnRow.appendChild(btnShowTop);
+
+box.appendChild(btnRow);
+
 
     // ===============================
     // Notes
@@ -5255,13 +5289,13 @@ SpellTimerEngine.on("historyUpdate", payload => {
 
 <!-- === SPELL TIMER SYSTEM: BLOCK #8 — TOP CLONED PANEL SYSTEM === -->
 
-// Top Cloned Panel System
+// ===============================
+// TOP CLONED PANEL SYSTEM (CHECKBOX VERSION)
 // - Creates a mirror of the bottom Spell Timer panel
 // - Appears directly under the <h1> header
 // - Fully synced with bottom panel
-// - Updates title dynamically
-// - Mirrors class sections + timers
-
+// - User enables it via checkbox toggle
+// ===============================
 (function initTopClonedPanelSystem() {
 
     // Locate the <h1> header
@@ -5294,31 +5328,43 @@ SpellTimerEngine.on("historyUpdate", payload => {
     header.insertAdjacentElement("afterend", clonePanel);
 
 
-    // --- CLONE BUTTON (appears in bottom panel) ---
+    // ===============================
+    // CHECKBOX TOGGLE IN BOTTOM PANEL
+    // ===============================
     const bottomPanel = document.getElementById("spellTimerPanel");
     if (bottomPanel) {
-        const cloneBtn = document.createElement("button");
-        cloneBtn.textContent = "Clone Panel to Top";
-        cloneBtn.style.marginBottom = "8px";
 
-cloneBtn.addEventListener("click", () => {
-    const isVisible = clonePanel.style.display !== "none";
+        const wrapper = document.createElement("label");
+        wrapper.style.display = "flex";
+        wrapper.style.alignItems = "center";
+        wrapper.style.cursor = "pointer";
+        wrapper.style.marginBottom = "8px";
 
-    if (isVisible) {
-        clonePanel.style.display = "none";
-        cloneBtn.textContent = "Clone Panel to Top";
-    } else {
-        clonePanel.style.display = "block";
-        cloneBtn.textContent = "Hide Top Panel";
+        const cloneCheckbox = document.createElement("input");
+        cloneCheckbox.type = "checkbox";
+        cloneCheckbox.style.marginRight = "6px";
+
+        const cloneLabel = document.createElement("span");
+        cloneLabel.textContent = "Clone Panel to Top (enables Show Top button)";
+
+        wrapper.appendChild(cloneCheckbox);
+        wrapper.appendChild(cloneLabel);
+
+        // Insert at top of bottom panel
+        bottomPanel.insertBefore(wrapper, bottomPanel.firstChild);
+
+        // Toggle behavior
+        cloneCheckbox.addEventListener("change", () => {
+            if (cloneCheckbox.checked) {
+                clonePanel.style.display = "block";
+            } else {
+                clonePanel.style.display = "none";
+            }
+        });
     }
-});
-
-
-        bottomPanel.insertBefore(cloneBtn, bottomPanel.firstChild);
-    }
-
 
 })();
+
 
 // ===============================
 // REFRESH / CLOSE WARNING
