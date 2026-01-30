@@ -5157,10 +5157,12 @@ window.addEventListener("DOMContentLoaded", () => {
         info.style.fontSize = "13px";
         info.style.opacity = "0.8";
         info.style.marginBottom = "10px";
-        info.innerHTML = `
-            The Swoosh System saves your entire spell database, including overrides and custom spells.<br>
-            Load or download your swoosh log to restore your personalized spell system. save first then download.
-        `;
+info.innerHTML = `
+    The Swoosh System saves your entire spell database, including overrides and custom spells.<br>
+    Load or download your swoosh log to restore your personalized spell system. Save first, then download.<br>
+    It will also save and restore your Long Term Timers.
+`;
+
         panel.appendChild(info);
         __DBG("PASS: Info block appended to panel.");
 
