@@ -5785,9 +5785,19 @@ function tickLoop() {
 
             captureNotes(t);
 
-            if (t.cooldownId) {
-                SpellTimerEngine.startTimer(t.cooldownId);
-            }
+if (t.cooldownId) {
+
+    // Make cooldown timer visible in UI
+    const cdBox = TimerUIMap.get(t.cooldownId);
+    if (cdBox) cdBox.style.display = "block";
+
+    const cdClone = CloneUIMap.get(t.cooldownId);
+    if (cdClone) cdClone.style.display = "block";
+
+    // Start the cooldown timer
+    SpellTimerEngine.startTimer(t.cooldownId);
+}
+
 
             logHistory(t.spellId, "Completed", t.baseDuration, t.notes);
             internalUpdateState(t, "auto-complete");
