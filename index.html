@@ -6786,7 +6786,7 @@ function saveAndUpdateTimer(timerObj, dom) {
     // CLOCK UPDATE (RESPECT OVERRIDE)
     // ===============================
     function updateLTTClock() {
-        __DBG("ENTER: updateLTTClock");
+        //__DBG("ENTER: updateLTTClock"); // weird bug messes up duration change saves with save & update
 
         try {
             if (lttClockOverride) {
