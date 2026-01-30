@@ -561,32 +561,36 @@ function freezeLogForSwoosh() {
 
 async function swooshSave() {
     await freezeLogForSwoosh();
-    __DBG("ENTER: swooshSave()Step 1: lock and wait");
+    __DBG("ENTER: swooshSave() Step 1: lock and wait");
 
     const fullDatabase = {
         timestamp: new Date().toISOString(),
         registry: SpellRegistry,
         overrides: UserOverrides,
         custom: UserCustomSpells,
-        classes: SpellClassAvailable
+        classes: SpellClassAvailable,
+
+        // ⭐ NEW: Save Long Term Timers
+        longTermTimers: LongTermTimersAPI.getAll()
     };
 
     logRaw(SWOOSH_START);
-    __DBG("ENTER: swooshSave Step 2: write swoosh block SWOOSH_START)");
+    __DBG("ENTER: swooshSave Step 2: write swoosh block (SWOOSH_START)");
 
     logRaw(JSON.stringify(fullDatabase, null, 2));
 
     logRaw(SWOOSH_END);
-    __DBG("ENTER: swooshSave SWOOSH_END)");
+    __DBG("ENTER: swooshSave Step 3: write swoosh block (SWOOSH_END)");
 
     LOG_UNLOCKED = true;
-    __DBG("ENTER: swooshSave Step 3: unlock");
+    __DBG("ENTER: swooshSave Step 4: unlock");
 
     logLine("Swoosh Save Complete.");
-    __DBG("ENTER: swoosh Swoosh Save Complete.");
+    __DBG("ENTER: swooshSave() COMPLETE");
 }
 
 __DBG("past (function swooshSave()).1111333");
+
 
         function logUnloggedMembers() {
             if (!inGroup || groupSize <= 1) return;
@@ -2056,7 +2060,7 @@ function enableSpellClass(classCode) {
     });
 }
 
-
+    __DBG("b4ENTER: swooshLoadFromText()");
 function swooshLoadFromText(text) {
     __DBG("ENTER: swooshLoadFromText()");
     const lines = text.split("\n");
@@ -2121,6 +2125,17 @@ function swooshLoadFromText(text) {
     UserOverrides = swoosh.overrides || {};
     UserCustomSpells = swoosh.custom || {};
     SpellClassAvailable = swoosh.classes || {};
+    __DBG("XXENTER: Apply loaded data");
+    // ===============================
+    // Restore Long Term Timers
+    // ===============================
+    if (swoosh.longTermTimers) {
+        __DBG("APPLY: Restoring LongTermTimers");
+        LongTermTimersAPI.loadAll(swoosh.longTermTimers);
+        logLine("LTT Restored from Swoosh.");
+    } else {
+        __DBG("NOTE: No longTermTimers found in swoosh.");
+    }
 
     // ===============================
     // Rebuild UI
@@ -6727,7 +6742,508 @@ function saveAndUpdateTimer(timerObj, dom) {
     __DBG("EXIT: saveAndUpdateTimer()");
 }
 
+// ===============================
+// LONG TERM TIMERS MODULE (FINAL + LOGGING)
+// ===============================
+(function LongTermTimersModule() {
 
+    __DBG("ENTER: LongTermTimersModule");
+
+    let LTT = [];
+    let lttClockOverride = null;
+
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "40px";
+    wrap.style.padding = "10px";
+    wrap.style.border = "2px solid #444";
+    wrap.style.background = "#222";
+    wrap.style.color = "#fff";
+    wrap.style.fontFamily = "monospace";
+
+    // ===============================
+    // HEADER WITH CLOCK + SET TIME
+    // ===============================
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "10px";
+
+    header.innerHTML = `
+        <div style="font-size:20px; font-weight:bold;">Long Term Timers</div>
+        <div style="text-align:right;">
+            <div id="lttClock" style="font-size:16px; color:#0f0;">00:00</div>
+            <button id="lttSetTimeBtn" style="margin-top:4px;">Set Time</button>
+        </div>
+    `;
+
+    wrap.appendChild(header);
+    document.body.appendChild(wrap);
+
+    const clockEl = header.querySelector("#lttClock");
+
+    // ===============================
+    // CLOCK UPDATE (RESPECT OVERRIDE)
+    // ===============================
+    function updateLTTClock() {
+        __DBG("ENTER: updateLTTClock");
+
+        try {
+            if (lttClockOverride) {
+                clockEl.textContent = `${lttClockOverride.hh}:${lttClockOverride.mm}`;
+                return;
+            }
+
+            const now = new Date();
+            const hh = now.getHours().toString().padStart(2, "0");
+            const mm = now.getMinutes().toString().padStart(2, "0");
+            clockEl.textContent = `${hh}:${mm}`;
+            clockEl.style.opacity = "1";
+
+        } catch (e) {
+            clockEl.textContent = "00:00";
+            clockEl.style.opacity = clockEl.style.opacity === "1" ? "0.3" : "1";
+        }
+    }
+
+    setInterval(updateLTTClock, 1000);
+    updateLTTClock();
+
+    // ===============================
+    // MANUAL CLOCK OVERRIDE
+    // ===============================
+    header.querySelector("#lttSetTimeBtn").onclick = () => {
+        __DBG("ENTER: lttSetTimeBtn.onclick");
+
+        const current = clockEl.textContent;
+        const newTime = prompt("Set time (HH:MM):", current);
+        if (!newTime) return;
+
+        const parts = newTime.split(":");
+        if (parts.length !== 2) return;
+
+        const hh = parseInt(parts[0]);
+        const mm = parseInt(parts[1]);
+
+        if (isNaN(hh) || isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return;
+
+        const now = new Date();
+        const sysHH = now.getHours();
+        const sysMM = now.getMinutes();
+        const diffMin = (hh - sysHH) * 60 + (mm - sysMM);
+
+        logLine(`LTT Clock override: system=${sysHH}:${sysMM} user=${hh}:${mm} (offset ${diffMin} min)`);
+
+        lttClockOverride = {
+            hh: hh.toString().padStart(2, "0"),
+            mm: mm.toString().padStart(2, "0")
+        };
+
+        clockEl.textContent = `${lttClockOverride.hh}:${lttClockOverride.mm}`;
+        clockEl.style.color = "#ff0";
+        setTimeout(() => clockEl.style.color = "#0f0", 1500);
+    };
+
+    // ===============================
+    // ADD FORM
+    // ===============================
+    const form = document.createElement("div");
+    form.innerHTML = `
+        <input id="lttName" placeholder="Timer Name" style="width:200px;">
+        <input id="lttDays" type="number" min="0" placeholder="Days" style="width:60px;">
+        <input id="lttHours" type="number" min="0" max="23" placeholder="Hours" style="width:60px;">
+        <input id="lttMin" type="number" min="0" max="59" placeholder="Min" style="width:60px;">
+        <input id="lttSec" type="number" min="0" max="59" placeholder="Sec" style="width:60px;">
+        <button id="lttAdd">Add</button>
+    `;
+    wrap.appendChild(form);
+
+    const list = document.createElement("div");
+    wrap.appendChild(list);
+
+    // ===============================
+    // ADD TIMER
+    // ===============================
+    document.getElementById("lttAdd").onclick = () => {
+        __DBG("ENTER: lttAdd.onclick");
+
+        const name = document.getElementById("lttName").value.trim();
+        const d = parseInt(document.getElementById("lttDays").value) || 0;
+        const h = parseInt(document.getElementById("lttHours").value) || 0;
+        const m = parseInt(document.getElementById("lttMin").value) || 0;
+        const s = parseInt(document.getElementById("lttSec").value) || 0;
+
+        if (!name) return;
+
+        const totalMs = (d*86400 + h*3600 + m*60 + s) * 1000;
+        if (totalMs <= 0) return;
+
+        const obj = {
+            id: "LTT_" + Math.random().toString(36).slice(2),
+            name,
+            target: Date.now() + totalMs,
+            note: "",
+            history: []
+        };
+
+        LTT.push(obj);
+
+        logLine(`LTT Created: ${name} (${d}d ${h}h ${m}m ${s}s)`);
+
+        render();
+    };
+
+    // ===============================
+    // RENDER (STATIC PARTS ONLY)
+    // ===============================
+    function render() {
+        __DBG("ENTER: render");
+
+        list.innerHTML = "";
+
+        LTT.forEach(t => {
+            const div = document.createElement("div");
+            div.style.margin = "10px 0";
+            div.style.padding = "10px";
+            div.style.border = "1px solid #555";
+
+            div.innerHTML = `
+                <b>${t.name}</b>
+                <button class="edit" style="float:right;">Edit</button>
+                <br><br>
+
+                Remaining: <span id="ltt_rem_${t.id}"></span><br>
+                Ends On: <span id="ltt_end_${t.id}" style="color:#0af"></span>
+                <br><br>
+
+                <textarea class="note" style="width:100%;height:40px;">${t.note}</textarea><br>
+                <button class="saveNote">Save Note</button>
+
+                <br><br>
+                <button class="toggleHist">Show History</button>
+                <div class="hist" style="display:none; margin-top:10px; border-top:1px solid #555; padding-top:10px;">
+                    ${t.history.length === 0 ? "<i>No edits yet</i>" : ""}
+                </div>
+
+                <br><br>
+                <label><input type="checkbox" class="chk1"> Confirm</label>
+                <label><input type="checkbox" class="chk2"> Really?</label>
+                <button class="delete" style="margin-left:10px;">Delete</button>
+            `;
+
+            // ===============================
+            // SAVE NOTE
+            // ===============================
+            div.querySelector(".saveNote").onclick = () => {
+                __DBG("ENTER: saveNote.onclick");
+
+                t.note = div.querySelector(".note").value;
+logLine(`LTT Note Updated: ${t.name} → "${t.note}"`);
+
+            };
+
+            // ===============================
+            // TOGGLE HISTORY
+            // ===============================
+            div.querySelector(".toggleHist").onclick = () => {
+                __DBG("ENTER: toggleHist.onclick");
+
+                const h = div.querySelector(".hist");
+                h.style.display = h.style.display === "none" ? "block" : "none";
+            };
+
+            // ===============================
+            // EDIT TIMER
+            // ===============================
+            div.querySelector(".edit").onclick = () => {
+                __DBG("ENTER: edit.onclick");
+
+                const newD = prompt("Days:");
+                const newH = prompt("Hours:");
+                const newM = prompt("Minutes:");
+                const newS = prompt("Seconds:");
+
+                const totalMs = ((+newD||0)*86400 + (+newH||0)*3600 + (+newM||0)*60 + (+newS||0)) * 1000;
+                if (totalMs <= 0) return;
+
+                const oldTarget = t.target;
+                t.target = Date.now() + totalMs;
+
+                logLine(`LTT Edited: ${t.name} → ${newD}d ${newH}h ${newM}m ${newS}s`);
+
+                // Force immediate Ends On update
+                const endEl = document.getElementById("ltt_end_" + t.id);
+                if (endEl) {
+                    let now = new Date();
+                    if (lttClockOverride) {
+                        now = new Date(
+                            now.getFullYear(),
+                            now.getMonth(),
+                            now.getDate(),
+                            parseInt(lttClockOverride.hh),
+                            parseInt(lttClockOverride.mm),
+                            0
+                        );
+                    }
+
+                    const endDate = new Date(now.getTime() + totalMs);
+
+                    const options = {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true
+                    };
+
+                    endEl.textContent = endDate.toLocaleString(undefined, options);
+                }
+
+                t.history.push({
+                    when: new Date().toLocaleString(),
+                    oldRemaining: oldTarget - Date.now(),
+                    newRemaining: totalMs
+                });
+
+                render();
+            };
+
+            // ===============================
+            // DELETE TIMER
+            // ===============================
+            div.querySelector(".delete").onclick = () => {
+                __DBG("ENTER: delete.onclick");
+
+                const c1 = div.querySelector(".chk1").checked;
+                const c2 = div.querySelector(".chk2").checked;
+                if (!c1 || !c2) return;
+
+                logLine(`LTT Deleted: ${t.name}`);
+
+                LTT = LTT.filter(x => x.id !== t.id);
+                render();
+            };
+
+            // ===============================
+            // HISTORY RENDER
+            // ===============================
+            const histDiv = div.querySelector(".hist");
+            t.history.forEach(h => {
+                const row = document.createElement("div");
+                row.style.marginBottom = "6px";
+                row.innerHTML = `
+                    <b>${h.when}</b><br>
+                    Old: ${(h.oldRemaining/1000).toFixed(0)} sec<br>
+                    New: ${(h.newRemaining/1000).toFixed(0)} sec<br>
+                `;
+                histDiv.appendChild(row);
+            });
+
+            list.appendChild(div);
+        });
+    }
+
+// ===============================
+// PARTIAL UPDATE LOOP (ONLY REMAINING TIME)
+// ===============================
+setInterval(() => {
+    LTT.forEach(t => {
+        const el = document.getElementById("ltt_rem_" + t.id);
+        if (!el) return;
+
+        const remaining = t.target - Date.now();
+        const ready = remaining <= 0;
+
+        const days = Math.max(0, Math.floor(remaining / 86400000));
+        const hours = Math.max(0, Math.floor((remaining % 86400000) / 3600000));
+        const mins = Math.max(0, Math.floor((remaining % 3600000) / 60000));
+        const secs = Math.max(0, Math.floor((remaining % 60000) / 1000));
+
+        el.innerHTML = ready
+            ? `<span style="color:#ff0">READY</span>`
+            : `<span style="color:#0f0">${days}d ${hours}h ${mins}m ${secs}s</span>`;
+
+        const endEl = document.getElementById("ltt_end_" + t.id);
+        if (endEl) {
+            let now = new Date();
+            if (lttClockOverride) {
+                now = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    parseInt(lttClockOverride.hh),
+                    parseInt(lttClockOverride.mm),
+                    0
+                );
+            }
+
+            const endDate = new Date(now.getTime() + remaining);
+
+            const options = {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true
+            };
+
+            endEl.textContent = endDate.toLocaleString(undefined, options);
+        }
+    });
+}, 1000);
+
+// ===============================
+// API EXPORT
+// ===============================
+window.LongTermTimersAPI = {
+    getAll: () => LTT,
+    loadAll: arr => { LTT = arr || []; render(); }
+};
+
+})();
+
+// ===============================
+// TIME CONVERTER (BETA)
+// ===============================
+(function TimeConverterModule() {
+
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "40px";
+    wrap.style.padding = "10px";
+    wrap.style.border = "2px solid #444";
+    wrap.style.background = "#111";
+    wrap.style.color = "#fff";
+    wrap.style.fontFamily = "monospace";
+    wrap.innerHTML = "<h2>Time Converter <span style='color:#0f0'>(BETA)</span></h2>";
+    document.body.appendChild(wrap);
+
+    const addBtn = document.createElement("button");
+    addBtn.textContent = "Add Converter";
+    addBtn.style.marginBottom = "10px";
+    wrap.appendChild(addBtn);
+
+    const list = document.createElement("div");
+    wrap.appendChild(list);
+
+    let converters = [];
+
+    addBtn.onclick = () => {
+        const id = "TC_" + Math.random().toString(36).slice(2);
+        converters.push({ id });
+        render();
+    };
+
+    function render() {
+        list.innerHTML = "";
+
+        converters.forEach(conv => {
+            const box = document.createElement("div");
+            box.style.margin = "10px 0";
+            box.style.padding = "10px";
+            box.style.border = "1px solid #555";
+            box.style.background = "#222";
+
+            box.innerHTML = `
+                <b>Converter</b>  
+                <button class="delete" style="float:right;">Delete</button>
+                <br><br>
+
+                <input class="sec" type="number" placeholder="Seconds" style="width:120px;"> →
+                <span class="out1"></span><br>
+
+                <input class="min" type="number" placeholder="Minutes" style="width:120px;"> →
+                <span class="out2"></span><br>
+
+                <input class="hr" type="number" placeholder="Hours" style="width:120px;"> →
+                <span class="out3"></span><br>
+
+                <input class="day" type="number" placeholder="Days" style="width:120px;"> →
+                <span class="out4"></span><br>
+            `;
+
+            // Delete converter
+            box.querySelector(".delete").onclick = () => {
+                converters = converters.filter(x => x.id !== conv.id);
+                render();
+            };
+
+            const sec = box.querySelector(".sec");
+            const min = box.querySelector(".min");
+            const hr  = box.querySelector(".hr");
+            const day = box.querySelector(".day");
+
+            const out1 = box.querySelector(".out1");
+            const out2 = box.querySelector(".out2");
+            const out3 = box.querySelector(".out3");
+            const out4 = box.querySelector(".out4");
+
+            // ===============================
+            // TOTAL OUTPUT COLUMN
+            // ===============================
+            const totalOut = document.createElement("div");
+            totalOut.style.marginTop = "6px";
+            totalOut.style.color = "#0f0";
+            totalOut.style.fontWeight = "bold";
+            box.appendChild(totalOut);
+
+            function updateTotal() {
+                const s = parseFloat(sec.value) || 0;
+                const m = (parseFloat(min.value) || 0) * 60;
+                const h = (parseFloat(hr.value)  || 0) * 3600;
+                const d = (parseFloat(day.value) || 0) * 86400;
+
+                const total = s + m + h + d;
+
+                // Convert to HH:MM:SS
+                const hh = Math.floor(total / 3600);
+                const mm = Math.floor((total % 3600) / 60);
+                const ss = Math.floor(total % 60);
+
+                const hhmmss =
+                    hh > 0
+                        ? `${hh.toString().padStart(2,"0")}:${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`
+                        : `${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`;
+
+                totalOut.textContent = `Total: ${hhmmss} (${s} + ${m} + ${h} + ${d})`;
+            }
+
+            // ===============================
+            // EXISTING CONVERSION LOGIC
+            // ===============================
+            sec.oninput = () => {
+                const s = parseFloat(sec.value) || 0;
+                out1.textContent = `${(s/60).toFixed(2)} min | ${(s/3600).toFixed(2)} hr | ${(s/86400).toFixed(2)} days`;
+                updateTotal();
+            };
+
+            min.oninput = () => {
+                const m = parseFloat(min.value) || 0;
+                out2.textContent = `${m*60} sec | ${(m/60).toFixed(2)} hr | ${(m/1440).toFixed(2)} days`;
+                updateTotal();
+            };
+
+            hr.oninput = () => {
+                const h = parseFloat(hr.value) || 0;
+                out3.textContent = `${h*3600} sec | ${h*60} min | ${(h/24).toFixed(2)} days`;
+                updateTotal();
+            };
+
+            day.oninput = () => {
+                const d = parseFloat(day.value) || 0;
+                out4.textContent = `${d*86400} sec | ${d*1440} min | ${d*24} hr`;
+                updateTotal();
+            };
+
+            // Initialize total
+            updateTotal();
+
+            list.appendChild(box);
+        });
+    }
+
+})();
 
 
 // ===============================
