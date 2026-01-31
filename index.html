@@ -7444,27 +7444,29 @@ function wrapToken(word) {
     const id = makeTokenId();
     return `{{${id}[[~~ ${word} ~~]]${id}}}`;
 }
-
 // ======================================================
 // SEAL BUTTON HANDLER — NOW WITH UUID
 // ======================================================
 document.getElementById("itemSealBtn").onclick = () => {
+
     const title = document.getElementById("itemTitleInput").value.trim();
-    const url = document.getElementById("itemUrlInput").value.trim();
-    const imgUrl = document.getElementById("itemImgInput").value.trim();
+    const rawUrl = document.getElementById("itemUrlInput").value;
+    const rawImg = document.getElementById("itemImgInput").value;
+
+    const cleanUrl = sanitizeUrl(rawUrl, "https://wiki.project1999.com/");
+    const cleanImg = sanitizeUrl(rawImg, "https://wiki.project1999.com/images/");
+
+    // If user chose NOT to continue, abort seal creation
+    if (cleanUrl === "__ABORT__" || cleanImg === "__ABORT__") {
+        alert("Please correct the URL and try again.");
+        return;
+    }
+
     const effectEnabled = document.getElementById("itemEffectToggle").checked;
     const effectSeconds = parseInt(document.getElementById("itemEffectInput").value, 10) || 0;
     const note = document.getElementById("itemNoteInput").value.trim();
 
     if (!title) { alert("Enter item title."); return; }
-    if (url !== "https://wiki.project1999.com/" && !validateItemLink(url)) {
-        alert("Invalid item link.");
-        return;
-    }
-    if (imgUrl !== "https://wiki.project1999.com/images/" && !validateImageUrl(imgUrl)) {
-        alert("Invalid image URL.");
-        return;
-    }
     if (!note) { alert("Paste item text first."); return; }
 
     // Lock textarea
@@ -7478,8 +7480,8 @@ document.getElementById("itemSealBtn").onclick = () => {
 
     logRaw("=== ITEM_SEAL_START ===");
     logRaw(`title: ${title}`);
-    logRaw(`link: ${url}`);
-    logRaw(`image: ${imgUrl || "none"}`);
+    logRaw(`link: ${cleanUrl || "none"}`);
+    logRaw(`image: ${cleanImg || "none"}`);
     logRaw(`effect_enabled: ${effectEnabled}`);
     logRaw(`effect_seconds: ${effectSeconds}`);
     logRaw("tokens:");
@@ -7493,10 +7495,10 @@ document.getElementById("itemSealBtn").onclick = () => {
     // CREATE ITEM OBJECT WITH UUID
     // ------------------------------
     const newItem = {
-        id: crypto.randomUUID(),   // ⭐ UNIQUE ID
+        id: crypto.randomUUID(),
         title,
-        url,
-        imgUrl,
+        url: cleanUrl,
+        imgUrl: cleanImg,
         effectEnabled,
         effectSeconds,
         note,
@@ -7517,7 +7519,11 @@ document.getElementById("itemSealBtn").onclick = () => {
     const clearBtn = document.getElementById("itemClearBtn");
     clearBtn.textContent = "Use Again";
     clearBtn.dataset.mode = "reuse";
-
+// Disable Create Seal until Use Again is clicked
+const sealBtn = document.getElementById("itemSealBtn");
+sealBtn.disabled = true;
+sealBtn.style.opacity = "0.4";
+sealBtn.style.cursor = "not-allowed";
     document.getElementById("itemSealArea").style.display = "none";
 };
 
@@ -8028,7 +8034,6 @@ function restartItemTimer(id) {
     // Immediately start
     startItemTimer(id);
 }
-
 // ------------------------------
 // CLEAR / USE AGAIN BUTTON
 // ------------------------------
@@ -8046,8 +8051,16 @@ document.getElementById("itemClearBtn").onclick = () => {
         document.getElementById("itemImgInput").value = "https://wiki.project1999.com/images/";
         document.getElementById("itemNoteInput").value = "";
 
+        // Switch back to normal clear mode
         btn.textContent = "Clear";
         btn.dataset.mode = "clear";
+
+        // ⭐ Re-enable Create Seal
+        const sealBtn = document.getElementById("itemSealBtn");
+        sealBtn.disabled = false;
+        sealBtn.style.opacity = "1";
+        sealBtn.style.cursor = "pointer";
+
         return;
     }
 
@@ -8058,6 +8071,34 @@ document.getElementById("itemClearBtn").onclick = () => {
     document.getElementById("itemImgInput").value = "https://wiki.project1999.com/images/";
     document.getElementById("itemNoteInput").value = "";
 };
+
+function sanitizeUrl(input, base) {
+    const trimmed = (input || "").trim();
+
+    // Blank or base path → treat as blank
+    if (trimmed === "" || trimmed === base) {
+        return "";
+    }
+
+    // Valid: must start with base AND have something after it
+    if (trimmed.startsWith(base) && trimmed.length > base.length) {
+        return trimmed;
+    }
+
+    // Invalid → ask user if they want to blank it out
+    const proceed = confirm(
+        "Invalid item link.\n\n" +
+        "Would you like to continue and remove it (set to blank)?"
+    );
+
+    if (proceed) {
+        return ""; // blank it out
+    }
+
+    // User wants to fix manually → special abort token
+    return "__ABORT__";
+}
+
 
 // ===============================
 // REFRESH / CLOSE WARNING
