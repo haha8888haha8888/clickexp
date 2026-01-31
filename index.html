@@ -161,6 +161,8 @@
 }
 
     </style>
+<div id="topTimersArea"></div>
+
 </head>
 <body>
     <h1>EverQuest P99 XP & Mob Tracker</h1>
@@ -362,6 +364,53 @@
         <div id="log"></div>
     </div>
 
+<!-- ITEM BUILDER PANEL -->
+<div class="section" id="itemBuilderPanel">
+    <div class="section-title">Item Builder</div>
+<div style="margin-top:10px;">
+    <label>Item Title:</label><br>
+    <input id="itemTitleInput" type="text" placeholder="Enter item name..."
+           style="width: 260px;">
+</div>
+
+<div style="margin-top:10px;">
+    <label>Effect Timer (seconds):</label><br>
+    <input id="itemEffectInput" type="number" min="0" placeholder="0 = no timer"
+           style="width: 120px;">
+    <label><input id="itemEffectToggle" type="checkbox" checked> Item has effect timer</label>
+</div>
+
+
+    <label>Item Page URL:</label>
+    <input id="itemUrlInput" type="text" 
+           value="https://wiki.project1999.com/" 
+           style="width: 320px;">
+
+    <button id="itemUrlTestBtn">Test Link</button>
+    <span id="itemUrlStatus" style="margin-left:10px; font-size:12px;"></span>
+
+    <div style="margin-top:10px;">
+        <label>Item Image (from /images/ folder only):</label><br>
+        <input id="itemImgInput" type="text" 
+               value="https://wiki.project1999.com/images/" 
+               style="width: 320px;">
+        <button id="itemImgTestBtn">Test Image</button>
+        <span id="itemImgStatus" style="margin-left:10px; font-size:12px;"></span>
+    </div>
+
+    <div id="itemImgPreview" style="margin-top:10px;"></div>
+
+    <div style="margin-top:10px;">
+        <textarea id="itemNoteInput" placeholder="Paste item text here..."
+                  style="height:120px; width:100%;"></textarea>
+    </div>
+
+    <button id="itemSealBtn">Create Seal</button>
+    <button id="itemClearBtn">Clear</button>
+
+    <div id="itemSealArea" style="margin-top:10px; display:none;"></div>
+</div>
+
     <script>
         // ---------- UTILITIES ----------
 	const CloneUIMap = new Map();
@@ -377,11 +426,12 @@ let CALL_B = 0;
 
 let INSTRUMENTATION_ENABLED = false;
 
-let SpellRegistry = {};
-let UserOverrides = {};
-let UserCustomSpells = [];
-let SpellClassAvailable = {};
-
+window.SpellRegistry = {};
+window.UserOverrides = {};
+window.UserCustomSpells = [];
+window.SpellClassAvailable = {};
+window.ItemRegistry = [];
+window.itemTimers = {};
 //letmesee
 
 // ===============================
@@ -534,15 +584,18 @@ __DBG("past (function logLine(text)).1111333");
 
 // Raw logger: bypasses LOG_UNLOCKED lock (used only by Swoosh Save)
 function logRaw(text) {
-    const log = document.getElementById("log");
-    if (!log) {
-        __DBG("logRaw: #log element NOT FOUND.");
-        return;
+    function attempt() {
+        const log = document.getElementById("log");
+        if (!log) {
+            __DBG("logRaw: #log missing, retrying...");
+            requestAnimationFrame(attempt);
+            return;
+        }
+        log.textContent += text + "\n";
+        log.scrollTop = log.scrollHeight;
     }
-    log.textContent += text + "\n";
-    log.scrollTop = log.scrollHeight;
+    attempt();
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
     const log = document.getElementById("log");
@@ -563,24 +616,49 @@ async function swooshSave() {
     await freezeLogForSwoosh();
     __DBG("ENTER: swooshSave() Step 1: lock and wait");
 
-    const fullDatabase = {
-        timestamp: new Date().toISOString(),
-        registry: SpellRegistry,
-        overrides: UserOverrides,
-        custom: UserCustomSpells,
-        classes: SpellClassAvailable,
+    __DBG("DBG: Building fullDatabase object...");
+    let fullDatabase;
+    try {
+        fullDatabase = {
+            timestamp: new Date().toISOString(),
+            registry: SpellRegistry,
+            overrides: UserOverrides,
+            custom: UserCustomSpells,
+            classes: SpellClassAvailable,
+            longTermTimers: LongTermTimersAPI.getAll(),
+            items: ItemRegistry || []
+        };
+        __DBG("DBG: fullDatabase object built successfully.");
+    } catch (e) {
+        __DBG("ERROR: fullDatabase BUILD FAILED: " + e.message);
+        return;
+    }
 
-        // ⭐ NEW: Save Long Term Timers
-        longTermTimers: LongTermTimersAPI.getAll()
-    };
+    __DBG("DBG: Attempting logRaw(SWOOSH_START)...");
+    try {
+        logRaw(SWOOSH_START);
+        __DBG("ENTER: swooshSave Step 2: write swoosh block (SWOOSH_START)");
+    } catch (e) {
+        __DBG("ERROR: logRaw(SWOOSH_START) FAILED: " + e.message);
+        return;
+    }
 
-    logRaw(SWOOSH_START);
-    __DBG("ENTER: swooshSave Step 2: write swoosh block (SWOOSH_START)");
+    __DBG("DBG: Attempting logRaw(JSON)...");
+    try {
+        logRaw(JSON.stringify(fullDatabase, null, 2));
+    } catch (e) {
+        __DBG("ERROR: logRaw(JSON) FAILED: " + e.message);
+        return;
+    }
 
-    logRaw(JSON.stringify(fullDatabase, null, 2));
-
-    logRaw(SWOOSH_END);
-    __DBG("ENTER: swooshSave Step 3: write swoosh block (SWOOSH_END)");
+    __DBG("DBG: Attempting logRaw(SWOOSH_END)...");
+    try {
+        logRaw(SWOOSH_END);
+        __DBG("ENTER: swooshSave Step 3: write swoosh block (SWOOSH_END)");
+    } catch (e) {
+        __DBG("ERROR: logRaw(SWOOSH_END) FAILED: " + e.message);
+        return;
+    }
 
     LOG_UNLOCKED = true;
     __DBG("ENTER: swooshSave Step 4: unlock");
@@ -588,8 +666,6 @@ async function swooshSave() {
     logLine("Swoosh Save Complete.");
     __DBG("ENTER: swooshSave() COMPLETE");
 }
-
-__DBG("past (function swooshSave()).1111333");
 
 
         function logUnloggedMembers() {
@@ -2060,7 +2136,7 @@ function enableSpellClass(classCode) {
     });
 }
 
-    __DBG("b4ENTER: swooshLoadFromText()");
+
 function swooshLoadFromText(text) {
     __DBG("ENTER: swooshLoadFromText()");
     const lines = text.split("\n");
@@ -2119,39 +2195,80 @@ function swooshLoadFromText(text) {
     // ===============================
     // Apply loaded data
     // ===============================
-    __DBG("APPLY: Updating SpellRegistry, UserOverrides, UserCustomSpells, SpellClassAvailable");
-
     SpellRegistry = swoosh.registry || {};
     UserOverrides = swoosh.overrides || {};
     UserCustomSpells = swoosh.custom || {};
     SpellClassAvailable = swoosh.classes || {};
-    __DBG("XXENTER: Apply loaded data");
+
     // ===============================
     // Restore Long Term Timers
     // ===============================
     if (swoosh.longTermTimers) {
-        __DBG("APPLY: Restoring LongTermTimers");
         LongTermTimersAPI.loadAll(swoosh.longTermTimers);
         logLine("LTT Restored from Swoosh.");
+    }
+__DBG("LOAD: swoosh.items present? " + (swoosh.items ? "YES" : "NO"));
+if (swoosh.items) {
+    __DBG("LOAD: swoosh.items length = " + swoosh.items.length);
+    swoosh.items.forEach((it, idx) => {
+        __DBG("LOAD: swoosh.items[" + idx + "] id=" + it.id + " title=" + it.title);
+    });
+}
+    // ===============================
+    // ⭐ RESTORE ITEM BUILDER DATA
+    // ===============================
+    if (swoosh.items) {
+        __DBG("APPLY: Restoring ItemRegistry (" + swoosh.items.length + " items)");
+        ItemRegistry = swoosh.items;
+
+        restoreAllItemsFromRegistry();
+
+        logLine("Restored " + ItemRegistry.length + " item timers from swoosh.");
     } else {
-        __DBG("NOTE: No longTermTimers found in swoosh.");
+        ItemRegistry = [];
     }
 
     // ===============================
-    // Rebuild UI
+    // Rebuild Spell UI
     // ===============================
     rebuildSpellUI();
 
     if (typeof updateSwooshListUI === "function") {
         updateSwooshListUI(swoosh.timestamp);
-    } else {
-        __DBG("NOTE: updateSwooshListUI is not defined — skipping UI update.");
     }
 
     logLine("Swoosh Load Complete.");
     __DBG("EXIT: swooshLoadFromText() — COMPLETE");
 }
+function restoreItemTimer(panel, item) {
+    const timerDisplay = panel.querySelector(`#itemTimer_${item.id}`);
+    if (!timerDisplay) {
+        __DBG("RESTORE: No timerDisplay found for item id=" + item.id);
+        return;
+    }
 
+    if (!item.timer) {
+        __DBG("RESTORE: No timer object for item id=" + item.id);
+        return;
+    }
+
+    // Completed
+    if (item.timer.completed) {
+        timerDisplay.textContent = "DONE";
+        timerDisplay.classList.add("flash");
+        __DBG("RESTORE: Item id=" + item.id + " marked DONE");
+        return;
+    }
+
+    // Running
+    if (item.timer.running) {
+        const now = Date.now();
+        const elapsed = now - item.timer.savedAt;
+        const remaining = Math.max(0, item.timer.remaining - elapsed);
+        timerDisplay.textContent = remaining + "s";
+        __DBG("RESTORE: Item id=" + item.id + " restored running timer, remaining=" + remaining);
+    }
+}
 
 
 function rebuildSpellUI() {
@@ -7246,7 +7363,658 @@ window.LongTermTimersAPI = {
     }
 
 })();
+// ======================================================
+// ITEM SYSTEM — UUID SAFE, SAVE/LOAD SAFE, RESTORE SAFE
+// ======================================================
 
+// GLOBAL REGISTRY
+window.ItemRegistry = [];
+
+// ------------------------------
+// VALIDATION
+// ------------------------------
+function validateItemLink(url) {
+    const BASE = "https://wiki.project1999.com/";
+    if (!url.startsWith(BASE)) return false;
+
+    const tail = url.slice(BASE.length);
+    if (!tail) return false;
+    if (tail.includes("/")) return false;
+    if (tail.includes(".")) return false;
+    if (tail.trim() !== tail) return false;
+
+    return true;
+}
+
+function validateImageUrl(url) {
+    const BASE = "https://wiki.project1999.com/images/";
+    return url.startsWith(BASE);
+}
+
+// ------------------------------
+// TOKEN ENGINE
+// ------------------------------
+let tokenCounter = 1000;
+function makeTokenId() { return tokenCounter++; }
+
+function wrapToken(word) {
+    const id = makeTokenId();
+    return `{{${id}[[~~ ${word} ~~]]${id}}}`;
+}
+
+// ======================================================
+// SEAL BUTTON HANDLER — NOW WITH UUID
+// ======================================================
+document.getElementById("itemSealBtn").onclick = () => {
+    const title = document.getElementById("itemTitleInput").value.trim();
+    const url = document.getElementById("itemUrlInput").value.trim();
+    const imgUrl = document.getElementById("itemImgInput").value.trim();
+    const effectEnabled = document.getElementById("itemEffectToggle").checked;
+    const effectSeconds = parseInt(document.getElementById("itemEffectInput").value, 10) || 0;
+    const note = document.getElementById("itemNoteInput").value.trim();
+
+    if (!title) { alert("Enter item title."); return; }
+    if (url !== "https://wiki.project1999.com/" && !validateItemLink(url)) {
+        alert("Invalid item link.");
+        return;
+    }
+    if (imgUrl !== "https://wiki.project1999.com/images/" && !validateImageUrl(imgUrl)) {
+        alert("Invalid image URL.");
+        return;
+    }
+    if (!note) { alert("Paste item text first."); return; }
+
+    // Lock textarea
+    const ta = document.getElementById("itemNoteInput");
+    ta.readOnly = true;
+    ta.style.opacity = "0.5";
+
+    // Tokenize + log
+    const rawTokens = note.split(/\s+/);
+    const wrappedTokens = rawTokens.map(wrapToken);
+
+    logRaw("=== ITEM_SEAL_START ===");
+    logRaw(`title: ${title}`);
+    logRaw(`link: ${url}`);
+    logRaw(`image: ${imgUrl || "none"}`);
+    logRaw(`effect_enabled: ${effectEnabled}`);
+    logRaw(`effect_seconds: ${effectSeconds}`);
+    logRaw("tokens:");
+    wrappedTokens.forEach(t => logRaw(t));
+    logRaw("=== ITEM_SEAL_END ===");
+
+    logLine(`[ITEM] Seal complete for: ${title}`);
+    logLine(`[ITEM] Item saved. Ready for swoosh.`);
+
+    // ------------------------------
+    // CREATE ITEM OBJECT WITH UUID
+    // ------------------------------
+    const newItem = {
+        id: crypto.randomUUID(),   // ⭐ UNIQUE ID
+        title,
+        url,
+        imgUrl,
+        effectEnabled,
+        effectSeconds,
+        note,
+        timer: {
+            running: false,
+            remaining: effectSeconds,
+            savedAt: Date.now(),
+            completed: false
+        }
+    };
+
+    window.ItemRegistry.push(newItem);
+    __DBG("ITEM: Added to ItemRegistry. Count = " + window.ItemRegistry.length);
+
+    createItemPanel(newItem);
+
+    // Switch clear button to reuse mode
+    const clearBtn = document.getElementById("itemClearBtn");
+    clearBtn.textContent = "Use Again";
+    clearBtn.dataset.mode = "reuse";
+
+    document.getElementById("itemSealArea").style.display = "none";
+};
+
+function createItemPanel(item) {
+    __DBG("UI: createItemPanel ENTER id=" + item.id + " title=" + item.title);
+
+    const container = document.createElement("div");
+    container.className = "section";
+    container.style.border = "2px solid #555";
+    container.style.marginTop = "10px";
+
+    // Title
+    const header = document.createElement("div");
+    header.style.fontWeight = "bold";
+    header.style.fontSize = "14px";
+    header.style.marginBottom = "5px";
+    header.textContent = item.title;
+    container.appendChild(header);
+
+    // Image
+    if (item.imgUrl) {
+        const img = document.createElement("img");
+        img.src = item.imgUrl;
+        img.style.maxWidth = "120px";
+        img.style.display = "block";
+        img.style.marginBottom = "10px";
+        container.appendChild(img);
+    }
+
+    // Timer section
+    if (item.effectEnabled) {
+        const timerDiv = document.createElement("div");
+        timerDiv.style.marginTop = "10px";
+
+        timerDiv.innerHTML = `
+            <div>Effect Timer:
+                <span class="item-timer-display" id="itemTimer_${item.id}">
+                    ${item.effectSeconds}s
+                </span>
+            </div>
+            <button data-id="${item.id}" class="itemTimerStart">Start</button>
+            <button data-id="${item.id}" class="itemTimerPause">Pause</button>
+            <button data-id="${item.id}" class="itemTimerReset">Reset</button>
+<button data-id="${item.id}" class="itemTimerRestart">Restart</button>
+        `;
+
+        container.appendChild(timerDiv);
+
+        // Duration editor
+        const editWrap = document.createElement("div");
+        editWrap.style.marginTop = "5px";
+
+        editWrap.innerHTML = `
+            <label>
+                <input type="checkbox" class="itemEditToggle" data-id="${item.id}">
+                Change Duration
+            </label>
+            <input type="number" id="itemEditInput_${item.id}" style="width:80px;" disabled>
+            <button class="itemEditSave" data-id="${item.id}" disabled>Save</button>
+        `;
+
+        container.appendChild(editWrap);
+
+        // ===============================
+        // Save + Show at Top + Delete Controls
+        // ===============================
+        const controlRow = document.createElement("div");
+        controlRow.style.marginTop = "8px";
+
+        // Save button
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "Save";
+        saveBtn.className = "itemSaveBtn";
+        saveBtn.dataset.id = item.id;
+        saveBtn.style.marginRight = "10px";
+        controlRow.appendChild(saveBtn);
+
+        // Show at top checkbox
+        const showTopLabel = document.createElement("label");
+        showTopLabel.style.marginRight = "10px";
+        showTopLabel.innerHTML = `<input type="checkbox" class="itemShowTop" data-id="${item.id}"> Show at top`;
+        controlRow.appendChild(showTopLabel);
+
+        // Delete checkbox
+        const delLabel = document.createElement("label");
+        delLabel.style.marginRight = "10px";
+        delLabel.innerHTML = `<input type="checkbox" class="itemDeleteToggle" data-id="${item.id}"> Delete?`;
+        controlRow.appendChild(delLabel);
+
+        // Delete button
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.className = "itemDeleteBtn";
+        delBtn.dataset.id = item.id;
+        delBtn.disabled = true;
+        delBtn.style.opacity = "0.4";
+        controlRow.appendChild(delBtn);
+
+        container.appendChild(controlRow);
+    }
+
+    // Info toggle
+    const infoBtn = document.createElement("button");
+    infoBtn.textContent = "Show Item Info";
+    infoBtn.dataset.id = item.id;
+    infoBtn.className = "itemInfoToggle";
+    container.appendChild(infoBtn);
+
+    // Info area
+    const infoArea = document.createElement("div");
+    infoArea.id = `itemInfo_${item.id}`;
+    infoArea.style.display = "none";
+    infoArea.style.marginTop = "10px";
+    infoArea.style.fontFamily = "monospace";
+    infoArea.style.whiteSpace = "pre-line";
+    infoArea.style.fontSize = "12px";
+    infoArea.style.borderTop = "1px solid #444";
+    infoArea.style.paddingTop = "5px";
+
+    infoArea.textContent =
+        "Item Link: " + item.url + "\n\n" +
+        "Item Notes:\n" + (item.note || "(none)");
+
+    container.appendChild(infoArea);
+
+    document.body.appendChild(container);
+
+    __DBG("UI: createItemPanel EXIT id=" + item.id + " title=" + item.title);
+    return container;
+}
+
+// ======================================================
+// TIMER LOGIC — UPDATED TO USE UUID // global click handler
+// ======================================================
+
+document.addEventListener("click", e => {
+    const id = e.target.dataset.id;
+
+    // ===============================
+    // INFO TOGGLE
+    // ===============================
+    if (e.target.classList.contains("itemInfoToggle")) {
+        const area = document.getElementById(`itemInfo_${id}`);
+        if (area.style.display === "none") {
+            area.style.display = "block";
+            e.target.textContent = "Hide Item Info";
+        } else {
+            area.style.display = "none";
+            e.target.textContent = "Show Item Info";
+        }
+        return;
+    }
+
+    // ===============================
+    // START
+    // ===============================
+    if (e.target.classList.contains("itemTimerStart")) {
+        startItemTimer(id);
+        return;
+    }
+
+    // ===============================
+    // PAUSE
+    // ===============================
+    if (e.target.classList.contains("itemTimerPause")) {
+        pauseItemTimer(id);
+        return;
+    }
+
+// ===============================
+// RESTART
+// ===============================
+if (e.target.classList.contains("itemTimerRestart")) {
+    restartItemTimer(id);
+    return;
+}
+
+
+
+    // ===============================
+    // EDIT TOGGLE
+    // ===============================
+    if (e.target.classList.contains("itemEditToggle")) {
+        const input = document.getElementById(`itemEditInput_${id}`);
+        const saveBtn = document.querySelector(`.itemEditSave[data-id="${id}"]`);
+
+        const enabled = e.target.checked;
+        input.disabled = !enabled;
+        saveBtn.disabled = !enabled;
+        return;
+    }
+
+    // ===============================
+    // EDIT SAVE
+    // ===============================
+    if (e.target.classList.contains("itemEditSave")) {
+        const input = document.getElementById(`itemEditInput_${id}`);
+        const newVal = parseInt(input.value, 10);
+        const display = document.getElementById(`itemTimer_${id}`);
+        const item = ItemRegistry.find(x => x.id === id);
+
+        if (!isNaN(newVal) && item) {
+            item.effectSeconds = newVal;
+            item.timer.remaining = newVal;
+            display.textContent = newVal + "s";
+            logLine(`[ITEM] Updated duration for ${item.title} → ${newVal}s`);
+        }
+        return;
+    }
+
+    // ===============================
+    // SAVE BUTTON
+    // ===============================
+    if (e.target.classList.contains("itemSaveBtn")) {
+        const item = ItemRegistry.find(x => x.id === id);
+        if (item) logLine(`[ITEM] Saved item: ${item.title}`);
+        return;
+    }
+
+    // ===============================
+    // DELETE TOGGLE
+    // ===============================
+    if (e.target.classList.contains("itemDeleteToggle")) {
+        const delBtn = document.querySelector(`.itemDeleteBtn[data-id="${id}"]`);
+        const enabled = e.target.checked;
+        delBtn.disabled = !enabled;
+        delBtn.style.opacity = enabled ? "1" : "0.4";
+        return;
+    }
+
+// ===============================
+// DELETE BUTTON
+// ===============================
+if (e.target.classList.contains("itemDeleteBtn")) {
+    // Remove from registry
+    ItemRegistry = ItemRegistry.filter(x => x.id !== id);
+
+    // Remove main panel
+    const panel = e.target.closest(".section");
+    if (panel) panel.remove();
+
+    // Remove top clone if it exists
+    const clone = document.getElementById(`itemClone_${id}`);
+    if (clone) clone.remove();
+
+    logLine(`[ITEM] Deleted item id=${id}`);
+    return;
+}
+    // ===============================
+    // SHOW AT TOP
+    // ===============================
+    if (e.target.classList.contains("itemShowTop")) {
+        const item = ItemRegistry.find(x => x.id === id);
+
+        if (e.target.checked) {
+            const clone = buildItemCloneBox(item);
+            document.getElementById("topTimersArea").appendChild(clone);
+        } else {
+            const clone = document.getElementById(`itemClone_${id}`);
+            if (clone) clone.remove();
+        }
+        return;
+    }
+// ===============================
+// CLONE START
+// ===============================
+if (e.target.classList.contains("itemCloneStart")) {
+    const id = e.target.dataset.id;
+    startItemTimer(id);
+    return;
+}
+
+// ===============================
+// CLONE PAUSE
+// ===============================
+if (e.target.classList.contains("itemClonePause")) {
+    const id = e.target.dataset.id;
+    pauseItemTimer(id);
+    return;
+}
+
+// CLONE RESTART
+if (e.target.classList.contains("itemCloneRestart")) {
+    restartItemTimer(id);
+    return;
+}
+
+});
+
+// ======================================================
+// RESTORE LOGIC — UUID SAFE
+// ======================================================
+function restoreItemTimer(panel, item) {
+    __DBG("RESTORE_TIMER: ENTER id=" + item.id + " title=" + item.title);
+
+    const timerDisplay = panel.querySelector(`#itemTimer_${item.id}`);
+    if (!timerDisplay) {
+        __DBG("RESTORE_TIMER: No timerDisplay for id=" + item.id);
+        return;
+    }
+
+    if (!item.timer) {
+        __DBG("RESTORE_TIMER: No timer object for id=" + item.id);
+        return;
+    }
+
+    if (item.timer.completed) {
+        timerDisplay.textContent = "DONE";
+        timerDisplay.classList.add("flash");
+        __DBG("RESTORE_TIMER: Marked DONE id=" + item.id);
+        return;
+    }
+
+    if (item.timer.running) {
+        const now = Date.now();
+        const elapsed = now - item.timer.savedAt;
+        const remaining = Math.max(0, item.timer.remaining - elapsed);
+        timerDisplay.textContent = remaining + "s";
+        __DBG("RESTORE_TIMER: Running restore id=" + item.id + " remaining=" + remaining);
+    } else {
+        timerDisplay.textContent = (item.timer.remaining || item.effectSeconds) + "s";
+        __DBG("RESTORE_TIMER: Static restore id=" + item.id + " remaining=" + (item.timer.remaining || item.effectSeconds));
+    }
+
+    __DBG("RESTORE_TIMER: EXIT id=" + item.id);
+}
+function restoreAllItemsFromRegistry() {
+    __DBG("RESTORE: Starting item restore from ItemRegistry");
+    __DBG("RESTORE: ItemRegistry length = " + (window.ItemRegistry ? window.ItemRegistry.length : "NULL"));
+
+    if (!window.ItemRegistry || window.ItemRegistry.length === 0) {
+        __DBG("RESTORE: No items to restore.");
+        return;
+    }
+
+    window.ItemRegistry.forEach((item, index) => {
+        __DBG("RESTORE: [" + index + "] id=" + item.id + " title=" + item.title);
+
+        const panel = createItemPanel(item);
+        __DBG("RESTORE: Panel created for id=" + item.id + " title=" + item.title);
+
+        restoreItemTimer(panel, item);
+        __DBG("RESTORE: Timer restored for id=" + item.id);
+    });
+
+    const sections = document.querySelectorAll(".section");
+    __DBG("RESTORE: Total .section panels in DOM after restore = " + sections.length);
+
+    __DBG("RESTORE: Item restore complete.");
+}
+
+function buildItemCloneBox(item) {
+    const box = document.createElement("div");
+    box.className = "section";
+    box.id = `itemClone_${item.id}`;
+    box.style.border = "2px solid #777";
+    box.style.marginTop = "6px";
+    box.style.background = "#222";
+    box.style.padding = "6px";
+
+    // Title
+    const title = document.createElement("div");
+    title.style.fontWeight = "bold";
+    title.style.marginBottom = "4px";
+    title.textContent = item.title;
+    box.appendChild(title);
+
+    // ===============================
+    // OPTIONAL IMAGE (if not default)
+    // ===============================
+    if (item.imgUrl && item.imgUrl !== "https://wiki.project1999.com/images/") {
+        const img = document.createElement("img");
+        img.src = item.imgUrl;
+        img.style.maxWidth = "80px";
+        img.style.display = "block";
+        img.style.marginBottom = "6px";
+        img.style.border = "1px solid #444";
+        img.style.borderRadius = "4px";
+        box.appendChild(img);
+    }
+
+    // Timer display
+    const timerDisplay = document.createElement("span");
+    timerDisplay.id = `itemCloneTimer_${item.id}`;
+    timerDisplay.textContent = `${item.effectSeconds}s`;
+
+    const timerRow = document.createElement("div");
+    timerRow.textContent = "Effect Timer: ";
+    timerRow.appendChild(timerDisplay);
+    box.appendChild(timerRow);
+
+    // Buttons
+    const btnRow = document.createElement("div");
+    btnRow.style.marginTop = "6px";
+
+    const startBtn = document.createElement("button");
+    startBtn.textContent = "Start";
+    startBtn.dataset.id = item.id;
+    startBtn.className = "itemCloneStart";
+    btnRow.appendChild(startBtn);
+
+    const pauseBtn = document.createElement("button");
+    pauseBtn.textContent = "Pause";
+    pauseBtn.dataset.id = item.id;
+    pauseBtn.className = "itemClonePause";
+    btnRow.appendChild(pauseBtn);
+
+    const restartBtn = document.createElement("button");
+    restartBtn.textContent = "Restart";
+    restartBtn.dataset.id = item.id;
+    restartBtn.className = "itemCloneRestart";
+    btnRow.appendChild(restartBtn);
+
+    box.appendChild(btnRow);
+
+    return box;
+}
+
+
+let itemTimers = {};
+
+function startItemTimer(id) {
+    const item = ItemRegistry.find(x => x.id === id);
+    const display = document.getElementById(`itemTimer_${id}`);
+    const cloneDisplay = document.getElementById(`itemCloneTimer_${id}`);
+    if (!item || !display) return;
+
+    // Ensure timer object exists
+    if (!itemTimers[id]) {
+        itemTimers[id] = {
+            remaining: item.effectSeconds,
+            running: false
+        };
+    }
+
+    const t = itemTimers[id];
+
+    // If already running, do nothing
+    if (t.running) return;
+
+    t.running = true;
+    t.start = performance.now();
+
+    // Clear any old interval
+    if (t.interval) clearInterval(t.interval);
+
+    t.interval = setInterval(() => {
+        const now = performance.now();
+        const elapsed = Math.floor((now - t.start) / 1000);
+        const left = t.remaining - elapsed;
+
+        const text = left > 0 ? left + "s" : "0s";
+
+        display.textContent = text;
+        if (cloneDisplay) cloneDisplay.textContent = text;
+
+        if (left <= 0) {
+            clearInterval(t.interval);
+            t.running = false;
+            t.remaining = 0;
+        }
+    }, 250);
+}
+
+function pauseItemTimer(id) {
+    const t = itemTimers[id];
+    if (!t || !t.running) return;
+
+    t.running = false;
+    clearInterval(t.interval);
+
+    const now = performance.now();
+    const elapsed = Math.floor((now - t.start) / 1000);
+    t.remaining -= elapsed;
+}
+
+function resetItemTimer(id) {
+    const item = ItemRegistry.find(x => x.id === id);
+    const display = document.getElementById(`itemTimer_${id}`);
+    const cloneDisplay = document.getElementById(`itemCloneTimer_${id}`);
+    if (!item || !display) return;
+
+    // Stop everything
+    if (itemTimers[id]?.interval) clearInterval(itemTimers[id].interval);
+
+    // Reset but do NOT start
+    itemTimers[id] = {
+        running: false,
+        remaining: item.effectSeconds
+    };
+
+    display.textContent = item.effectSeconds + "s";
+    if (cloneDisplay) cloneDisplay.textContent = item.effectSeconds + "s";
+}
+
+function restartItemTimer(id) {
+    const item = ItemRegistry.find(x => x.id === id);
+    if (!item) return;
+
+    // Hard reset
+    if (itemTimers[id]?.interval) clearInterval(itemTimers[id].interval);
+
+    itemTimers[id] = {
+        running: false,
+        remaining: item.effectSeconds
+    };
+
+    // Immediately start
+    startItemTimer(id);
+}
+
+// ------------------------------
+// CLEAR / USE AGAIN BUTTON
+// ------------------------------
+document.getElementById("itemClearBtn").onclick = () => {
+    const btn = document.getElementById("itemClearBtn");
+
+    // Reuse mode → reset builder
+    if (btn.dataset.mode === "reuse") {
+        document.getElementById("itemNoteInput").readOnly = false;
+        document.getElementById("itemNoteInput").style.opacity = "1";
+
+        document.getElementById("itemTitleInput").value = "";
+        document.getElementById("itemEffectInput").value = "";
+        document.getElementById("itemUrlInput").value = "https://wiki.project1999.com/";
+        document.getElementById("itemImgInput").value = "https://wiki.project1999.com/images/";
+        document.getElementById("itemNoteInput").value = "";
+
+        btn.textContent = "Clear";
+        btn.dataset.mode = "clear";
+        return;
+    }
+
+    // Normal clear mode
+    document.getElementById("itemTitleInput").value = "";
+    document.getElementById("itemEffectInput").value = "";
+    document.getElementById("itemUrlInput").value = "https://wiki.project1999.com/";
+    document.getElementById("itemImgInput").value = "https://wiki.project1999.com/images/";
+    document.getElementById("itemNoteInput").value = "";
+};
 
 // ===============================
 // REFRESH / CLOSE WARNING
