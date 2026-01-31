@@ -7222,9 +7222,8 @@ window.LongTermTimersAPI = {
 };
 
 })();
-
 // ===============================
-// TIME CONVERTER (BETA)
+// TIME CONVERTER (UPGRADED)
 // ===============================
 (function TimeConverterModule() {
 
@@ -7265,9 +7264,12 @@ window.LongTermTimersAPI = {
             box.style.background = "#222";
 
             box.innerHTML = `
-                <b>Converter</b>  
+                <b>Converter</b>
                 <button class="delete" style="float:right;">Delete</button>
                 <br><br>
+
+                <input class="tick" type="number" placeholder="Ticks (6 sec each)" style="width:160px;"> →
+                <span class="outTick"></span><br>
 
                 <input class="sec" type="number" placeholder="Seconds" style="width:120px;"> →
                 <span class="out1"></span><br>
@@ -7288,11 +7290,15 @@ window.LongTermTimersAPI = {
                 render();
             };
 
-            const sec = box.querySelector(".sec");
-            const min = box.querySelector(".min");
-            const hr  = box.querySelector(".hr");
-            const day = box.querySelector(".day");
+            // Inputs
+            const tick = box.querySelector(".tick");
+            const sec  = box.querySelector(".sec");
+            const min  = box.querySelector(".min");
+            const hr   = box.querySelector(".hr");
+            const day  = box.querySelector(".day");
 
+            // Outputs
+            const outTick = box.querySelector(".outTick");
             const out1 = box.querySelector(".out1");
             const out2 = box.querySelector(".out2");
             const out3 = box.querySelector(".out3");
@@ -7312,10 +7318,11 @@ window.LongTermTimersAPI = {
                 const m = (parseFloat(min.value) || 0) * 60;
                 const h = (parseFloat(hr.value)  || 0) * 3600;
                 const d = (parseFloat(day.value) || 0) * 86400;
+                const t = (parseFloat(tick.value) || 0) * 6;
 
-                const total = s + m + h + d;
+                const total = s + m + h + d + t;
+                const totalTicks = total / 6;
 
-                // Convert to HH:MM:SS
                 const hh = Math.floor(total / 3600);
                 const mm = Math.floor((total % 3600) / 60);
                 const ss = Math.floor(total % 60);
@@ -7325,44 +7332,80 @@ window.LongTermTimersAPI = {
                         ? `${hh.toString().padStart(2,"0")}:${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`
                         : `${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`;
 
-                totalOut.textContent = `Total: ${hhmmss} (${s} + ${m} + ${h} + ${d})`;
+                totalOut.textContent =
+                    `Total: ${hhmmss} (${total} sec) | ${totalTicks.toFixed(2)} ticks`;
             }
 
             // ===============================
-            // EXISTING CONVERSION LOGIC
+            // TICKS INPUT
+            // ===============================
+            tick.oninput = () => {
+                const t = parseFloat(tick.value) || 0;
+                const seconds = t * 6;
+
+                outTick.textContent =
+                    `${seconds} sec | ${(seconds/60).toFixed(2)} min | ${(seconds/3600).toFixed(2)} hr | ${(seconds/86400).toFixed(2)} days`;
+
+                updateTotal();
+            };
+
+            // ===============================
+            // SECONDS
             // ===============================
             sec.oninput = () => {
                 const s = parseFloat(sec.value) || 0;
-                out1.textContent = `${(s/60).toFixed(2)} min | ${(s/3600).toFixed(2)} hr | ${(s/86400).toFixed(2)} days`;
+
+                out1.textContent =
+                    `${(s/60).toFixed(2)} min | ${(s/3600).toFixed(2)} hr | ${(s/86400).toFixed(2)} days | ${(s/6).toFixed(2)} ticks`;
+
                 updateTotal();
             };
 
+            // ===============================
+            // MINUTES
+            // ===============================
             min.oninput = () => {
                 const m = parseFloat(min.value) || 0;
-                out2.textContent = `${m*60} sec | ${(m/60).toFixed(2)} hr | ${(m/1440).toFixed(2)} days`;
+                const secVal = m * 60;
+
+                out2.textContent =
+                    `${secVal} sec | ${(m/60).toFixed(2)} hr | ${(m/1440).toFixed(2)} days | ${(m*10).toFixed(2)} ticks`;
+
                 updateTotal();
             };
 
+            // ===============================
+            // HOURS
+            // ===============================
             hr.oninput = () => {
                 const h = parseFloat(hr.value) || 0;
-                out3.textContent = `${h*3600} sec | ${h*60} min | ${(h/24).toFixed(2)} days`;
+
+                out3.textContent =
+                    `${h*3600} sec | ${h*60} min | ${(h/24).toFixed(2)} days | ${(h*600).toFixed(2)} ticks`;
+
                 updateTotal();
             };
 
+            // ===============================
+            // DAYS
+            // ===============================
             day.oninput = () => {
                 const d = parseFloat(day.value) || 0;
-                out4.textContent = `${d*86400} sec | ${d*1440} min | ${d*24} hr`;
+
+                out4.textContent =
+                    `${d*86400} sec | ${d*1440} min | ${d*24} hr | ${(d*14400).toFixed(2)} ticks`;
+
                 updateTotal();
             };
 
-            // Initialize total
+            // Initialize
             updateTotal();
-
             list.appendChild(box);
         });
     }
 
 })();
+
 // ======================================================
 // ITEM SYSTEM — UUID SAFE, SAVE/LOAD SAFE, RESTORE SAFE
 // ======================================================
