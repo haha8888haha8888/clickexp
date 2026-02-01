@@ -409,7 +409,22 @@
     <button id="itemClearBtn">Clear</button>
 
     <div id="itemSealArea" style="margin-top:10px; display:none;"></div>
+</div> 
+
+<!-- CH CHAIN TIMER PANEL LAUNCHER -->
+
+
+<div class="section">
+    <div class="section-title">CH Chain Tools</div>
+    <button id="addChChainPanelBtn">Add CH Chain Timer Panel</button>
 </div>
+
+<div id="chChainPanelsContainer"></div>
+
+</div>
+
+
+
 
     <script>
         // ---------- UTILITIES ----------
@@ -432,6 +447,11 @@ window.UserCustomSpells = [];
 window.SpellClassAvailable = {};
 window.ItemRegistry = [];
 window.itemTimers = {};
+
+// Ensure ItemRegistry exists
+window.ItemRegistry = window.ItemRegistry || [];
+
+
 //letmesee
 
 // ===============================
@@ -7860,19 +7880,39 @@ function restoreAllItemsFromRegistry() {
     }
 
     window.ItemRegistry.forEach((item, index) => {
-        __DBG("RESTORE: [" + index + "] id=" + item.id + " title=" + item.title);
+        __DBG("RESTORE: [" + index + "] id=" + item.id + " title=" + item.title + " type=" + item.type);
 
-        const panel = createItemPanel(item);
-        __DBG("RESTORE: Panel created for id=" + item.id + " title=" + item.title);
+        // Normal item panel
+        if (!item.type || item.type === "item") {
+            const panel = createItemPanel(item);
+            __DBG("RESTORE: Item panel created for id=" + item.id);
 
-        restoreItemTimer(panel, item);
-        __DBG("RESTORE: Timer restored for id=" + item.id);
+            restoreItemTimer(panel, item);
+            __DBG("RESTORE: Item timer restored for id=" + item.id);
+            return;
+        }
+
+        // CH Chain panel
+        if (item.type === "chchain") {
+            createChChainPanel(item);
+            __DBG("RESTORE: CH Chain panel created for id=" + item.id);
+            return;
+        }
+
+        // Unknown future types
+        __DBG("RESTORE: Unknown item type '" + item.type + "' — skipping.");
     });
 
     const sections = document.querySelectorAll(".section");
     __DBG("RESTORE: Total .section panels in DOM after restore = " + sections.length);
 
     __DBG("RESTORE: Item restore complete.");
+}
+
+function rebuildCycleRotation() {
+    chain._cycleRotation = getActiveRotation().slice();
+    chain.lastCycleStart = Date.now();
+    chain._lastCasterIndex = -1;
 }
 
 function buildItemCloneBox(item) {
@@ -8098,6 +8138,674 @@ function sanitizeUrl(input, base) {
     // User wants to fix manually → special abort token
     return "__ABORT__";
 }
+// ch chain chchain chtimerchain blockupdate
+
+
+// ADD CH CHAIN TIMER PANEL BUTTON HANDLER
+document.getElementById("addChChainPanelBtn").onclick = () => {
+    const title = prompt("Enter CH Chain Title:", "CH Chain Timer +") || "CH Chain Timer +";
+
+const newChain = {
+    id: crypto.randomUUID(),
+    type: "chchain",
+    title,
+    clerics: [],
+    delayMs: 3000,
+    macroTemplate: "/ooc {name} casting Complete Heal on {target} >>",
+    channel: "/ooc",
+    target: "tank",
+    myName: "",
+    chainRunning: false,
+    lastCycleStart: 0,
+    log: [],
+    _cycleRotation: null,
+    _lastCasterIndex: -1
+};
+
+    window.ItemRegistry.push(newChain);
+    createChChainPanel(newChain);
+};
+
+// ===============================
+// CH CHAIN TIMER PANEL SYSTEM
+// ===============================
+function createChChainPanel(chain) {
+    const container = document.getElementById("chChainPanelsContainer");
+    if (!container) return;
+
+    // PANEL WRAPPER
+    const panel = document.createElement("div");
+    panel.className = "section";
+    panel.dataset.chId = chain.id;
+
+    // TITLE BAR
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "section-title";
+    titleDiv.textContent = chain.title;
+
+    const controlsRow = document.createElement("div");
+    controlsRow.style.marginBottom = "8px";
+
+    // Delay controls
+    const delayLabel = document.createElement("span");
+    delayLabel.textContent = "Delay: ";
+    const btn3 = document.createElement("button");
+    btn3.textContent = "3s";
+    const btn4 = document.createElement("button");
+    btn4.textContent = "4s";
+    const btn5 = document.createElement("button");
+    btn5.textContent = "5s";
+    const delayInput = document.createElement("input");
+    delayInput.type = "number";
+    delayInput.min = "2";
+    delayInput.max = "9";
+    delayInput.value = (chain.delayMs / 1000) || 3;
+    delayInput.style.width = "50px";
+    delayInput.style.marginLeft = "4px";
+
+    // My name
+    const myLabel = document.createElement("span");
+    myLabel.textContent = "  My Cleric: ";
+    myLabel.style.marginLeft = "16px";
+    const myInput = document.createElement("input");
+    myInput.type = "text";
+    myInput.placeholder = "YourName";
+    myInput.style.width = "120px";
+    myInput.value = chain.myName || "";
+
+    // Start/Stop
+    const startStopBtn = document.createElement("button");
+    startStopBtn.textContent = chain.chainRunning ? "STOP CHAIN" : "START CHAIN";
+    startStopBtn.style.marginLeft = "16px";
+
+    // Reset / Delete / sync
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "Reset";
+    resetBtn.style.marginLeft = "4px";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete Panel";
+    deleteBtn.style.marginLeft = "4px";
+
+    controlsRow.append(
+        delayLabel, btn3, btn4, btn5, delayInput,
+        myLabel, myInput,
+        startStopBtn, resetBtn, deleteBtn
+    );
+const syncUpdateBtn = document.createElement("button");
+syncUpdateBtn.textContent = "Sync / Update Chain";
+syncUpdateBtn.style.marginLeft = "4px";
+controlsRow.append(syncUpdateBtn);
+
+    // Macro area
+    const macroWrap = document.createElement("div");
+    macroWrap.style.marginBottom = "8px";
+    macroWrap.style.fontSize = "12px";
+
+    const macroLabel = document.createElement("div");
+    macroLabel.textContent = "Macro Template:";
+    const macroTopRow = document.createElement("div");
+    macroTopRow.style.marginBottom = "4px";
+
+    const channelInput = document.createElement("input");
+    channelInput.style.width = "70px";
+    channelInput.value = chain.channel || "/ooc";
+
+    const targetInput = document.createElement("input");
+    targetInput.style.width = "100px";
+    targetInput.style.marginLeft = "4px";
+    targetInput.value = chain.target || "tank";
+
+    const macroTextarea = document.createElement("textarea");
+    macroTextarea.style.width = "100%";
+    macroTextarea.style.height = "40px";
+    macroTextarea.value = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
+
+    macroTopRow.append(
+        document.createTextNode("Channel: "),
+        channelInput,
+        document.createTextNode("  Target: "),
+        targetInput
+    );
+
+    macroWrap.append(macroLabel, macroTopRow, macroTextarea);
+
+    // Cleric list
+    const clericListDiv = document.createElement("div");
+    clericListDiv.style.marginBottom = "8px";
+
+    const clericButtonsRow = document.createElement("div");
+    const addClericBtn = document.createElement("button");
+    addClericBtn.textContent = "+ Cleric";
+    const removeClericBtn = document.createElement("button");
+    removeClericBtn.textContent = "- Last";
+    clericButtonsRow.append(addClericBtn, removeClericBtn);
+
+    // Timeline bar
+    const timelineWrap = document.createElement("div");
+    timelineWrap.style.margin = "8px 0";
+    const timelineLabel = document.createElement("div");
+    timelineLabel.textContent = "Chain Flow (10s CH Cast):";
+    timelineLabel.style.fontSize = "12px";
+    timelineLabel.style.marginBottom = "4px";
+
+    const timelineBar = document.createElement("div");
+    timelineBar.style.height = "30px";
+    timelineBar.style.background = "#333";
+    timelineBar.style.border = "1px solid #555";
+    timelineBar.style.position = "relative";
+    timelineBar.style.overflow = "hidden";
+// Header bar (static labels)
+const headerBar = document.createElement("div");
+headerBar.style.height = "20px";
+headerBar.style.position = "relative";
+headerBar.style.marginBottom = "4px";
+headerBar.style.background = "#222";
+headerBar.style.border = "1px solid #555";
+headerBar.style.overflow = "hidden";
+
+timelineWrap.prepend(headerBar);
+chain._headerBar = headerBar;
+    timelineWrap.append(timelineLabel, timelineBar);
+
+    // Log
+    const logDiv = document.createElement("div");
+    logDiv.style.background = "#000";
+    logDiv.style.color = "#0f0";
+    logDiv.style.fontFamily = "'Courier New', monospace";
+    logDiv.style.fontSize = "11px";
+    logDiv.style.height = "150px";
+    logDiv.style.overflowY = "auto";
+    logDiv.style.padding = "5px";
+    logDiv.style.border = "1px solid #555";
+    logDiv.style.whiteSpace = "pre-line";
+
+    // Assemble panel
+    panel.append(titleDiv, controlsRow, macroWrap, clericListDiv, clericButtonsRow, timelineWrap, logDiv);
+    container.appendChild(panel);
+
+// --------------------
+// STATE + HELPERS
+// --------------------
+chain._logDiv = logDiv;
+chain._timelineBar = timelineBar;
+chain._clericListDiv = clericListDiv;
+
+function chLogLine(text) {
+    const stamp = new Date().toLocaleTimeString();
+    const line = `[${stamp}] ${text}\n`;
+    chain.log.push(line);
+    chain._logDiv.textContent += line;
+    chain._logDiv.scrollTop = chain._logDiv.scrollHeight;
+}
+
+// ⭐ REQUIRED — this was missing
+function getActiveRotation() {
+    return chain.clerics
+        .filter(c => c.active)
+        .map((c, idx) => ({ ...c, rotIndex: idx }));
+}
+
+function getCycleRotation() {
+    if (!chain._cycleRotation || chain._cycleRotation.length === 0) {
+        chain._cycleRotation = getActiveRotation().slice();
+        chain.lastCycleStart = Date.now();
+        chain._lastCasterIndex = -1;
+    }
+    return chain._cycleRotation;
+}
+
+    function syncToCleric(rotIndex) {
+        const now = Date.now();
+        const rotation = getActiveRotation();
+        if (rotation.length === 0) return;
+        const cycleTime = rotation.length * chain.delayMs;
+        chain.lastCycleStart = now - cycleTime - (rotIndex * chain.delayMs);
+        chLogLine(`Synced chain to ${rotation[rotIndex].name} (just started CH).`);
+        renderOnce();
+    }
+
+function renderClericList() {
+    chain._clericListDiv.innerHTML = "";
+
+    chain.clerics.forEach((cleric) => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.marginBottom = "4px";
+        row.style.fontSize = "12px";
+
+        // Active checkbox
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = cleric.active;
+chk.onchange = () => {
+    const wasActive = cleric.active;
+    const nowActive = chk.checked;
+    if (wasActive === nowActive) return;
+
+    const blockTime = chain.delayMs;
+
+    // Snapshot current cycle state BEFORE change
+    const oldRotation = chain._cycleRotation && chain._cycleRotation.length
+        ? chain._cycleRotation
+        : getActiveRotation();
+
+    let currentClericName = null;
+    let offsetInBlock = 0;
+
+    if (chain.chainRunning && oldRotation.length > 0) {
+        const now = Date.now();
+        const cycleTime = oldRotation.length * blockTime;
+        const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
+        const currentBlock = Math.floor(phase / blockTime);
+        offsetInBlock = phase % blockTime;
+
+        const currentCleric = oldRotation[currentBlock];
+        currentClericName = currentCleric ? currentCleric.name : null;
+    }
+
+    // Apply the toggle to the live cleric list
+    cleric.active = nowActive;
+
+    // Build new rotation from checkboxes
+    const newRotation = getActiveRotation();
+
+    // If chain is not running, just freeze new rotation and redraw
+    if (!chain.chainRunning) {
+        chain._cycleRotation = newRotation.slice();
+        chain._lastCasterIndex = -1;
+        renderOnce();
+        return;
+    }
+
+    // If no clerics left, stop the chain
+    if (newRotation.length === 0) {
+        chLogLine("No active clerics left. Stopping chain.");
+        chain.chainRunning = false;
+        chain._cycleRotation = [];
+        chain._lastCasterIndex = -1;
+        renderOnce();
+        return;
+    }
+
+    // Try to keep the same current cleric if they still exist
+    let newIndex = 0;
+    if (currentClericName) {
+        const idx = newRotation.findIndex(c => c.name === currentClericName);
+        if (idx >= 0) {
+            newIndex = idx;
+        } else {
+            // If that cleric was removed, fall back to first in new rotation
+            newIndex = 0;
+        }
+    }
+
+    // Freeze new cycle rotation
+    chain._cycleRotation = newRotation.slice();
+
+    // Adjust timing so we stay in the same relative place in the current cast
+    const now2 = Date.now();
+    chain.lastCycleStart = now2 - (newIndex * blockTime) - offsetInBlock;
+
+    // Force macro firing to resume from this cleric
+    chain._lastCasterIndex = newIndex - 1;
+
+    renderOnce();
+};
+
+        // Cleric name input
+        const nameInput = document.createElement("input");
+        nameInput.value = cleric.name;
+        nameInput.style.width = "100px";
+        nameInput.style.marginLeft = "4px";
+        nameInput.onchange = () => {
+            cleric.name = nameInput.value;
+        };
+
+        // Pattern input
+        const patternInput = document.createElement("input");
+        patternInput.value = cleric.pattern || "";
+        patternInput.style.width = "60px";
+        patternInput.style.marginLeft = "4px";
+        patternInput.placeholder = "pattern";
+        patternInput.onchange = () => {
+            cleric.pattern = patternInput.value;
+        };
+
+        // Sync button
+        const syncBtn = document.createElement("button");
+        syncBtn.textContent = "Just Fired!";
+        syncBtn.style.fontSize = "10px";
+        syncBtn.style.marginLeft = "4px";
+        syncBtn.onclick = () => {
+            const rotation = getCycleRotation();
+            const rotIdx = rotation.findIndex(c => c.name === cleric.name);
+            if (rotIdx >= 0) {
+                chain.lastCycleStart = Date.now() - (rotIdx * chain.delayMs);
+                chain._lastCasterIndex = rotIdx - 1;
+                renderOnce();
+            }
+        };
+
+        row.append(chk, nameInput, patternInput, syncBtn);
+        chain._clericListDiv.appendChild(row);
+    });
+}
+
+function renderTimeline() {
+    const rotation = getCycleRotation();
+    chain._timelineBar.innerHTML = "";
+    chain._headerBar.innerHTML = "";
+
+    const now = Date.now();
+
+    if (!chain.chainRunning || rotation.length === 0) {
+        const idle = document.createElement("div");
+        idle.style.position = "absolute";
+        idle.style.left = "4px";
+        idle.style.top = "6px";
+        idle.style.fontSize = "11px";
+        idle.style.color = "#aaa";
+        idle.textContent = "Chain idle or no active clerics.";
+        chain._timelineBar.appendChild(idle);
+        return;
+    }
+
+    const blockTime = chain.delayMs;
+    const cycleTime = rotation.length * blockTime;
+
+    const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
+    const currentBlock = Math.floor(phase / blockTime);
+    const blockProgress = (phase % blockTime) / blockTime;
+
+    // Build blocks
+    rotation.forEach((cleric, idx) => {
+        const block = document.createElement("div");
+        block.style.position = "absolute";
+        block.style.left = (idx * (100 / rotation.length)) + "%";
+        block.style.top = "0";
+        block.style.width = (100 / rotation.length) + "%";
+        block.style.height = "100%";
+        block.style.borderRight = "1px solid #555";
+
+        const fill = document.createElement("div");
+        fill.style.height = "100%";
+
+        if (idx < currentBlock) {
+            fill.style.width = "100%";
+            fill.style.background = "#3cb371";
+        } else if (idx === currentBlock) {
+            fill.style.width = (blockProgress * 100) + "%";
+            fill.style.background = "#ff8c00";
+        } else {
+            fill.style.width = "0%";
+            fill.style.background = "#3cb371";
+        }
+
+        block.appendChild(fill);
+        chain._timelineBar.appendChild(block);
+
+        // Header label
+        const header = document.createElement("div");
+        header.style.position = "absolute";
+        header.style.left = ((idx + 0.5) * (100 / rotation.length)) + "%";
+        header.style.top = "2px";
+        header.style.transform = "translateX(-50%)";
+        header.style.fontSize = "10px";
+        header.style.color = "#ffd700";
+        header.style.textAlign = "center";
+        header.innerHTML = `${cleric.name}<br>${cleric.pattern || ""}`;
+        chain._headerBar.appendChild(header);
+    });
+
+    // Macro firing
+    if (currentBlock !== chain._lastCasterIndex) {
+        const cleric = rotation[currentBlock];
+        if (cleric) {
+            const tmpl = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
+            let msg = tmpl.replace("{name}", cleric.name)
+                          .replace("{pattern}", cleric.pattern || "")
+                          .replace("{target}", chain.target);
+
+            if (msg.startsWith(chain.channel)) {
+                chLogLine(`${cleric.name} (${cleric.pattern || "?"}) firing: ${msg}`);
+            } else {
+                chLogLine(`${cleric.name} (${cleric.pattern || "?"}) firing: ${chain.channel} ${msg}`);
+            }
+        }
+        chain._lastCasterIndex = currentBlock;
+    }
+
+// YOUR TURN logic (block-based)
+const myNameLower = (chain.myName || "").toLowerCase();
+const myIdx = rotation.findIndex(c => c.name.toLowerCase() === myNameLower);
+
+if (myIdx >= 0) {
+    const myStart = chain.lastCycleStart + (myIdx * blockTime);
+    const myTimeTo = myStart - now;
+
+    if (myTimeTo <= 1500 && myTimeTo >= -1000) {
+        chLogLine("YOUR TURN! Cast CH NOW!");
+        if (typeof makeBeep === "function") makeBeep();
+    }
+}
+
+    // Cycle wrap detection
+    if (currentBlock < chain._lastCasterIndex) {
+        chain._cycleRotation = getActiveRotation().slice();
+        chain.lastCycleStart = now;
+        chain._lastCasterIndex = -1;
+    }
+}
+    function renderOnce() {
+        renderClericList();
+        renderTimeline();
+    }
+
+    // --------------------
+    // EVENT WIRING
+    // --------------------
+    btn3.onclick = () => {
+        chain.delayMs = 3000;
+        delayInput.value = 3;
+        renderOnce();
+    };
+    btn4.onclick = () => {
+        chain.delayMs = 4000;
+        delayInput.value = 4;
+        renderOnce();
+    };
+    btn5.onclick = () => {
+        chain.delayMs = 5000;
+        delayInput.value = 5;
+        renderOnce();
+    };
+    delayInput.onchange = () => {
+        const v = parseInt(delayInput.value, 10);
+        chain.delayMs = (v > 0 ? v : 3) * 1000;
+        renderOnce();
+    };
+
+    myInput.onchange = () => {
+        chain.myName = myInput.value.trim();
+    };
+
+    channelInput.onchange = () => {
+        chain.channel = channelInput.value.trim() || "/ooc";
+    };
+
+    targetInput.onchange = () => {
+        chain.target = targetInput.value.trim() || "tank";
+    };
+
+    macroTextarea.onchange = () => {
+        chain.macroTemplate = macroTextarea.value;
+    };
+
+    startStopBtn.onclick = () => {
+        chain.chainRunning = !chain.chainRunning;
+        startStopBtn.textContent = chain.chainRunning ? "STOP CHAIN" : "START CHAIN";
+if (chain.chainRunning) {
+    const rotation = getActiveRotation();
+    if (rotation.length === 0) {
+        chLogLine("Cannot start chain: no active clerics.");
+        chain.chainRunning = false;
+        startStopBtn.textContent = "START CHAIN";
+        return;
+    }
+
+    // ✔ Correct: freeze rotation for this cycle
+    chain._cycleRotation = rotation.slice();
+
+    // ✔ Correct: reset cycle timing
+    chain.lastCycleStart = Date.now();
+
+    // ✔ Correct: reset macro firing index
+    chain._lastCasterIndex = -1;
+
+    chLogLine("CH Chain started.");
+} else {
+    chLogLine("CH Chain stopped.");
+
+    // ✔ Correct: clear frozen rotation
+    chain._cycleRotation = null;
+
+    // ✔ Correct: reset macro firing index
+    chain._lastCasterIndex = -1;
+}
+
+renderOnce();
+    };
+
+    resetBtn.onclick = () => {
+        chain.clerics = [];
+        chain.chainRunning = false;
+        chain.lastCycleStart = 0;
+        chain.log = [];
+        chain._logDiv.textContent = "";
+        startStopBtn.textContent = "START CHAIN";
+        chLogLine("CH Chain reset.");
+        renderOnce();
+    };
+
+    deleteBtn.onclick = () => {
+        if (!confirm("Delete this CH Chain Timer Panel?")) return;
+        // Remove from registry
+        window.ItemRegistry = window.ItemRegistry.filter(it => it.id !== chain.id);
+        // Remove panel
+        panel.remove();
+    };
+
+addClericBtn.onclick = () => {
+    const nextNum = chain.clerics.length + 1;
+    const name = `Cleric${nextNum}`;
+    const pattern = `${nextNum}${nextNum}${nextNum}${nextNum}`; // 1111, 2222, 3333...
+
+    chain.clerics.push({ name, active: true, pattern });
+
+    chLogLine(`Added cleric: ${name} (pattern: ${pattern})`);
+
+    // Preserve current caster and rebuild rotation
+    if (chain.chainRunning) {
+        const oldRotation = chain._cycleRotation || getActiveRotation();
+        const blockTime = chain.delayMs;
+
+        const now = Date.now();
+        const cycleTime = oldRotation.length * blockTime;
+        const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
+        const currentBlock = Math.floor(phase / blockTime);
+        const offsetInBlock = phase % blockTime;
+
+        const currentCleric = oldRotation[currentBlock];
+        const currentName = currentCleric ? currentCleric.name : null;
+
+        const newRotation = getActiveRotation();
+        chain._cycleRotation = newRotation.slice();
+
+        let newIndex = 0;
+        if (currentName) {
+            const idx = newRotation.findIndex(c => c.name === currentName);
+            if (idx >= 0) newIndex = idx;
+        }
+
+        chain.lastCycleStart = now - (newIndex * blockTime) - offsetInBlock;
+        chain._lastCasterIndex = newIndex - 1;
+    } else {
+        chain._cycleRotation = getActiveRotation().slice();
+        chain._lastCasterIndex = -1;
+    }
+
+    renderOnce();
+};
+
+    removeClericBtn.onclick = () => {
+        if (chain.clerics.length === 0) return;
+        const removed = chain.clerics.pop();
+        chLogLine(`Removed cleric: ${removed.name}`);
+        renderOnce();
+    };
+
+    // --------------------
+    // LOOP
+    // --------------------
+    function tick() {
+        if (!chain.chainRunning) return;
+        renderTimeline();
+    }
+
+    chain._intervalId = setInterval(tick, 250);
+
+    // Initial render
+    chLogLine("CH Chain Timer panel ready. Add clerics and start when ready.");
+    renderOnce();
+}
+
+// sync push
+
+syncUpdateBtn.onclick = () => {
+    if (!chain.chainRunning) {
+        chLogLine("Chain not running — nothing to sync.");
+        return;
+    }
+
+    const oldRotation = chain._cycleRotation;
+    if (!oldRotation || oldRotation.length === 0) return;
+
+    const now = Date.now();
+    const blockTime = chain.delayMs;
+    const cycleTime = oldRotation.length * blockTime;
+
+    const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
+    const currentBlock = Math.floor(phase / blockTime);
+
+    const currentCleric = oldRotation[currentBlock];
+    if (!currentCleric) return;
+
+    // Build new rotation from checkboxes
+    const newRotation = getActiveRotation();
+    if (newRotation.length === 0) {
+        chLogLine("Cannot sync: no active clerics.");
+        return;
+    }
+
+    // Find new index of the current cleric
+    const newIndex = newRotation.findIndex(c => c.name === currentCleric.name);
+    if (newIndex === -1) {
+        chLogLine(`Warning: ${currentCleric.name} is no longer active — starting next cleric.`);
+    }
+
+    // Freeze new cycle rotation
+    chain._cycleRotation = newRotation.slice();
+
+    // Adjust timing so the bar continues smoothly
+    const idx = newIndex === -1 ? 0 : newIndex;
+    chain.lastCycleStart = now - (idx * blockTime);
+    chain._lastCasterIndex = idx - 1;
+
+    chLogLine("Chain synced and updated.");
+    renderOnce();
+};
 
 
 // ===============================
