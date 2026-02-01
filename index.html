@@ -7686,13 +7686,13 @@ function createItemPanel(item) {
         // Delete checkbox
         const delLabel = document.createElement("label");
         delLabel.style.marginRight = "10px";
-        delLabel.innerHTML = `<input type="checkbox" class="itemDeleteToggle" data-id="${item.id}"> Delete?`;
+delLabel.innerHTML = `<input type="checkbox" class="itemSealDeleteToggle" data-id="${item.id}"> Delete?`;
         controlRow.appendChild(delLabel);
 
         // Delete button
         const delBtn = document.createElement("button");
         delBtn.textContent = "Delete";
-        delBtn.className = "itemDeleteBtn";
+delBtn.className = "itemSealDeleteBtn";
         delBtn.dataset.id = item.id;
         delBtn.disabled = true;
         delBtn.style.opacity = "0.4";
@@ -7818,22 +7818,21 @@ if (e.target.classList.contains("itemTimerRestart")) {
         if (item) logLine(`[ITEM] Saved item: ${item.title}`);
         return;
     }
-
-    // ===============================
-    // DELETE TOGGLE
-    // ===============================
-    if (e.target.classList.contains("itemDeleteToggle")) {
-        const delBtn = document.querySelector(`.itemDeleteBtn[data-id="${id}"]`);
-        const enabled = e.target.checked;
-        delBtn.disabled = !enabled;
-        delBtn.style.opacity = enabled ? "1" : "0.4";
-        return;
-    }
+// ===============================
+// ITEM SEAL DELETE TOGGLE
+// ===============================
+if (e.target.classList.contains("itemSealDeleteToggle")) {
+    const delBtn = document.querySelector(`.itemSealDeleteBtn[data-id="${id}"]`);
+    const enabled = e.target.checked;
+    delBtn.disabled = !enabled;
+    delBtn.style.opacity = enabled ? "1" : "0.4";
+    return;
+}
 
 // ===============================
-// DELETE BUTTON
+// ITEM SEAL DELETE BUTTON
 // ===============================
-if (e.target.classList.contains("itemDeleteBtn")) {
+if (e.target.classList.contains("itemSealDeleteBtn")) {
     // Remove from registry
     ItemRegistry = ItemRegistry.filter(x => x.id !== id);
 
@@ -8133,6 +8132,78 @@ function restartItemTimer(id) {
 // ------------------------------
 // CLEAR / USE AGAIN BUTTON
 // ------------------------------
+document.getElementById("itemClearBtn").onclick = () => {
+    const btn = document.getElementById("itemClearBtn");
+
+    // Reuse mode → reset builder
+    if (btn.dataset.mode === "reuse") {
+        document.getElementById("itemNoteInput").readOnly = false;
+        document.getElementById("itemNoteInput").style.opacity = "1";
+
+        document.getElementById("itemTitleInput").value = "";
+        document.getElementById("itemEffectInput").value = "";
+        document.getElementById("itemUrlInput").value = "https://wiki.project1999.com/";
+        document.getElementById("itemImgInput").value = "https://wiki.project1999.com/images/";
+        document.getElementById("itemNoteInput").value = "";
+
+        // Switch back to normal clear mode
+        btn.textContent = "Clear";
+        btn.dataset.mode = "clear";
+
+        // ⭐ Re-enable Create Seal
+        const sealBtn = document.getElementById("itemSealBtn");
+        sealBtn.disabled = false;
+        sealBtn.style.opacity = "1";
+        sealBtn.style.cursor = "pointer";
+
+        return;
+    }
+
+    // Normal clear mode
+    document.getElementById("itemTitleInput").value = "";
+    document.getElementById("itemEffectInput").value = "";
+    document.getElementById("itemUrlInput").value = "https://wiki.project1999.com/";
+    document.getElementById("itemImgInput").value = "https://wiki.project1999.com/images/";
+    document.getElementById("itemNoteInput").value = "";
+};
+
+function sanitizeUrl(input, base) {
+    const trimmed = (input || "").trim();
+
+    // Blank or base path → treat as blank
+    if (trimmed === "" || trimmed === base) {
+        return "";
+    }
+
+    // Valid: must start with base AND have something after it
+    if (trimmed.startsWith(base) && trimmed.length > base.length) {
+        return trimmed;
+    }
+
+    // Invalid → ask user if they want to blank it out
+    const proceed = confirm(
+        "Invalid item link.\n\n" +
+        "Would you like to continue and remove it (set to blank)?"
+    );
+
+    if (proceed) {
+        return ""; // blank it out
+    }
+
+    // User wants to fix manually → special abort token
+    return "__ABORT__";
+}
+
+
+
+// ============================================================
+// END ITEM BUILDER SYSTEM
+// ============================================================
+
+
+// ============================================================
+// CH CHAIN TIMER PANEL SYSTEM
+// ============================================================
 document.getElementById("itemClearBtn").onclick = () => {
     const btn = document.getElementById("itemClearBtn");
 
