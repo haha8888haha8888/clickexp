@@ -8885,32 +8885,34 @@ function renderClericList() {
             renderOnce();
         };
 
-        // ===============================
-        // EDITABLE NAME INPUT
-        // ===============================
-        const nameInput = document.createElement("input");
-        nameInput.type = "text";
-        nameInput.value = cleric.name;
-        nameInput.style.width = "100px";
+// ===============================
+// EDITABLE NAME INPUT
+// ===============================
+const nameInput = document.createElement("input");
+nameInput.type = "text";
+nameInput.value = cleric.name;
+nameInput.style.width = "100px";
 
-        nameInput.oninput = () => {
-            cleric.name = nameInput.value;
-            renderOnce(); // update header bar immediately
-        };
+// Update the cleric object live, but DO NOT re-render
+nameInput.oninput = () => {
+    cleric.name = nameInput.value;
+    // no renderOnce() here
+};
 
-        // ===============================
-        // EDITABLE PATTERN INPUT
-        // ===============================
-        const patternInput = document.createElement("input");
-        patternInput.type = "text";
-        patternInput.value = cleric.pattern || "";
-        patternInput.style.width = "60px";
-        patternInput.placeholder = "####";
+// ===============================
+// EDITABLE PATTERN INPUT
+// ===============================
+const patternInput = document.createElement("input");
+patternInput.type = "text";
+patternInput.value = cleric.pattern || "";
+patternInput.style.width = "60px";
+patternInput.placeholder = "####";
 
-        patternInput.oninput = () => {
-            cleric.pattern = patternInput.value;
-            renderOnce();
-        };
+// Update pattern live, but DO NOT re-render
+patternInput.oninput = () => {
+    cleric.pattern = patternInput.value;
+    // no renderOnce() here
+};
 
         // ===============================
         // SYNC BUTTON ("Just Fired!")
