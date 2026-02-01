@@ -426,12 +426,18 @@
 
 
 
-    <script>
-        // ---------- UTILITIES ----------
-	const CloneUIMap = new Map();
+<script>
+// ---------- GLOBAL CH CHAIN STATE (must load FIRST) ----------
+window.CHChains  = [];        // all chain objects
+window.CHDebug   = true;      // global debug toggle
+window.CHTickRate = 50;       // global tick interval
+window.CHPanels  = new Map(); // id -> DOM panel
 
-	const SWOOSH_START = "&#&&#&#&#&#&##&#&#& === SWOOSH START ===";
-	const SWOOSH_END   = "finfinfin*$*$*$*$*$*$*$*$$*$* === SWOOSH END ===";
+// ---------- UTILITIES ----------
+const CloneUIMap = new Map();
+
+const SWOOSH_START = "&#&&#&#&#&#&##&#&#& === SWOOSH START ===";
+const SWOOSH_END   = "finfinfin*$*$*$*$*$*$*$*$$*$* === SWOOSH END ===";
 
 let DEBUG_ENABLED = true;
 let LOG_UNLOCKED = true;   // true = normal logging allowed, false = locked
@@ -441,6 +447,7 @@ let CALL_B = 0;
 
 let INSTRUMENTATION_ENABLED = false;
 
+// ---------- GLOBAL REGISTRIES ----------
 window.SpellRegistry = {};
 window.UserOverrides = {};
 window.UserCustomSpells = [];
@@ -448,11 +455,10 @@ window.SpellClassAvailable = {};
 window.ItemRegistry = [];
 window.itemTimers = {};
 
-// Ensure ItemRegistry exists
+// Safety: ensure ItemRegistry always exists
 window.ItemRegistry = window.ItemRegistry || [];
 
-
-//letmesee
+//letmeseee
 
 // ===============================
 // MEGA DEBUG CONSOLE (CLICK TO OPEN)
@@ -521,6 +527,56 @@ window.ItemRegistry = window.ItemRegistry || [];
         if (error && error.stack) __DBG("Stack:\n" + error.stack);
     };
 
+})();
+// ---------- DEBUG BUTTON FLAME INDICATOR ----------
+(function() {
+    // Find your debug button once the DOM is ready
+    function getDebugButton() {
+        return document.getElementById("debugBtn") 
+            || document.querySelector("[data-debug-btn]")
+            || document.querySelector(".debug-button");
+    }
+
+    // Add a flame to the debug button
+    function markDebugCrashed() {
+        const btn = getDebugButton();
+        if (!btn) return;
+
+        if (!btn.dataset.crashed) {
+            btn.dataset.crashed = "true";
+            btn.textContent = btn.textContent + " 🔥";
+        }
+    }
+
+    // Wrap console.error
+    const originalError = console.error;
+    console.error = function(...args) {
+        if (args.some(a => typeof a === "string" && a.includes("🔥"))) {
+            markDebugCrashed();
+        }
+        originalError.apply(console, args);
+    };
+
+    // Wrap console.warn (optional)
+    const originalWarn = console.warn;
+    console.warn = function(...args) {
+        if (args.some(a => typeof a === "string" && a.includes("🔥"))) {
+            markDebugCrashed();
+        }
+        originalWarn.apply(console, args);
+    };
+
+    // Hook into your custom crash logger
+    window.addEventListener("error", (e) => {
+        if (String(e.message).includes("🔥")) {
+            markDebugCrashed();
+        }
+    });
+
+    // Optional: hook into your swoosh crash system
+    window.addEventListener("CH_CRASH", () => {
+        markDebugCrashed();
+    });
 })();
 
 
@@ -8138,33 +8194,40 @@ function sanitizeUrl(input, base) {
     // User wants to fix manually → special abort token
     return "__ABORT__";
 }
-// ch chain chchain chtimerchain blockupdate
 
+// ch chain chchain chtimerchain blockupdate
+// ch chain chchain chtimerchain blockupdate
+// ch chain chchain chtimerchain blockupdate
 
 // ADD CH CHAIN TIMER PANEL BUTTON HANDLER
 document.getElementById("addChChainPanelBtn").onclick = () => {
     const title = prompt("Enter CH Chain Title:", "CH Chain Timer +") || "CH Chain Timer +";
 
-const newChain = {
-    id: crypto.randomUUID(),
-    type: "chchain",
-    title,
-tanks: [],
-currentTankIndex: 0,
-    clerics: [],
-    delayMs: 3000,
-    macroTemplate: "/ooc {name} casting Complete Heal on {target} >>",
-    channel: "/ooc",
-    target: "tank",
-    myName: "",
-    chainRunning: false,
-    lastCycleStart: 0,
-    log: [],
-    _cycleRotation: null,
-    _lastCasterIndex: -1
-};
+    const newChain = {
+        id: crypto.randomUUID(),
+        type: "chchain",
+        title,
+        tanks: [],
+        currentTankIndex: 0,
+        clerics: [],
+        delayMs: 3000,
+        macroTemplate: "/ooc {name} casting Complete Heal on {target} >>",
+        channel: "/ooc",
+        target: "tank",
+        myName: "",
+        chainRunning: false,
+        log: [],
 
-    window.ItemRegistry.push(newChain);
+        // NEW ENGINE FIELDS
+        currentBlockIndex: null,
+        currentBlockStartTime: null,
+        _frozenBlockTime: null,
+        _cycleRotation: null,
+        _lastCasterIndex: -1
+    };
+
+    window.CHChains.push(newChain);
+window.ItemRegistry.push(newChain);
     createChChainPanel(newChain);
 };
 
@@ -8175,6 +8238,11 @@ function createChChainPanel(chain) {
     const container = document.getElementById("chChainPanelsContainer");
     if (!container) return;
 
+    chain._frozenBlockTime = null;
+    chain._cycleRotation = null;
+    chain._lastCasterIndex = -1;
+    chain.currentBlockIndex = null;
+    chain.currentBlockStartTime = null;
 
     // PANEL WRAPPER
     const panel = document.createElement("div");
@@ -8189,64 +8257,206 @@ function createChChainPanel(chain) {
     const controlsRow = document.createElement("div");
     controlsRow.style.marginBottom = "8px";
 
-    // Delay controls
+    // ============================================================
+    // TEMPO CHANGE (NEW ENGINE SAFE)
+    // ============================================================
+    function applyNewDelay(newDelayMs) {
+        chain.delayMs = newDelayMs; // affects only future blocks
+
+        if (window.CHDebug) {
+            console.log(SWOOSH_START);
+            console.log("[CH] TEMPO CHANGE", {
+                chainId: chain.id,
+                title: chain.title,
+                newDelayMs,
+                delayMs_after: chain.delayMs,
+                frozenBlockTime: chain._frozenBlockTime,
+                currentBlockIndex: chain.currentBlockIndex,
+                currentBlockStartTime: chain.currentBlockStartTime
+            });
+            console.log(SWOOSH_END);
+        }
+
+        renderOnce();
+    }
+
+    // ============================================================
+    // DELAY CONTROLS
+    // ============================================================
     const delayLabel = document.createElement("span");
     delayLabel.textContent = "Delay: ";
+
     const btn3 = document.createElement("button");
     btn3.textContent = "3s";
+
     const btn4 = document.createElement("button");
     btn4.textContent = "4s";
+
     const btn5 = document.createElement("button");
     btn5.textContent = "5s";
+
     const delayInput = document.createElement("input");
     delayInput.type = "number";
     delayInput.min = "2";
-    delayInput.max = "9";
+    delayInput.max = "20";
     delayInput.value = (chain.delayMs / 1000) || 3;
     delayInput.style.width = "50px";
     delayInput.style.marginLeft = "4px";
 
-    // My name
+    btn3.onclick = () => { delayInput.value = 3; applyNewDelay(3000); };
+    btn4.onclick = () => { delayInput.value = 4; applyNewDelay(4000); };
+    btn5.onclick = () => { delayInput.value = 5; applyNewDelay(5000); };
+
+    delayInput.onchange = () => {
+        const v = Math.max(2, Math.min(9, parseInt(delayInput.value, 10) || 3));
+        delayInput.value = v;
+        applyNewDelay(v * 1000);
+    };
+
+    // ============================================================
+    // MY CLERIC NAME
+    // ============================================================
     const myLabel = document.createElement("span");
     myLabel.textContent = "  My Cleric: ";
     myLabel.style.marginLeft = "16px";
+
     const myInput = document.createElement("input");
     myInput.type = "text";
     myInput.placeholder = "YourName";
     myInput.style.width = "120px";
     myInput.value = chain.myName || "";
 
-    // Start/Stop
+    myInput.onchange = () => {
+        chain.myName = myInput.value.trim();
+        renderOnce();
+    };
+
+    // ============================================================
+    // START / STOP BUTTON
+    // ============================================================
     const startStopBtn = document.createElement("button");
     startStopBtn.textContent = chain.chainRunning ? "STOP CHAIN" : "START CHAIN";
     startStopBtn.style.marginLeft = "16px";
 
-    // Reset / Delete / sync
+    startStopBtn.onclick = () => {
+        if (!chain.chainRunning) {
+            const rotation = getActiveRotation();
+            if (!rotation.length) {
+                chLogLine("Cannot start chain: no active clerics.");
+                return;
+            }
+
+            chain._cycleRotation = rotation.slice();
+            chain.currentBlockIndex = 0;
+            chain.currentBlockStartTime = Date.now();
+            chain._frozenBlockTime = chain.delayMs;
+            chain._lastCasterIndex = -1;
+            chain.chainRunning = true;
+
+            chLogLine("CH Chain started.");
+        } else {
+            chain.chainRunning = false;
+            chain._lastCasterIndex = -1;
+            chLogLine("CH Chain stopped.");
+        }
+
+        startStopBtn.textContent = chain.chainRunning ? "STOP CHAIN" : "START CHAIN";
+        renderOnce();
+    };
+
+    // ============================================================
+    // RESET BUTTON
+    // ============================================================
     const resetBtn = document.createElement("button");
     resetBtn.textContent = "Reset";
     resetBtn.style.marginLeft = "4px";
 
+    resetBtn.onclick = () => {
+        if (!chain._cycleRotation || !chain._cycleRotation.length) return;
+
+        chain.currentBlockIndex = 0;
+        chain.currentBlockStartTime = Date.now();
+        chain._frozenBlockTime = chain.delayMs;
+        chain._lastCasterIndex = -1;
+
+        chLogLine("CH Chain reset.");
+        renderOnce();
+    };
+
+    // ============================================================
+    // DELETE PANEL BUTTON
+    // ============================================================
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "Delete Panel";
     deleteBtn.style.marginLeft = "4px";
 
+    deleteBtn.onclick = () => {
+        if (!confirm("Delete this CH Chain panel?")) return;
+
+        panel.remove();
+        window.ItemRegistry = window.ItemRegistry.filter(x => x.id !== chain.id);
+        window.CHChains = window.CHChains.filter(x => x.id !== chain.id);
+        window.CHPanels.delete(chain.id);
+
+        chLogLine(`Deleted CH Chain panel: ${chain.title}`);
+    };
+
+    // ============================================================
+    // SYNC / UPDATE BUTTON
+    // ============================================================
+    const syncUpdateBtn = document.createElement("button");
+    syncUpdateBtn.textContent = "Sync / Update Chain";
+    syncUpdateBtn.style.marginLeft = "4px";
+
+    syncUpdateBtn.onclick = () => {
+        if (!chain.chainRunning) {
+            chLogLine("Chain not running — nothing to sync.");
+            return;
+        }
+
+        const oldRotation = chain._cycleRotation;
+        if (!oldRotation || !oldRotation.length) return;
+
+        const currentIdx = chain.currentBlockIndex;
+        const currentCleric = oldRotation[currentIdx];
+        if (!currentCleric) return;
+
+        const newRotation = getActiveRotation();
+        if (!newRotation.length) {
+            chLogLine("Cannot sync: no active clerics.");
+            return;
+        }
+
+        let newIndex = newRotation.findIndex(c => c.name === currentCleric.name);
+        if (newIndex === -1) newIndex = 0;
+
+        chain._cycleRotation = newRotation.slice();
+        chain.currentBlockIndex = newIndex;
+        chain._lastCasterIndex = -1;
+
+        chLogLine("Chain synced to current cleric.");
+        renderOnce();
+    };
+
+    // ============================================================
+    // ADD CONTROLS TO ROW
+    // ============================================================
     controlsRow.append(
         delayLabel, btn3, btn4, btn5, delayInput,
         myLabel, myInput,
-        startStopBtn, resetBtn, deleteBtn
+        startStopBtn, resetBtn, deleteBtn, syncUpdateBtn
     );
-const syncUpdateBtn = document.createElement("button");
-syncUpdateBtn.textContent = "Sync / Update Chain";
-syncUpdateBtn.style.marginLeft = "4px";
-controlsRow.append(syncUpdateBtn);
 
-    // Macro area
+    // ============================================================
+    // MACRO AREA
+    // ============================================================
     const macroWrap = document.createElement("div");
     macroWrap.style.marginBottom = "8px";
     macroWrap.style.fontSize = "12px";
 
     const macroLabel = document.createElement("div");
     macroLabel.textContent = "Macro Template:";
+
     const macroTopRow = document.createElement("div");
     macroTopRow.style.marginBottom = "4px";
 
@@ -8264,153 +8474,143 @@ controlsRow.append(syncUpdateBtn);
     macroTextarea.style.height = "40px";
     macroTextarea.value = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
 
+    channelInput.onchange = () => chain.channel = channelInput.value.trim() || "/ooc";
+    targetInput.onchange = () => chain.target = targetInput.value.trim() || "tank";
+    macroTextarea.onchange = () => chain.macroTemplate = macroTextarea.value.trim();
+
     macroTopRow.append(
-        document.createTextNode("Channel: "),
-        channelInput,
-        document.createTextNode("  Target: "),
-        targetInput
+        document.createTextNode("Channel: "), channelInput,
+        document.createTextNode("  Target: "), targetInput
     );
-
-
 
     macroWrap.append(macroLabel, macroTopRow, macroTextarea);
 
+    // ============================================================
+    // FINAL ASSEMBLY (NO CLOSING BRACE HERE!)
+    // ============================================================
+    panel.append(titleDiv, controlsRow, macroWrap);
+    container.append(panel);
 
-// --- TANK ROTATION UI ---
-const tankWrap = document.createElement("div");
-tankWrap.style.marginTop = "10px";
+    // --- TANK ROTATION UI ---
+    const tankWrap = document.createElement("div");
+    tankWrap.style.marginTop = "10px";
 
-const tankLabel = document.createElement("div");
-tankLabel.textContent = "Tank Rotation:";
-tankLabel.style.fontSize = "12px";
-tankLabel.style.marginBottom = "4px";
+    const tankLabel = document.createElement("div");
+    tankLabel.textContent = "Tank Rotation:";
+    tankLabel.style.fontSize = "12px";
+    tankLabel.style.marginBottom = "4px";
 
-const tankListDiv = document.createElement("div");
-tankListDiv.style.marginBottom = "6px";
+    const tankListDiv = document.createElement("div");
+    tankListDiv.style.marginBottom = "6px";
 
-const addTankBtn = document.createElement("button");
-addTankBtn.textContent = "+ Tank";
-addTankBtn.style.marginRight = "4px";
+    const addTankBtn = document.createElement("button");
+    addTankBtn.textContent = "+ Tank";
+    addTankBtn.style.marginRight = "4px";
 
-const nextTankBtn = document.createElement("button");
-nextTankBtn.textContent = "Next Tank";
+    const nextTankBtn = document.createElement("button");
+    nextTankBtn.textContent = "Next Tank";
 
-const removeTankBtn = document.createElement("button");
-removeTankBtn.textContent = "Remove Tank";
-removeTankBtn.style.marginLeft = "4px";
+    const removeTankBtn = document.createElement("button");
+    removeTankBtn.textContent = "Remove Tank";
+    removeTankBtn.style.marginLeft = "4px";
 
-tankWrap.append(tankLabel, tankListDiv, addTankBtn, nextTankBtn, removeTankBtn);
+    tankWrap.append(tankLabel, tankListDiv, addTankBtn, nextTankBtn, removeTankBtn);
 
-// Attach UI elements
-tankWrap.append(
-    tankLabel,
-    tankListDiv,
-    addTankBtn,
-    nextTankBtn
-);
+    // IMPORTANT: macroWrap must already exist above this line
+    macroWrap.append(tankWrap);
 
-// IMPORTANT: macroWrap must already exist above this line
-macroWrap.append(tankWrap);
+    function renderTankList() {
+        tankListDiv.innerHTML = "";
 
-addTankBtn.onclick = () => {
-    const nextNum = chain.tanks.length + 1;
-    const name = `Tank${nextNum}`;
+        chain.tanks.forEach((tankName, idx) => {
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.marginBottom = "4px";
 
-    chain.tanks.push(name);
+            const chk = document.createElement("input");
+            chk.type = "checkbox";
+            chk.checked = (idx === chain.currentTankIndex);
 
-    // If first tank, auto-select it
-    if (chain.tanks.length === 1) {
-        chain.currentTankIndex = 0;
-        chain.target = name;
-        targetInput.value = name;
+            chk.onchange = () => {
+                chain.currentTankIndex = idx;
+                chain.target = chain.tanks[idx];
+                targetInput.value = chain.tanks[idx];
+                renderTankList();
+                chLogLine(`Switched tank to: ${chain.tanks[idx]}`);
+            };
+
+            const nameInput = document.createElement("input");
+            nameInput.type = "text";
+            nameInput.value = tankName;
+            nameInput.style.marginLeft = "6px";
+            nameInput.style.width = "120px";
+            nameInput.style.fontSize = "12px";
+
+            nameInput.oninput = () => {
+                chain.tanks[idx] = nameInput.value;
+
+                if (idx === chain.currentTankIndex) {
+                    chain.target = nameInput.value;
+                    targetInput.value = nameInput.value;
+                }
+            };
+
+            row.append(chk, nameInput);
+            tankListDiv.appendChild(row);
+        });
     }
 
-    renderTankList();
-};
+    addTankBtn.onclick = () => {
+        const nextNum = chain.tanks.length + 1;
+        const name = `Tank${nextNum}`;
 
-nextTankBtn.onclick = () => {
-    if (chain.tanks.length === 0) return;
+        chain.tanks.push(name);
 
-    chain.currentTankIndex = (chain.currentTankIndex + 1) % chain.tanks.length;
+        if (chain.tanks.length === 1) {
+            chain.currentTankIndex = 0;
+            chain.target = name;
+            targetInput.value = name;
+        }
 
-    const newTank = chain.tanks[chain.currentTankIndex];
-    chain.target = newTank;
-    targetInput.value = newTank;
+        renderTankList();
+    };
 
-    chLogLine(`Switched to next tank: ${newTank}`);
+    nextTankBtn.onclick = () => {
+        if (chain.tanks.length === 0) return;
 
-    renderTankList();
-};
+        chain.currentTankIndex = (chain.currentTankIndex + 1) % chain.tanks.length;
 
-function renderTankList() {
-    tankListDiv.innerHTML = "";
-
-    chain.tanks.forEach((tankName, idx) => {
-        const row = document.createElement("div");
-        row.style.display = "flex";
-        row.style.alignItems = "center";
-        row.style.marginBottom = "4px";
-
-        // Single-select checkbox
-        const chk = document.createElement("input");
-        chk.type = "checkbox";
-        chk.checked = (idx === chain.currentTankIndex);
-
-        chk.onchange = () => {
-            chain.currentTankIndex = idx;
-            chain.target = chain.tanks[idx];
-            targetInput.value = chain.tanks[idx];
-            renderTankList();
-            chLogLine(`Switched tank to: ${chain.tanks[idx]}`);
-        };
-
-        // Editable tank name
-        const nameInput = document.createElement("input");
-        nameInput.type = "text";
-        nameInput.value = tankName;
-        nameInput.style.marginLeft = "6px";
-        nameInput.style.width = "120px";
-        nameInput.style.fontSize = "12px";
-
-        nameInput.oninput = () => {
-            chain.tanks[idx] = nameInput.value;
-
-            // If this tank is selected, update macro target
-            if (idx === chain.currentTankIndex) {
-                chain.target = nameInput.value;
-                targetInput.value = nameInput.value;
-            }
-        };
-
-        row.append(chk, nameInput);
-        tankListDiv.appendChild(row);
-    });
-}
-removeTankBtn.onclick = () => {
-    if (chain.tanks.length === 0) return;
-
-    // Remove the currently selected tank
-    chain.tanks.splice(chain.currentTankIndex, 1);
-
-    // Adjust index
-    if (chain.currentTankIndex >= chain.tanks.length) {
-        chain.currentTankIndex = chain.tanks.length - 1;
-    }
-
-    // Update target
-    if (chain.tanks.length > 0) {
         const newTank = chain.tanks[chain.currentTankIndex];
         chain.target = newTank;
         targetInput.value = newTank;
-        chLogLine(`Removed tank. Now targeting: ${newTank}`);
-    } else {
-        chain.target = "";
-        targetInput.value = "";
-        chLogLine("Removed last tank. No tanks remain.");
-    }
 
-    renderTankList();
-};
+        chLogLine(`Switched to next tank: ${newTank}`);
+        renderTankList();
+    };
+
+    removeTankBtn.onclick = () => {
+        if (chain.tanks.length === 0) return;
+
+        chain.tanks.splice(chain.currentTankIndex, 1);
+
+        if (chain.currentTankIndex >= chain.tanks.length) {
+            chain.currentTankIndex = chain.tanks.length - 1;
+        }
+
+        if (chain.tanks.length > 0) {
+            const newTank = chain.tanks[chain.currentTankIndex];
+            chain.target = newTank;
+            targetInput.value = newTank;
+            chLogLine(`Removed tank. Now targeting: ${newTank}`);
+        } else {
+            chain.target = "";
+            targetInput.value = "";
+            chLogLine("Removed last tank. No tanks remain.");
+        }
+
+        renderTankList();
+    };
 
     // Cleric list
     const clericListDiv = document.createElement("div");
@@ -8437,17 +8637,16 @@ removeTankBtn.onclick = () => {
     timelineBar.style.border = "1px solid #555";
     timelineBar.style.position = "relative";
     timelineBar.style.overflow = "hidden";
-// Header bar (static labels)
-const headerBar = document.createElement("div");
-headerBar.style.height = "20px";
-headerBar.style.position = "relative";
-headerBar.style.marginBottom = "4px";
-headerBar.style.background = "#222";
-headerBar.style.border = "1px solid #555";
-headerBar.style.overflow = "hidden";
 
-timelineWrap.prepend(headerBar);
-chain._headerBar = headerBar;
+    const headerBar = document.createElement("div");
+    headerBar.style.height = "20px";
+    headerBar.style.position = "relative";
+    headerBar.style.marginBottom = "4px";
+    headerBar.style.background = "#222";
+    headerBar.style.border = "1px solid #555";
+    headerBar.style.overflow = "hidden";
+
+    timelineWrap.prepend(headerBar);
     timelineWrap.append(timelineLabel, timelineBar);
 
     // Log
@@ -8459,192 +8658,159 @@ chain._headerBar = headerBar;
     logDiv.style.height = "150px";
     logDiv.style.overflowY = "auto";
     logDiv.style.padding = "5px";
-    logDiv.style.border = "1px solid #555";
+logDiv.style.border = '1px solid #555';
     logDiv.style.whiteSpace = "pre-line";
 
     // Assemble panel
     panel.append(titleDiv, controlsRow, macroWrap, clericListDiv, clericButtonsRow, timelineWrap, logDiv);
-    container.appendChild(panel);
-// --------------------
 
+    // Register panel
+    window.CHPanels.set(chain.id, { panel, chain });
 
-// --------------------
-// STATE + HELPERS
-// --------------------
-chain._logDiv = logDiv;
-chain._timelineBar = timelineBar;
-chain._clericListDiv = clericListDiv;
+    // --------------------
+    // STATE + HELPERS
+    // --------------------
+    chain._logDiv = logDiv;
+    chain._timelineBar = timelineBar;
+    chain._clericListDiv = clericListDiv;
+    chain._headerBar = headerBar;
 
-function chLogLine(text) {
-    const stamp = new Date().toLocaleTimeString();
-    const line = `[${stamp}] ${text}\n`;
-    chain.log.push(line);
-    chain._logDiv.textContent += line;
-    chain._logDiv.scrollTop = chain._logDiv.scrollHeight;
-}
-
-// ⭐ REQUIRED — this was missing
-function getActiveRotation() {
-    return chain.clerics
-        .filter(c => c.active)
-        .map((c, idx) => ({ ...c, rotIndex: idx }));
-}
-
-function getCycleRotation() {
-    if (!chain._cycleRotation || chain._cycleRotation.length === 0) {
-        chain._cycleRotation = getActiveRotation().slice();
-        chain.lastCycleStart = Date.now();
-        chain._lastCasterIndex = -1;
-    }
-    return chain._cycleRotation;
-}
-
-    function syncToCleric(rotIndex) {
-        const now = Date.now();
-        const rotation = getActiveRotation();
-        if (rotation.length === 0) return;
-        const cycleTime = rotation.length * chain.delayMs;
-        chain.lastCycleStart = now - cycleTime - (rotIndex * chain.delayMs);
-        chLogLine(`Synced chain to ${rotation[rotIndex].name} (just started CH).`);
-        renderOnce();
+    function chLogLine(text) {
+        const stamp = new Date().toLocaleTimeString();
+        const line = `[${stamp}] ${text}\n`;
+        chain.log.push(line);
+        chain._logDiv.textContent += line;
+        chain._logDiv.scrollTop = chain._logDiv.scrollHeight;
     }
 
-function renderClericList() {
-    chain._clericListDiv.innerHTML = "";
+    function getActiveRotation() {
+        return chain.clerics
+            .filter(c => c.active)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
 
-    chain.clerics.forEach((cleric) => {
-        const row = document.createElement("div");
-        row.style.display = "flex";
-        row.style.alignItems = "center";
-        row.style.marginBottom = "4px";
-        row.style.fontSize = "12px";
+    function renderClericList() {
+        chain._clericListDiv.innerHTML = "";
 
-        // Active checkbox
-        const chk = document.createElement("input");
-        chk.type = "checkbox";
-        chk.checked = cleric.active;
-chk.onchange = () => {
-    const wasActive = cleric.active;
-    const nowActive = chk.checked;
-    if (wasActive === nowActive) return;
+        chain.clerics.forEach((cleric) => {
+            const row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.marginBottom = "4px";
+            row.style.fontSize = "12px";
 
-    const blockTime = chain.delayMs;
+            const chk = document.createElement("input");
+            chk.type = "checkbox";
+            chk.checked = cleric.active;
 
-    // Snapshot current cycle state BEFORE change
-    const oldRotation = chain._cycleRotation && chain._cycleRotation.length
-        ? chain._cycleRotation
-        : getActiveRotation();
+  chk.onchange = () => {
+    cleric.active = chk.checked;
+
+    const now = Date.now();
+    let elapsed = 0;
+
+    if (chain.chainRunning &&
+        chain.currentBlockStartTime !== null &&
+        chain._frozenBlockTime !== null) {
+        elapsed = now - chain.currentBlockStartTime;
+    }
 
     let currentClericName = null;
-    let offsetInBlock = 0;
-
-    if (chain.chainRunning && oldRotation.length > 0) {
-        const now = Date.now();
-        const cycleTime = oldRotation.length * blockTime;
-        const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
-        const currentBlock = Math.floor(phase / blockTime);
-        offsetInBlock = phase % blockTime;
-
-        const currentCleric = oldRotation[currentBlock];
-        currentClericName = currentCleric ? currentCleric.name : null;
+    if (chain._cycleRotation &&
+        chain.currentBlockIndex !== null &&
+        chain._cycleRotation[chain.currentBlockIndex]) {
+        currentClericName = chain._cycleRotation[chain.currentBlockIndex].name;
     }
 
-    // Apply the toggle to the live cleric list
-    cleric.active = nowActive;
-
-    // Build new rotation from checkboxes
     const newRotation = getActiveRotation();
+    chain._cycleRotation = newRotation.slice();
 
-    // If chain is not running, just freeze new rotation and redraw
     if (!chain.chainRunning) {
-        chain._cycleRotation = newRotation.slice();
         chain._lastCasterIndex = -1;
         renderOnce();
         return;
     }
 
-    // If no clerics left, stop the chain
-    if (newRotation.length === 0) {
+    if (!newRotation.length) {
         chLogLine("No active clerics left. Stopping chain.");
         chain.chainRunning = false;
         chain._cycleRotation = [];
         chain._lastCasterIndex = -1;
+        startStopBtn.textContent = "START CHAIN";
         renderOnce();
         return;
     }
 
-    // Try to keep the same current cleric if they still exist
     let newIndex = 0;
     if (currentClericName) {
         const idx = newRotation.findIndex(c => c.name === currentClericName);
-        if (idx >= 0) {
-            newIndex = idx;
-        } else {
-            // If that cleric was removed, fall back to first in new rotation
-            newIndex = 0;
-        }
+        if (idx >= 0) newIndex = idx;
     }
 
-    // Freeze new cycle rotation
-    chain._cycleRotation = newRotation.slice();
-
-    // Adjust timing so we stay in the same relative place in the current cast
-    const now2 = Date.now();
-    chain.lastCycleStart = now2 - (newIndex * blockTime) - offsetInBlock;
-
-    // Force macro firing to resume from this cleric
+    chain.currentBlockIndex = newIndex;
+    chain.currentBlockStartTime = now - elapsed;
+    chain._frozenBlockTime = chain.delayMs;
     chain._lastCasterIndex = newIndex - 1;
 
     renderOnce();
 };
 
-        // Cleric name input
-        const nameInput = document.createElement("input");
-        nameInput.value = cleric.name;
-        nameInput.style.width = "100px";
-        nameInput.style.marginLeft = "4px";
-        nameInput.onchange = () => {
-            cleric.name = nameInput.value;
-        };
-
-        // Pattern input
-        const patternInput = document.createElement("input");
-        patternInput.value = cleric.pattern || "";
-        patternInput.style.width = "60px";
-        patternInput.style.marginLeft = "4px";
-        patternInput.placeholder = "pattern";
-        patternInput.onchange = () => {
-            cleric.pattern = patternInput.value;
-        };
-
-        // Sync button
-        const syncBtn = document.createElement("button");
-        syncBtn.textContent = "Just Fired!";
-        syncBtn.style.fontSize = "10px";
-        syncBtn.style.marginLeft = "4px";
-        syncBtn.onclick = () => {
-            const rotation = getCycleRotation();
-            const rotIdx = rotation.findIndex(c => c.name === cleric.name);
-            if (rotIdx >= 0) {
-                chain.lastCycleStart = Date.now() - (rotIdx * chain.delayMs);
-                chain._lastCasterIndex = rotIdx - 1;
+            const nameInput = document.createElement("input");
+            nameInput.value = cleric.name;
+            nameInput.style.width = "100px";
+            nameInput.style.marginLeft = "4px";
+            nameInput.onchange = () => {
+                cleric.name = nameInput.value;
                 renderOnce();
-            }
-        };
+            };
 
-        row.append(chk, nameInput, patternInput, syncBtn);
-        chain._clericListDiv.appendChild(row);
-    });
-}
+            const patternInput = document.createElement("input");
+            patternInput.value = cleric.pattern || "";
+            patternInput.style.width = "60px";
+            patternInput.style.marginLeft = "4px";
+            patternInput.placeholder = "pattern";
+            patternInput.onchange = () => {
+                cleric.pattern = patternInput.value;
+                renderOnce();
+            };
+
+            const syncBtn = document.createElement("button");
+            syncBtn.textContent = "Just Fired!";
+            syncBtn.style.fontSize = "10px";
+            syncBtn.style.marginLeft = "4px";
+            syncBtn.onclick = () => {
+                const rotation = chain._cycleRotation || getActiveRotation();
+                const rotIdx = rotation.findIndex(c => c.name === cleric.name);
+                if (rotIdx >= 0) {
+                    chain.currentBlockIndex = rotIdx;
+                    chain.currentBlockStartTime = Date.now();
+                    chain._frozenBlockTime = chain.delayMs;
+                    chain._lastCasterIndex = rotIdx - 1;
+                    chLogLine(`Synced to cleric: ${cleric.name}`);
+                    renderOnce();
+                }
+            };
+
+            row.append(chk, nameInput, patternInput, syncBtn);
+            chain._clericListDiv.appendChild(row);
+        });
+    }
 
 function renderTimeline() {
-    const rotation = getCycleRotation();
+    const rotation = chain._cycleRotation || getActiveRotation();
+
+    // Clear old UI
     chain._timelineBar.innerHTML = "";
     chain._headerBar.innerHTML = "";
 
     const now = Date.now();
 
-    if (!chain.chainRunning || rotation.length === 0) {
+    // If chain is idle or missing state, show idle message
+    if (!chain.chainRunning ||
+        !rotation || rotation.length === 0 ||
+        chain.currentBlockIndex === null ||
+        chain.currentBlockStartTime === null) {
+
         const idle = document.createElement("div");
         idle.style.position = "absolute";
         idle.style.left = "4px";
@@ -8656,39 +8822,52 @@ function renderTimeline() {
         return;
     }
 
-    const blockTime = chain.delayMs;
-    const cycleTime = rotation.length * blockTime;
+    // Compute timing
+    const currentIdx = chain.currentBlockIndex;
+    const blockTime = chain._frozenBlockTime || chain.delayMs;
+    const elapsed = now - chain.currentBlockStartTime;
 
-    const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
-    const currentBlock = Math.floor(phase / blockTime);
-    const blockProgress = (phase % blockTime) / blockTime;
+    // Clamp progress between 0 and 1
+    const blockProgress = Math.max(0, Math.min(1, elapsed / blockTime));
 
-    // Build blocks
+    // Row container
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.width = "100%";
+    row.style.height = "100%";
+    row.style.position = "relative";
+
     rotation.forEach((cleric, idx) => {
+        // Block container
         const block = document.createElement("div");
-        block.style.position = "absolute";
-        block.style.left = (idx * (100 / rotation.length)) + "%";
-        block.style.top = "0";
-        block.style.width = (100 / rotation.length) + "%";
-        block.style.height = "100%";
+        block.style.flex = "1";
         block.style.borderRight = "1px solid #555";
+        block.style.position = "relative";
+        block.style.overflow = "hidden";
 
+        // Fill bar
         const fill = document.createElement("div");
-        fill.style.height = "100%";
+        fill.style.position = "absolute";
+        fill.style.left = "0";
+        fill.style.top = "0";
+        fill.style.bottom = "0";
 
-        if (idx < currentBlock) {
+        if (idx < currentIdx) {
+            // Completed blocks
             fill.style.width = "100%";
             fill.style.background = "#3cb371";
-        } else if (idx === currentBlock) {
+        } else if (idx === currentIdx) {
+            // Current block
             fill.style.width = (blockProgress * 100) + "%";
             fill.style.background = "#ff8c00";
         } else {
+            // Future blocks
             fill.style.width = "0%";
             fill.style.background = "#3cb371";
         }
 
         block.appendChild(fill);
-        chain._timelineBar.appendChild(block);
+        row.appendChild(block);
 
         // Header label
         const header = document.createElement("div");
@@ -8700,287 +8879,194 @@ function renderTimeline() {
         header.style.color = "#ffd700";
         header.style.textAlign = "center";
         header.innerHTML = `${cleric.name}<br>${cleric.pattern || ""}`;
+
         chain._headerBar.appendChild(header);
     });
 
-    // Macro firing
-    if (currentBlock !== chain._lastCasterIndex) {
-// Use the LIVE cleric object so pattern edits show immediately
-const cleric = chain.clerics.find(c => c.name === rotation[currentBlock].name);
-        if (cleric) {
-            const tmpl = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
-            let msg = tmpl.replace("{name}", cleric.name)
-                          .replace("{pattern}", cleric.pattern || "")
-                          .replace("{target}", chain.target);
-
-            if (msg.startsWith(chain.channel)) {
-                chLogLine(`${cleric.name} (${cleric.pattern || "?"}) firing: ${msg}`);
-            } else {
-                chLogLine(`${cleric.name} (${cleric.pattern || "?"}) firing: ${chain.channel} ${msg}`);
-            }
-        }
-        chain._lastCasterIndex = currentBlock;
-    }
-
-// YOUR TURN logic (block-based)
-const myNameLower = (chain.myName || "").toLowerCase();
-const myIdx = rotation.findIndex(c => c.name.toLowerCase() === myNameLower);
-
-if (myIdx >= 0) {
-    const myStart = chain.lastCycleStart + (myIdx * blockTime);
-    const myTimeTo = myStart - now;
-
-    if (myTimeTo <= 1500 && myTimeTo >= -1000) {
-        chLogLine("YOUR TURN! Cast CH NOW!");
-        if (typeof makeBeep === "function") makeBeep();
-    }
+    chain._timelineBar.appendChild(row);
 }
 
-    // Cycle wrap detection
-    if (currentBlock < chain._lastCasterIndex) {
-        chain._cycleRotation = getActiveRotation().slice();
-        chain.lastCycleStart = now;
-        chain._lastCasterIndex = -1;
-    }
-}
     function renderOnce() {
         renderClericList();
+        renderTankList();
         renderTimeline();
     }
 
-    // --------------------
-    // EVENT WIRING
-    // --------------------
-    btn3.onclick = () => {
-        chain.delayMs = 3000;
-        delayInput.value = 3;
-        renderOnce();
-    };
-    btn4.onclick = () => {
-        chain.delayMs = 4000;
-        delayInput.value = 4;
-        renderOnce();
-    };
-    btn5.onclick = () => {
-        chain.delayMs = 5000;
-        delayInput.value = 5;
-        renderOnce();
-    };
-    delayInput.onchange = () => {
-        const v = parseInt(delayInput.value, 10);
-        chain.delayMs = (v > 0 ? v : 3) * 1000;
-        renderOnce();
-    };
-
-    myInput.onchange = () => {
-        chain.myName = myInput.value.trim();
-    };
-
-    channelInput.onchange = () => {
-        chain.channel = channelInput.value.trim() || "/ooc";
-    };
-
-    targetInput.onchange = () => {
-        chain.target = targetInput.value.trim() || "tank";
-    };
-
-    macroTextarea.onchange = () => {
-        chain.macroTemplate = macroTextarea.value;
-    };
-
-    startStopBtn.onclick = () => {
-        chain.chainRunning = !chain.chainRunning;
-        startStopBtn.textContent = chain.chainRunning ? "STOP CHAIN" : "START CHAIN";
-if (chain.chainRunning) {
-    const rotation = getActiveRotation();
-    if (rotation.length === 0) {
-        chLogLine("Cannot start chain: no active clerics.");
-        chain.chainRunning = false;
-        startStopBtn.textContent = "START CHAIN";
-        return;
-    }
-
-    // ✔ Correct: freeze rotation for this cycle
-    chain._cycleRotation = rotation.slice();
-
-    // ✔ Correct: reset cycle timing
-    chain.lastCycleStart = Date.now();
-
-    // ✔ Correct: reset macro firing index
-    chain._lastCasterIndex = -1;
-
-    chLogLine("CH Chain started.");
-} else {
-    chLogLine("CH Chain stopped.");
-
-    // ✔ Correct: clear frozen rotation
-    chain._cycleRotation = null;
-
-    // ✔ Correct: reset macro firing index
-    chain._lastCasterIndex = -1;
-}
-
-renderOnce();
-    };
-
-    resetBtn.onclick = () => {
-        chain.clerics = [];
-        chain.chainRunning = false;
-        chain.lastCycleStart = 0;
-        chain.log = [];
-        chain._logDiv.textContent = "";
-        startStopBtn.textContent = "START CHAIN";
-        chLogLine("CH Chain reset.");
-        renderOnce();
-    };
-
-    deleteBtn.onclick = () => {
-        if (!confirm("Delete this CH Chain Timer Panel?")) return;
-        // Remove from registry
-        window.ItemRegistry = window.ItemRegistry.filter(it => it.id !== chain.id);
-        // Remove panel
-        panel.remove();
-    };
-
+// --------------------
+// ADD / REMOVE CLERIC
+// --------------------
 addClericBtn.onclick = () => {
     const nextNum = chain.clerics.length + 1;
     const name = `Cleric${nextNum}`;
-    const pattern = `${nextNum}${nextNum}${nextNum}${nextNum}`; // 1111, 2222, 3333...
+    const pattern = `${nextNum}${nextNum}${nextNum}${nextNum}`;
 
     chain.clerics.push({ name, active: true, pattern });
-
     chLogLine(`Added cleric: ${name} (pattern: ${pattern})`);
 
-    // Preserve current caster and rebuild rotation
-    if (chain.chainRunning) {
-        const oldRotation = chain._cycleRotation || getActiveRotation();
-        const blockTime = chain.delayMs;
+    // --- PRESERVE ELAPSED TIME ---
+    const now = Date.now();
+    let elapsed = 0;
 
-        const now = Date.now();
-        const cycleTime = oldRotation.length * blockTime;
-        const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
-        const currentBlock = Math.floor(phase / blockTime);
-        const offsetInBlock = phase % blockTime;
-
-        const currentCleric = oldRotation[currentBlock];
-        const currentName = currentCleric ? currentCleric.name : null;
-
-        const newRotation = getActiveRotation();
-        chain._cycleRotation = newRotation.slice();
-
-        let newIndex = 0;
-        if (currentName) {
-            const idx = newRotation.findIndex(c => c.name === currentName);
-            if (idx >= 0) newIndex = idx;
-        }
-
-        chain.lastCycleStart = now - (newIndex * blockTime) - offsetInBlock;
-        chain._lastCasterIndex = newIndex - 1;
-    } else {
-        chain._cycleRotation = getActiveRotation().slice();
-        chain._lastCasterIndex = -1;
+    if (chain.chainRunning &&
+        chain.currentBlockStartTime !== null &&
+        chain._frozenBlockTime !== null) {
+        elapsed = now - chain.currentBlockStartTime;
     }
+
+    let currentClericName = null;
+    if (chain._cycleRotation &&
+        chain.currentBlockIndex !== null &&
+        chain._cycleRotation[chain.currentBlockIndex]) {
+        currentClericName = chain._cycleRotation[chain.currentBlockIndex].name;
+    }
+
+    const newRotation = getActiveRotation();
+    chain._cycleRotation = newRotation.slice();
+
+    let newIndex = 0;
+    if (currentClericName) {
+        const idx = newRotation.findIndex(c => c.name === currentClericName);
+        if (idx >= 0) newIndex = idx;
+    }
+
+    chain.currentBlockIndex = newIndex;
+    chain.currentBlockStartTime = now - elapsed;
+    chain._frozenBlockTime = chain.delayMs;
+    chain._lastCasterIndex = newIndex - 1;
 
     renderOnce();
 };
 
-    removeClericBtn.onclick = () => {
-        if (chain.clerics.length === 0) return;
-        const removed = chain.clerics.pop();
-        chLogLine(`Removed cleric: ${removed.name}`);
+removeClericBtn.onclick = () => {
+    if (chain.clerics.length === 0) return;
+    const removed = chain.clerics.pop();
+    chLogLine(`Removed cleric: ${removed.name}`);
+
+    // --- PRESERVE ELAPSED TIME ---
+    const now = Date.now();
+    let elapsed = 0;
+
+    if (chain.chainRunning &&
+        chain.currentBlockStartTime !== null &&
+        chain._frozenBlockTime !== null) {
+        elapsed = now - chain.currentBlockStartTime;
+    }
+
+    let currentClericName = null;
+    if (chain._cycleRotation &&
+        chain.currentBlockIndex !== null &&
+        chain._cycleRotation[chain.currentBlockIndex]) {
+        currentClericName = chain._cycleRotation[chain.currentBlockIndex].name;
+    }
+
+    const newRotation = getActiveRotation();
+    chain._cycleRotation = newRotation.slice();
+
+    if (!chain.chainRunning && !newRotation.length) {
         renderOnce();
-    };
+        return;
+    }
+
+    if (chain.chainRunning && !newRotation.length) {
+        chLogLine("No clerics left. Stopping chain.");
+        chain.chainRunning = false;
+        startStopBtn.textContent = "START CHAIN";
+        renderOnce();
+        return;
+    }
+
+    let newIndex = 0;
+    if (currentClericName) {
+        const idx = newRotation.findIndex(c => c.name === currentClericName);
+        if (idx >= 0) newIndex = idx;
+    }
+
+    chain.currentBlockIndex = newIndex;
+    chain.currentBlockStartTime = now - elapsed;
+    chain._frozenBlockTime = chain.delayMs;
+    chain._lastCasterIndex = newIndex - 1;
+
+    renderOnce();
+};
 
     // --------------------
-    // LOOP
+    // LOOP (PER-PANEL TICK)
     // --------------------
     function tick() {
         if (!chain.chainRunning) return;
+
+        const rotation = chain._cycleRotation || getActiveRotation();
+        if (!rotation || rotation.length === 0) return;
+
+        const now = Date.now();
+
+        if (chain.currentBlockIndex === null || chain.currentBlockStartTime === null) {
+            chain.currentBlockIndex = 0;
+            chain.currentBlockStartTime = now;
+            chain._frozenBlockTime = chain.delayMs;
+            chain._lastCasterIndex = -1;
+        }
+
+        const currentIdx = chain.currentBlockIndex;
+        const currentCleric = rotation[currentIdx];
+        if (!currentCleric) return;
+
+        const elapsed = now - chain.currentBlockStartTime;
+        const blockTime = chain._frozenBlockTime || chain.delayMs;
+
+// MACRO FIRING (this is the exact moment the chain switches clerics)
+if (currentIdx !== chain._lastCasterIndex) {
+    const tmpl = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
+    let msg = tmpl.replace("{name}", currentCleric.name)
+                  .replace("{pattern}", currentCleric.pattern || "")
+                  .replace("{target}", chain.target);
+
+    if (msg.startsWith(chain.channel)) {
+        chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing: ${msg}`);
+    } else {
+        chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing: ${chain.channel} ${msg}`);
+    }
+
+    // ⭐ NEW: beep exactly when it's YOUR turn
+    const myNameLower = (chain.myName || "").toLowerCase();
+    if (currentCleric.name.toLowerCase() === myNameLower) {
+        if (typeof makeBeep === "function") makeBeep();
+        chLogLine("YOUR TURN! Cast CH NOW!");
+    }
+
+    chain._lastCasterIndex = currentIdx;
+}
+
+
+
+        // ADVANCE TO NEXT BLOCK
+        if (elapsed >= blockTime) {
+            const newRotation = getActiveRotation();
+            if (!newRotation || newRotation.length === 0) {
+                chLogLine("Chain stopped: no active clerics.");
+                chain.chainRunning = false;
+                startStopBtn.textContent = "START CHAIN";
+                return;
+            }
+
+            chain._cycleRotation = newRotation.slice();
+            chain.currentBlockIndex = (currentIdx + 1) % newRotation.length;
+            chain.currentBlockStartTime = now;
+            chain._frozenBlockTime = chain.delayMs;
+            chain._lastCasterIndex = -1;
+        }
+
         renderTimeline();
     }
 
-    chain._intervalId = setInterval(tick, 250);
+    // Start per-panel tick
+    setInterval(tick, window.CHTickRate || 50);
 
     // Initial render
-    chLogLine("CH Chain Timer panel ready. Add clerics and start when ready.");
     renderOnce();
 }
 
-// sync push
 
-syncUpdateBtn.onclick = () => {
-    if (!chain.chainRunning) {
-        chLogLine("Chain not running — nothing to sync.");
-        return;
-    }
-
-    const oldRotation = chain._cycleRotation;
-    if (!oldRotation || oldRotation.length === 0) return;
-
-    const now = Date.now();
-    const blockTime = chain.delayMs;
-    const cycleTime = oldRotation.length * blockTime;
-
-    const phase = ((now - chain.lastCycleStart) % cycleTime + cycleTime) % cycleTime;
-    const currentBlock = Math.floor(phase / blockTime);
-
-    const currentCleric = oldRotation[currentBlock];
-    if (!currentCleric) return;
-
-    // Build new rotation from checkboxes
-    const newRotation = getActiveRotation();
-    if (newRotation.length === 0) {
-        chLogLine("Cannot sync: no active clerics.");
-        return;
-    }
-
-    // Find new index of the current cleric
-    const newIndex = newRotation.findIndex(c => c.name === currentCleric.name);
-    if (newIndex === -1) {
-        chLogLine(`Warning: ${currentCleric.name} is no longer active — starting next cleric.`);
-    }
-
-    // Freeze new cycle rotation
-    chain._cycleRotation = newRotation.slice();
-
-    // Adjust timing so the bar continues smoothly
-    const idx = newIndex === -1 ? 0 : newIndex;
-    chain.lastCycleStart = now - (idx * blockTime);
-    chain._lastCasterIndex = idx - 1;
-
-    chLogLine("Chain synced and updated.");
-    renderOnce();
-};
-
-addTankBtn.onclick = () => {
-    const name = prompt("Tank name:", `Tank${chain.tanks.length + 1}`);
-    if (!name) return;
-
-    chain.tanks.push(name);
-
-    // If first tank, auto-select it
-    if (chain.tanks.length === 1) {
-        chain.currentTankIndex = 0;
-        chain.target = name;
-        targetInput.value = name;
-    }
-
-    renderTankList();
-};
-
-nextTankBtn.onclick = () => {
-    if (chain.tanks.length === 0) return;
-
-    chain.currentTankIndex = (chain.currentTankIndex + 1) % chain.tanks.length;
-
-    const newTank = chain.tanks[chain.currentTankIndex];
-    chain.target = newTank;
-    targetInput.value = newTank;
-
-    chLogLine(`Switched to next tank: ${newTank}`);
-
-    renderTankList();
-};
 
 // ===============================
 // REFRESH / CLOSE WARNING
