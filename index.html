@@ -9035,11 +9035,13 @@ if (currentIdx !== chain._lastCasterIndex) {
                   .replace("{pattern}", currentCleric.pattern || "")
                   .replace("{target}", chain.target);
 
-    if (msg.startsWith(chain.channel)) {
-        chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing: ${msg}`);
-    } else {
-        chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing: ${chain.channel} ${msg}`);
-    }
+const delaySec = (chain.delayMs / 1000).toFixed(1); // show delay in seconds
+
+if (msg.startsWith(chain.channel)) {
+    chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing [delay ${delaySec}s]: ${msg}`);
+} else {
+    chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing [delay ${delaySec}s]: ${chain.channel} ${msg}`);
+}
 
     // ⭐ NEW: beep exactly when it's YOUR turn
     const myNameLower = (chain.myName || "").toLowerCase();
