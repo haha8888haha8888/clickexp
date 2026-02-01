@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>P99 Item Test</title>
+</head>
+<body>
+
+<h2>P99 Item Scraper Test</h2>
+
+<label>Item URL:</label><br>
+<input id="urlInput" type="text" value="https://wiki.project1999.com/Sprinkler_of_the_Spirits" style="width:400px;">
+<br><br>
+
+<button id="runBtn">Fetch Item</button>
+
+<pre id="output" style="white-space:pre-wrap; margin-top:20px; background:#111; color:#0f0; padding:10px;"></pre>
+
+<script>
+function log(msg) {
+    document.getElementById("output").textContent += msg + "\n";
+}
+
+async function fetchP99Item(url) {
+    log("Fetching: " + url);
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            log("HTTP Error: " + response.status + " " + response.statusText);
+            return;
+        }
+
+        const html = await response.text();
+        log("HTML loaded (" + html.length + " chars)");
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // ===============================
+        // ITEM TITLE
+        // ===============================
+        const title = doc.querySelector(".itemtitle")?.textContent.trim() || "Unknown Item";
+
+        // ===============================
+        // ITEM ICON
+        // ===============================
+        const iconEl = doc.querySelector(".itemicon img");
+        let iconUrl = null;
+
+        if (iconEl) {
+            const iconFile = iconEl.getAttribute("src").split("/").pop();
+            iconUrl = "https://wiki.project1999.com/images/" + iconFile;
+        }
+
+        // ===============================
+        // ITEM DATA BLOCK
+        // ===============================
+        const block = doc.querySelector(".itemdata p")?.innerText || "";
+        const lines = block.split("\n").map(l => l.trim());
+
+        // FLAGS
+        const flags = lines[0]
+            .split("  ")
+            .map(f => f.trim())
+            .filter(f => f.length > 0);
+
+        // SLOT
+        const slotLine = lines.find(l => l.startsWith("Slot:"));
+        const slot = slotLine
+            ? slotLine.replace("Slot:", "").trim().split(" ")
+            : [];
+
+        // SKILL / DELAY
+        const skillLine = lines.find(l => l.startsWith("Skill:")) || "";
+
+        // DMG / AC
+        const dmgLine = lines.find(l => l.startsWith("DMG:")) || "";
+        const acLine = lines.find(l => l.startsWith("AC:")) || "";
+
+        // STATS
+        const stats = {};
+        const statRegex = /(STR|STA|DEX|AGI|WIS|INT|CHA|HP|MANA): \+?(\d+)/g;
+        let match;
+        while ((match = statRegex.exec(block)) !== null) {
+            stats[match[1].toLowerCase()] = parseInt(match[2], 10);
+        }
+
+        // RESISTS
+        const resists = {};
+        const resistRegex = /SV (FIRE|COLD|MAGIC|POISON|DISEASE): \+?(\d+)/g;
+        while ((match = resistRegex.exec(block)) !== null) {
+            resists[match[1].toLowerCase()] = parseInt(match[2], 10);
+        }
+
+        // WEIGHT / SIZE
+        const wtLine = lines.find(l => l.startsWith("WT:"));
+        const sizeLine = lines.find(l => l.startsWith("Size:"));
+
+        const weight = wtLine ? parseFloat(wtLine.replace("WT:", "").trim()) : null;
+        const size = sizeLine ? sizeLine.replace("Size:", "").trim() : null;
+
+        // CLASS / RACE
+        const classLine = lines.find(l => l.startsWith("Class:"));
+        const raceLine = lines.find(l => l.startsWith("Race:"));
+
+        const classes = classLine
+            ? classLine.replace("Class:", "").trim().split(" ")
+            : [];
+
+        const races = raceLine
+            ? raceLine.replace("Race:", "").trim().split(" ")
+            : [];
+
+        // FINAL ITEM OBJECT
+        const item = {
+            name: title,
+            image: iconUrl,
+            flags,
+            slot,
+            skillLine,
+            dmgLine,
+            acLine,
+            stats,
+            resists,
+            weight,
+            size,
+            classes,
+            races
+        };
+
+        log("\nParsed Item:\n" + JSON.stringify(item, null, 2));
+
+    } catch (err) {
+        log("FETCH FAILED: " + err);
+    }
+}
+
+// ===============================
+// BUTTON CLICK HANDLER
+// ===============================
+document.getElementById("runBtn").onclick = () => {
+    document.getElementById("output").textContent = ""; // clear console
+    const url = document.getElementById("urlInput").value.trim();
+    fetchP99Item(url);
+};
+</script>
+
+</body>
+</html>
