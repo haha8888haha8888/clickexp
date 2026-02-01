@@ -9092,13 +9092,14 @@ function updateRotationAfterChange() {
     const now = Date.now();
     let elapsed = 0;
 
+    // Preserve elapsed time if chain is running
     if (chain.chainRunning &&
         chain.currentBlockStartTime !== null &&
         chain._frozenBlockTime !== null) {
         elapsed = now - chain.currentBlockStartTime;
     }
 
-    // Who is currently casting?
+    // Who is currently casting? (slotId-based)
     let currentSlot = null;
     if (chain._cycleRotation &&
         chain.currentBlockIndex !== null &&
@@ -9106,14 +9107,14 @@ function updateRotationAfterChange() {
         currentSlot = chain._cycleRotation[chain.currentBlockIndex].slotId;
     }
 
-    // ⭐ NEW: rotation sorted ONLY by slotId
+    // Build new rotation (slotId order ONLY)
     const newRotation = chain.clerics
         .filter(c => c.active)
         .sort((a, b) => a.slotId - b.slotId);
 
     chain._cycleRotation = newRotation.slice();
 
-    // If chain is stopped, just reset index
+    // If chain is stopped, just reset index and exit
     if (!chain.chainRunning) {
         chain._lastCasterIndex = -1;
         chain.currentBlockIndex = 0;
@@ -9130,13 +9131,14 @@ function updateRotationAfterChange() {
         return;
     }
 
-    // Try to keep same cleric casting
+    // Try to keep the same cleric casting (slotId match)
     let newIndex = 0;
     if (currentSlot !== null) {
         const idx = newRotation.findIndex(c => c.slotId === currentSlot);
         if (idx >= 0) newIndex = idx;
     }
 
+    // Restore timing + block index
     chain.currentBlockIndex = newIndex;
     chain.currentBlockStartTime = now - elapsed;
     chain._frozenBlockTime = chain.delayMs;
