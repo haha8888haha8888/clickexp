@@ -8149,6 +8149,8 @@ const newChain = {
     id: crypto.randomUUID(),
     type: "chchain",
     title,
+tanks: [],
+currentTankIndex: 0,
     clerics: [],
     delayMs: 3000,
     macroTemplate: "/ooc {name} casting Complete Heal on {target} >>",
@@ -8172,6 +8174,7 @@ const newChain = {
 function createChChainPanel(chain) {
     const container = document.getElementById("chChainPanelsContainer");
     if (!container) return;
+
 
     // PANEL WRAPPER
     const panel = document.createElement("div");
@@ -8268,7 +8271,146 @@ controlsRow.append(syncUpdateBtn);
         targetInput
     );
 
+
+
     macroWrap.append(macroLabel, macroTopRow, macroTextarea);
+
+
+// --- TANK ROTATION UI ---
+const tankWrap = document.createElement("div");
+tankWrap.style.marginTop = "10px";
+
+const tankLabel = document.createElement("div");
+tankLabel.textContent = "Tank Rotation:";
+tankLabel.style.fontSize = "12px";
+tankLabel.style.marginBottom = "4px";
+
+const tankListDiv = document.createElement("div");
+tankListDiv.style.marginBottom = "6px";
+
+const addTankBtn = document.createElement("button");
+addTankBtn.textContent = "+ Tank";
+addTankBtn.style.marginRight = "4px";
+
+const nextTankBtn = document.createElement("button");
+nextTankBtn.textContent = "Next Tank";
+
+const removeTankBtn = document.createElement("button");
+removeTankBtn.textContent = "Remove Tank";
+removeTankBtn.style.marginLeft = "4px";
+
+tankWrap.append(tankLabel, tankListDiv, addTankBtn, nextTankBtn, removeTankBtn);
+
+// Attach UI elements
+tankWrap.append(
+    tankLabel,
+    tankListDiv,
+    addTankBtn,
+    nextTankBtn
+);
+
+// IMPORTANT: macroWrap must already exist above this line
+macroWrap.append(tankWrap);
+
+addTankBtn.onclick = () => {
+    const nextNum = chain.tanks.length + 1;
+    const name = `Tank${nextNum}`;
+
+    chain.tanks.push(name);
+
+    // If first tank, auto-select it
+    if (chain.tanks.length === 1) {
+        chain.currentTankIndex = 0;
+        chain.target = name;
+        targetInput.value = name;
+    }
+
+    renderTankList();
+};
+
+nextTankBtn.onclick = () => {
+    if (chain.tanks.length === 0) return;
+
+    chain.currentTankIndex = (chain.currentTankIndex + 1) % chain.tanks.length;
+
+    const newTank = chain.tanks[chain.currentTankIndex];
+    chain.target = newTank;
+    targetInput.value = newTank;
+
+    chLogLine(`Switched to next tank: ${newTank}`);
+
+    renderTankList();
+};
+
+function renderTankList() {
+    tankListDiv.innerHTML = "";
+
+    chain.tanks.forEach((tankName, idx) => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.alignItems = "center";
+        row.style.marginBottom = "4px";
+
+        // Single-select checkbox
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = (idx === chain.currentTankIndex);
+
+        chk.onchange = () => {
+            chain.currentTankIndex = idx;
+            chain.target = chain.tanks[idx];
+            targetInput.value = chain.tanks[idx];
+            renderTankList();
+            chLogLine(`Switched tank to: ${chain.tanks[idx]}`);
+        };
+
+        // Editable tank name
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = tankName;
+        nameInput.style.marginLeft = "6px";
+        nameInput.style.width = "120px";
+        nameInput.style.fontSize = "12px";
+
+        nameInput.oninput = () => {
+            chain.tanks[idx] = nameInput.value;
+
+            // If this tank is selected, update macro target
+            if (idx === chain.currentTankIndex) {
+                chain.target = nameInput.value;
+                targetInput.value = nameInput.value;
+            }
+        };
+
+        row.append(chk, nameInput);
+        tankListDiv.appendChild(row);
+    });
+}
+removeTankBtn.onclick = () => {
+    if (chain.tanks.length === 0) return;
+
+    // Remove the currently selected tank
+    chain.tanks.splice(chain.currentTankIndex, 1);
+
+    // Adjust index
+    if (chain.currentTankIndex >= chain.tanks.length) {
+        chain.currentTankIndex = chain.tanks.length - 1;
+    }
+
+    // Update target
+    if (chain.tanks.length > 0) {
+        const newTank = chain.tanks[chain.currentTankIndex];
+        chain.target = newTank;
+        targetInput.value = newTank;
+        chLogLine(`Removed tank. Now targeting: ${newTank}`);
+    } else {
+        chain.target = "";
+        targetInput.value = "";
+        chLogLine("Removed last tank. No tanks remain.");
+    }
+
+    renderTankList();
+};
 
     // Cleric list
     const clericListDiv = document.createElement("div");
@@ -8323,6 +8465,8 @@ chain._headerBar = headerBar;
     // Assemble panel
     panel.append(titleDiv, controlsRow, macroWrap, clericListDiv, clericButtonsRow, timelineWrap, logDiv);
     container.appendChild(panel);
+// --------------------
+
 
 // --------------------
 // STATE + HELPERS
@@ -8561,7 +8705,8 @@ function renderTimeline() {
 
     // Macro firing
     if (currentBlock !== chain._lastCasterIndex) {
-        const cleric = rotation[currentBlock];
+// Use the LIVE cleric object so pattern edits show immediately
+const cleric = chain.clerics.find(c => c.name === rotation[currentBlock].name);
         if (cleric) {
             const tmpl = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
             let msg = tmpl.replace("{name}", cleric.name)
@@ -8807,6 +8952,35 @@ syncUpdateBtn.onclick = () => {
     renderOnce();
 };
 
+addTankBtn.onclick = () => {
+    const name = prompt("Tank name:", `Tank${chain.tanks.length + 1}`);
+    if (!name) return;
+
+    chain.tanks.push(name);
+
+    // If first tank, auto-select it
+    if (chain.tanks.length === 1) {
+        chain.currentTankIndex = 0;
+        chain.target = name;
+        targetInput.value = name;
+    }
+
+    renderTankList();
+};
+
+nextTankBtn.onclick = () => {
+    if (chain.tanks.length === 0) return;
+
+    chain.currentTankIndex = (chain.currentTankIndex + 1) % chain.tanks.length;
+
+    const newTank = chain.tanks[chain.currentTankIndex];
+    chain.target = newTank;
+    targetInput.value = newTank;
+
+    chLogLine(`Switched to next tank: ${newTank}`);
+
+    renderTankList();
+};
 
 // ===============================
 // REFRESH / CLOSE WARNING
