@@ -8308,7 +8308,7 @@ function createChChainPanel(chain) {
     btn5.onclick = () => { delayInput.value = 5; applyNewDelay(5000); };
 
     delayInput.onchange = () => {
-        const v = Math.max(2, Math.min(9, parseInt(delayInput.value, 10) || 3));
+const v = Math.max(2, Math.min(20, parseInt(delayInput.value, 10) || 3));
         delayInput.value = v;
         applyNewDelay(v * 1000);
     };
@@ -8502,7 +8502,10 @@ function createChChainPanel(chain) {
 
     const tankListDiv = document.createElement("div");
     tankListDiv.style.marginBottom = "6px";
-
+tankListDiv.style.display = "flex";
+tankListDiv.style.flexWrap = "wrap";
+tankListDiv.style.alignItems = "center";
+tankListDiv.style.gap = "6px";
     const addTankBtn = document.createElement("button");
     addTankBtn.textContent = "+ Tank";
     addTankBtn.style.marginRight = "4px";
@@ -8667,13 +8670,24 @@ logDiv.style.border = '1px solid #555';
     // Register panel
     window.CHPanels.set(chain.id, { panel, chain });
 
-    // --------------------
-    // STATE + HELPERS
-    // --------------------
-    chain._logDiv = logDiv;
-    chain._timelineBar = timelineBar;
-    chain._clericListDiv = clericListDiv;
-    chain._headerBar = headerBar;
+// --------------------
+// STATE + HELPERS
+// --------------------
+chain._logDiv = logDiv;
+chain._timelineBar = timelineBar;
+chain._clericListDiv = clericListDiv;
+chain._headerBar = headerBar;
+// ⭐ Make cleric header bar wider and prevent clipping
+headerBar.style.whiteSpace = "nowrap";
+headerBar.style.overflowX = "auto";
+headerBar.style.display = "flex";
+headerBar.style.gap = "12px";
+headerBar.style.padding = "2px 4px";
+// ⭐ PATCH: Make cleric list flow horizontally and wrap like text
+clericListDiv.style.display = "flex";
+clericListDiv.style.flexWrap = "wrap";
+clericListDiv.style.alignItems = "center";
+clericListDiv.style.gap = "6px";
 
     function chLogLine(text) {
         const stamp = new Date().toLocaleTimeString();
