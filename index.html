@@ -9043,14 +9043,39 @@ if (msg.startsWith(chain.channel)) {
     chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing [delay ${delaySec}s]: ${chain.channel} ${msg}`);
 }
 
-    // ⭐ NEW: beep exactly when it's YOUR turn
-    const myNameLower = (chain.myName || "").toLowerCase();
-    if (currentCleric.name.toLowerCase() === myNameLower) {
-        if (typeof makeBeep === "function") makeBeep();
-        chLogLine("YOUR TURN! Cast CH NOW!");
-    }
+// ⭐ NEW: beep exactly when it's YOUR turn
+const myNameLower = (chain.myName || "").toLowerCase();
+if (currentCleric.name.toLowerCase() === myNameLower) {
+    if (typeof makeBeep === "function") makeBeep();
+    chLogLine("YOUR TURN! Cast CH NOW!");
+}
 
-    chain._lastCasterIndex = currentIdx;
+// ⭐ NEW: early warnings (2 clerics before you AND 1 cleric before you)
+if (chain._cycleRotation && chain._cycleRotation.length > 2) {
+    const rotation = chain._cycleRotation;
+    const myIndex = rotation.findIndex(c => c.name.toLowerCase() === myNameLower);
+
+    if (myIndex >= 0) {
+        // cleric two spots before me (wrap around)
+        const warn2Index = (myIndex - 2 + rotation.length) % rotation.length;
+
+        // cleric one spot before me (wrap around)
+        const warn1Index = (myIndex - 1 + rotation.length) % rotation.length;
+
+        // ⭐ Early warning #1 (two clerics before)
+        if (rotation[warn2Index].name.toLowerCase() === currentCleric.name.toLowerCase()) {
+            chLogLine(`⚠️ Early Warning: ${currentCleric.name} fired. You are coming up soon!`, "yellow");
+            chLogLine(`⚠️ (2 clerics before you)`, "yellow");
+        }
+
+        // ⭐ Early warning #2 (one cleric before)
+        if (rotation[warn1Index].name.toLowerCase() === currentCleric.name.toLowerCase()) {
+            chLogLine(`⚠️ Final Warning: ${currentCleric.name} fired. YOU ARE NEXT!`, "yellow");
+            chLogLine(`⚠️ Get ready to cast!`, "yellow");
+        }
+    }
+}
+chain._lastCasterIndex = currentIdx;
 }
 
 
