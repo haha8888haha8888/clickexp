@@ -8195,13 +8195,16 @@ function sanitizeUrl(input, base) {
     return "__ABORT__";
 }
 
-// ch chain chchain chtimerchain blockupdate
-// ch chain chchain chtimerchain blockupdate
-// ch chain chchain chtimerchain blockupdate
-
 // ADD CH CHAIN TIMER PANEL BUTTON HANDLER
 document.getElementById("addChChainPanelBtn").onclick = () => {
     const title = prompt("Enter CH Chain Title:", "CH Chain Timer +") || "CH Chain Timer +";
+
+    // Default macro text (needed here so newChain can use it)
+    const DEFAULT_MACRO = `/pause 1, /stand
+/cast 1
+/cast 1
+/pause 20, /shout ### CH on %t ###
+/shout +++### Go (next in line) +++####`;
 
     const newChain = {
         id: crypto.randomUUID(),
@@ -8218,6 +8221,9 @@ document.getElementById("addChChainPanelBtn").onclick = () => {
         chainRunning: false,
         log: [],
 
+        // ⭐ NEW FIELD
+        macroNotes: DEFAULT_MACRO,
+
         // NEW ENGINE FIELDS
         currentBlockIndex: null,
         currentBlockStartTime: null,
@@ -8226,8 +8232,11 @@ document.getElementById("addChChainPanelBtn").onclick = () => {
         _lastCasterIndex: -1
     };
 
+    // Register the chain
     window.CHChains.push(newChain);
-window.ItemRegistry.push(newChain);
+    window.ItemRegistry.push(newChain);
+
+    // Build the panel UI
     createChChainPanel(newChain);
 };
 
@@ -8330,6 +8339,79 @@ const v = Math.max(2, Math.min(20, parseInt(delayInput.value, 10) || 3));
         chain.myName = myInput.value.trim();
         renderOnce();
     };
+
+// ============================================================
+// MACRO NOTES SYSTEM
+// ============================================================
+
+// ⭐ Default macro text
+const DEFAULT_MACRO = `/pause 1, /stand
+/cast 1
+/cast 1
+/pause 20, /shout ### CH on %t ###
+/shout +++### Go (next in line) +++####`;
+
+// ⭐ Ensure chain has macroNotes field
+chain.macroNotes = chain.macroNotes || DEFAULT_MACRO;
+
+// ⭐ Notes toggle button
+const notesToggleBtn = document.createElement("button");
+notesToggleBtn.textContent = "[ ] Notes";
+notesToggleBtn.style.marginLeft = "6px";
+notesToggleBtn.style.fontSize = "12px";
+notesToggleBtn.style.padding = "2px 6px";
+controlsRow.appendChild(notesToggleBtn);
+
+// ⭐ Notes panel container
+const notesPanel = document.createElement("div");
+notesPanel.style.display = "none";
+notesPanel.style.marginTop = "6px";
+notesPanel.style.border = "1px solid #666";
+notesPanel.style.padding = "6px";
+notesPanel.style.background = "#111";
+notesPanel.style.color = "#ddd";
+notesPanel.style.fontSize = "12px";
+notesPanel.style.whiteSpace = "pre-wrap";
+panel.appendChild(notesPanel);
+
+// ⭐ Notes editor
+const notesEditor = document.createElement("textarea");
+notesEditor.style.width = "100%";
+notesEditor.style.height = "120px";
+notesEditor.style.background = "#000";
+notesEditor.style.color = "#0f0";
+notesEditor.style.fontFamily = "monospace";
+notesEditor.style.fontSize = "12px";
+notesEditor.style.marginBottom = "6px";
+notesEditor.value = chain.macroNotes;
+
+// ⭐ Save button
+const saveNotesBtn = document.createElement("button");
+saveNotesBtn.textContent = "Save Macro Notes";
+saveNotesBtn.style.fontSize = "12px";
+saveNotesBtn.style.padding = "4px 8px";
+
+// ⭐ Add editor + button to panel
+notesPanel.appendChild(notesEditor);
+notesPanel.appendChild(saveNotesBtn);
+
+// ⭐ Toggle logic
+let notesVisible = false;
+notesToggleBtn.onclick = () => {
+    notesVisible = !notesVisible;
+    notesPanel.style.display = notesVisible ? "block" : "none";
+    notesToggleBtn.textContent = notesVisible ? "[x] Notes" : "[ ] Notes";
+};
+
+// ⭐ Save logic (persists via swoosh save)
+saveNotesBtn.onclick = () => {
+    chain.macroNotes = notesEditor.value;
+    chLogLine("Macro notes saved.");
+
+    if (typeof chain._saveState === "function") {
+        chain._saveState(); // swoosh save
+    }
+};
 
     // ============================================================
     // START / STOP BUTTON
