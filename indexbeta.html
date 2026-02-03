@@ -519,27 +519,48 @@
             </div>
         </div>
 
-        <!-- ================= EXTRAS ================= -->
+<!-- ================= EXTRAS ================= -->
 <div id="cb2_panel_extras" style="margin-top:20px;">
 
-            <!-- TOKEN WORKSHOP -->
-            <div id="cb2_panel_tokenWorkshop"
-                 style="flex:1; border:1px solid #444; padding:10px;">
+    <!-- TOKEN WORKSHOP -->
+    <div id="cb2_panel_tokenWorkshop"
+         style="flex:1; border:1px solid #444; padding:10px;">
 
-                <div class="cb2_panel_title" id="cb2_panel_tokenWorkshop_title">
-                    <h3 style="display:inline;">Token Workshop</h3>
-                    <button class="cb2_toggleBtn" data-target="cb2_panel_tokenWorkshop_body">[-]</button>
-                </div>
+        <div class="cb2_panel_title" id="cb2_panel_tokenWorkshop_title">
+            <h3 style="display:inline;">Token Workshop</h3>
+            <button class="cb2_toggleBtn" data-target="cb2_panel_tokenWorkshop_body">[-]</button>
+        </div>
 
-                <div id="cb2_panel_tokenWorkshop_body">
-                    <div id="cb2_tokenListBox"></div>
-                    <div style="margin-top:8px;">
-                        <input id="cb2_input_newToken" type="text"
-                               placeholder="New token (e.g. HASTE)" style="width:70%;">
-                        <button id="cb2_btn_addToken">Add Token Species</button>
-                    </div>
-                </div>
+        <div id="cb2_panel_tokenWorkshop_body">
+
+            <!-- TOKEN IMPORT -->
+            <div style="margin-bottom:12px;">
+                <input id="cb2_input_tokenImport" type="text"
+                       placeholder="Paste token here..."
+                       style="width:70%;">
+                <button id="cb2_btn_importToken">Import Token</button>
             </div>
+
+            <!-- LOAD INVENTORY ITEMS -->
+            <button id="cb2_btn_loadInventoryTokens"
+                    style="margin-bottom:10px;">
+                Update Inventory Items
+            </button>
+
+            <!-- HIDE/SHOW INVENTORY LIST -->
+            <button id="cb2_btn_toggleInventoryList"
+                    style="margin-left:10px;">
+                Hide Inventory List
+            </button>
+
+            <!-- INVENTORY ITEM LIST -->
+            <div id="cb2_tokenInventoryList"
+                 style="margin-top:10px; border-top:1px solid #333; padding-top:10px;">
+            </div>
+
+        </div>
+    </div>
+</div>
 
             <!-- ITEM PREVIEW (THIS WAS THE BROKEN ONE) -->
             <div id="cb2_panel_itemPreview"
@@ -557,6 +578,10 @@
             style="margin-top:10px; padding:6px 12px;">
         Approve This Item
     </button>
+<button id="cb2_btn_sendToEditor"
+        style="margin-top:10px; padding:6px 12px;">
+    Send to Manual Editor
+</button>
 </div>
 <div id="cb2_approvedItemsList"
      style="margin-top:15px; padding:10px; border:1px solid #444;">
@@ -644,14 +669,6 @@
         <h4>Basic Info</h4>
         <label>Name:</label><br>
         <input id="cb2_manual_name" type="text" style="width:100%; margin-bottom:8px;"><br>
-
-        <label>Item Type:</label><br>
-        <select id="cb2_manual_itemType" style="width:100%; margin-bottom:10px;">
-            <option value="Weapon">Weapon</option>
-            <option value="Armor">Armor</option>
-            <option value="Jewelry">Jewelry</option>
-            <option value="Misc">Misc</option>
-        </select>
 
         <!-- =============================== -->
         <!-- PRIMARY STATS -->
@@ -758,7 +775,7 @@ window.CB2_selectedCharacterIndex = null;
 // ---------- UTILITIES ----------
 const CloneUIMap = new Map();
 
-const SWOOSH_START = "&#&&#&#&#&#&##&#&#& === SWOOSH START ===";
+const SWOOSH_START = "startstartstart*$*$*$*$*$*$*$*$$*$* === SWOOSH START ===";
 const SWOOSH_END   = "finfinfin*$*$*$*$*$*$*$*$$*$* === SWOOSH END ===";
 
 let DEBUG_ENABLED = true;
@@ -1018,16 +1035,43 @@ window.CB2_RACE_CLASS_MAP = {
         "necromancer", "wizard", "magician", "enchanter"
     ],
 
-    // other races go here...
+   //review?
 };
+
+// start up boot cmplete^^
+
+
 
 
 function freezeLogForSwoosh() {
     LOG_UNLOCKED = false;
     return new Promise(resolve => setTimeout(resolve, 2000)); // 2 sec quiet time
 }
-
 async function swooshSave() {
+
+    // ⭐ Sync CB2 → swoosh memory before saving
+    if (typeof cb2_writeItemsIntoSwoosh === "function") {
+        cb2_writeItemsIntoSwoosh();
+    }
+
+    // ⭐ Sync characters
+    let cb2Characters = [];
+    try {
+        cb2Characters = CB2.characters || [];
+        cb2_log("[SYNC] CB2.characters prepared for swoosh save.");
+    } catch (e) {
+        cb2_log("[SYNC ERROR] Failed to sync characters: " + e.message);
+    }
+
+    // ⭐ Sync tokens (optional but supported)
+    let cb2Tokens = [];
+    try {
+        cb2Tokens = CB2.tokens || [];
+        cb2_log("[SYNC] CB2.tokens prepared for swoosh save.");
+    } catch (e) {
+        cb2_log("[SYNC ERROR] Failed to sync tokens: " + e.message);
+    }
+
     await freezeLogForSwoosh();
     __DBG("ENTER: swooshSave() Step 1: lock and wait");
 
@@ -1041,8 +1085,17 @@ async function swooshSave() {
             custom: UserCustomSpells,
             classes: SpellClassAvailable,
             longTermTimers: LongTermTimersAPI.getAll(),
-            items: ItemRegistry || []
+
+            // ⭐ Items now come from ItemRegistry (synced from CB2.items)
+            items: ItemRegistry || [],
+
+            // ⭐ Characters saved directly
+            characters: cb2Characters,
+
+            // ⭐ Tokens saved directly
+            tokens: cb2Tokens
         };
+
         __DBG("DBG: fullDatabase object built successfully.");
     } catch (e) {
         __DBG("ERROR: fullDatabase BUILD FAILED: " + e.message);
@@ -1081,7 +1134,6 @@ async function swooshSave() {
     logLine("Swoosh Save Complete.");
     __DBG("ENTER: swooshSave() COMPLETE");
 }
-// save for chr n all that good
 
 
 // -------------------------------
@@ -1089,7 +1141,6 @@ async function swooshSave() {
 // Adjust these to call your real swoosh functions.
 // -------------------------------
 function cb2_swooshSave(key, data) {
-    // hook into your existing swoosh system here
     try {
         localStorage.setItem("cb2_" + key, JSON.stringify(data));
     } catch (e) {
@@ -1107,6 +1158,7 @@ function cb2_swooshLoad(key, fallback) {
         return fallback;
     }
 }
+
 
 
 // -------------------------------
@@ -2664,25 +2716,52 @@ function swooshLoadFromText(text) {
         LongTermTimersAPI.loadAll(swoosh.longTermTimers);
         logLine("LTT Restored from Swoosh.");
     }
-__DBG("LOAD: swoosh.items present? " + (swoosh.items ? "YES" : "NO"));
-if (swoosh.items) {
-    __DBG("LOAD: swoosh.items length = " + swoosh.items.length);
-    swoosh.items.forEach((it, idx) => {
-        __DBG("LOAD: swoosh.items[" + idx + "] id=" + it.id + " title=" + it.title);
-    });
-}
-    // ===============================
-    // ⭐ RESTORE ITEM BUILDER DATA
-    // ===============================
-    if (swoosh.items) {
-        __DBG("APPLY: Restoring ItemRegistry (" + swoosh.items.length + " items)");
-        ItemRegistry = swoosh.items;
 
+    // ===============================
+    // ⭐ RESTORE CB2 ITEMS
+    // ===============================
+if (Array.isArray(swoosh.items)) {
+    ItemRegistry = swoosh.items;
+    CB2.items = swoosh.items;
+    cb2_log("[SYNC] Restored CB2.items from swoosh.");
+
+    // ⭐ RESTORE CH TIMERS
+    if (typeof restoreAllItemsFromRegistry === "function") {
         restoreAllItemsFromRegistry();
+        cb2_log("[SYNC] Restored all CH timers from swoosh.");
+    }
 
-        logLine("Restored " + ItemRegistry.length + " item timers from swoosh.");
+} else {
+    ItemRegistry = [];
+    CB2.items = [];
+}
+
+    // ===============================
+    // ⭐ RESTORE CB2 CHARACTERS
+    // ===============================
+    if (Array.isArray(swoosh.characters)) {
+        CB2.characters = swoosh.characters;
+        cb2_log("[SYNC] Restored CB2.characters from swoosh.");
     } else {
-        ItemRegistry = [];
+        CB2.characters = [];
+    }
+
+    // ===============================
+    // ⭐ RESTORE CB2 TOKENS
+    // ===============================
+    if (Array.isArray(swoosh.tokens)) {
+        CB2.tokens = swoosh.tokens;
+        cb2_log("[SYNC] Restored CB2.tokens from swoosh.");
+    } else {
+        CB2.tokens = [];
+    }
+
+    // ===============================
+    // ⭐ RE-INIT CB2 UI
+    // ===============================
+    if (typeof cb2_init === "function") {
+        CB2.initialized = false;
+        cb2_init();
     }
 
     // ===============================
@@ -2697,6 +2776,7 @@ if (swoosh.items) {
     logLine("Swoosh Load Complete.");
     __DBG("EXIT: swooshLoadFromText() — COMPLETE");
 }
+
 function restoreItemTimer(panel, item) {
     const timerDisplay = panel.querySelector(`#itemTimer_${item.id}`);
     if (!timerDisplay) {
@@ -5570,70 +5650,9 @@ __DBG("past SPELL REGISTRY BOOTSTRAPPER (SAFE VERSION)()66611144431111333");
 // AUTO-GENERATE FIRST SWOOSH SAVE (FIRST RUN) — FULLY INSTRUMENTED
 // ===============================
 
-__DBG("ENTER: autoFirstRunSwoosh()");
+// REMOVE auto-first-run swoosh entirely.
+// It conflicts with manual swoosh loading.
 
-(function autoFirstRunSwoosh() {
-
-    // Check if already loaded this session
-    if (window.__swooshLoadedOnce) {
-        __DBG("SKIP: __swooshLoadedOnce already TRUE.");
-        return;
-    }
-    __DBG("PASS: __swooshLoadedOnce is FALSE (first run).");
-
-    // Check if log already contains a swoosh block
-    const log = document.getElementById("log");
-
-    if (!log) {
-        __DBG("ERROR: #log element NOT FOUND during autoFirstRunSwoosh.");
-    } else {
-        __DBG("PASS: #log element FOUND.");
-    }
-
-    if (log && log.textContent.includes(SWOOSH_START)) {
-        __DBG("SKIP: Log already contains a swoosh block.");
-        return;
-    }
-
-    __DBG("PASS: No swoosh block found in log. Generating first-run swoosh.");
-
-    // Mark as generated
-    window.__swooshLoadedOnce = true;
-    __DBG("SET: __swooshLoadedOnce = TRUE");
-
-    // Generate initial swoosh block
-    freezeLogForSwoosh().then(() => {
-
-        __DBG("ENTER: freezeLogForSwoosh() resolved — writing initial swoosh.");
-
-        const fullDatabase = {
-            timestamp: new Date().toISOString(),
-            registry: SpellRegistry,
-            overrides: UserOverrides,
-            custom: UserCustomSpells,
-            classes: SpellClassAvailable
-        };
-
-        __DBG("WRITING: SWOOSH_START");
-        logRaw(SWOOSH_START);
-
-        __DBG("WRITING: JSON fullDatabase");
-        logRaw(JSON.stringify(fullDatabase, null, 2));
-
-        __DBG("WRITING: SWOOSH_END");
-        logRaw(SWOOSH_END);
-
-        LOG_UNLOCKED = true;
-        __DBG("SET: LOG_UNLOCKED = TRUE");
-
-        logLine("Initial Swoosh database generated (first run).");
-        __DBG("PASS: Initial swoosh generation COMPLETE.");
-
-    }).catch(err => {
-        __DBG("ERROR: freezeLogForSwoosh() rejected: " + err);
-    });
-
-})();
 
 __DBG("EXIT: autoFirstRunSwoosh()");
 
@@ -9638,9 +9657,11 @@ function tick() {
 function cb2_init() {
     if (CB2.initialized) return;
 
-    CB2.characters = cb2_swooshLoad("cb2_characters", []);  // ← FIXED
-    CB2.items = cb2_swooshLoad("cb2_items", []);
-    CB2.tokens = cb2_swooshLoad("tokens", []);
+    // If swooshLoad already populated CB2, keep it
+    if (!Array.isArray(CB2.characters)) CB2.characters = [];
+    if (!Array.isArray(CB2.items)) CB2.items = [];
+    if (!Array.isArray(CB2.tokens)) CB2.tokens = [];
+
     cb2_renderCharacterList();
     cb2_renderCharacterDeck();
 
@@ -9936,20 +9957,54 @@ function cb2_renderCharacterList() {
 // CB2: MANUAL ITEM ENTRY LOGIC (CHECKBOX VERSION)
 // =======================================
 
-// Full EverQuest class list
+// EverQuest class short codes (canonical)
 const CB2_ALL_CLASSES = [
-    "Warrior","Cleric","Paladin","Ranger","Shadow Knight",
-    "Druid","Monk","Bard","Rogue","Shaman",
-    "Necromancer","Wizard","Magician","Enchanter"
+    "WAR","CLR","PAL","RNG","SHD",
+    "DRU","MNK","BRD","ROG","SHM",
+    "NEC","WIZ","MAG","ENC"
 ];
 
-// Full EverQuest race list
+// Full names for UI labels
+const CB2_CLASS_FULLNAME = {
+    "WAR":"Warrior",
+    "CLR":"Cleric",
+    "PAL":"Paladin",
+    "RNG":"Ranger",
+    "SHD":"Shadow Knight",
+    "DRU":"Druid",
+    "MNK":"Monk",
+    "BRD":"Bard",
+    "ROG":"Rogue",
+    "SHM":"Shaman",
+    "NEC":"Necromancer",
+    "WIZ":"Wizard",
+    "MAG":"Magician",
+    "ENC":"Enchanter"
+};
+
+// EverQuest race short codes (canonical)
 const CB2_ALL_RACES = [
-    "Human","Barbarian","Erudite","Wood Elf","High Elf","Dark Elf",
-    "Half Elf","Dwarf","Troll","Ogre","Halfling","Gnome","Iksar"
+    "HUM","BAR","ERU","ELF","HEF","DEF",
+    "HFL","DWF","TRL","OGR","GNM","IKS"
 ];
 
-// Full EverQuest slot list (expanded)
+// Full names for UI labels
+const CB2_RACE_FULLNAME = {
+    "HUM":"Human",
+    "BAR":"Barbarian",
+    "ERU":"Erudite",
+    "ELF":"Wood Elf",
+    "HEF":"High Elf",
+    "DEF":"Dark Elf",
+    "HFL":"Halfling",
+    "DWF":"Dwarf",
+    "TRL":"Troll",
+    "OGR":"Ogre",
+    "GNM":"Gnome",
+    "IKS":"Iksar"
+};
+
+// EverQuest slot list (already canonical)
 const CB2_ALL_SLOTS = [
     "PRIMARY","SECONDARY","RANGE","AMMO",
     "HEAD","FACE","NECK","SHOULDERS",
@@ -9958,43 +10013,43 @@ const CB2_ALL_SLOTS = [
     "EAR","RING","CHARM"
 ];
 
-// Render class checkboxes
+// Render class checkboxes (short code value, full name label)
 function cb2_renderManualItemClasses() {
     const box = document.getElementById("cb2_panel_manualItem_classes");
     if (!box) return;
 
     box.innerHTML = "";
 
-    CB2_ALL_CLASSES.forEach(cls => {
-        const id = "cb2_manualItem_class_" + cls;
+    CB2_ALL_CLASSES.forEach(code => {
+        const id = "cb2_manualItem_class_" + code;
         box.innerHTML += `
             <label style="display:block;">
-                <input type="checkbox" id="${id}" value="${cls}">
-                ${cls}
+                <input type="checkbox" id="${id}" value="${code}">
+                ${CB2_CLASS_FULLNAME[code]}
             </label>
         `;
     });
 }
 
-// Render race checkboxes
+// Render race checkboxes (short code value, full name label)
 function cb2_renderManualItemRaces() {
     const box = document.getElementById("cb2_panel_manualItem_races");
     if (!box) return;
 
     box.innerHTML = "";
 
-    CB2_ALL_RACES.forEach(race => {
-        const id = "cb2_manualItem_race_" + race;
+    CB2_ALL_RACES.forEach(code => {
+        const id = "cb2_manualItem_race_" + code;
         box.innerHTML += `
             <label style="display:block;">
-                <input type="checkbox" id="${id}" value="${race}">
-                ${race}
+                <input type="checkbox" id="${id}" value="${code}">
+                ${CB2_RACE_FULLNAME[code]}
             </label>
         `;
     });
 }
 
-// Render slot checkboxes
+// Render slot checkboxes (slots already match EQ format)
 function cb2_renderManualItemSlots() {
     const box = document.getElementById("cb2_panel_manualItem_slots");
     if (!box) return;
@@ -10004,17 +10059,15 @@ function cb2_renderManualItemSlots() {
     CB2_ALL_SLOTS.forEach(slot => {
         const id = "cb2_manualItem_slot_" + slot;
         box.innerHTML += `
-            <label style="display:label;">
+            <label style="display:block;">
                 <input type="checkbox" id="${id}" value="${slot}">
                 ${slot}
             </label>
         `;
     });
 }
-
 function cb2_buildManualItem() {
 
-    // NAME
     const nameEl = document.getElementById("cb2_manual_name");
     const name = nameEl ? nameEl.value.trim() : "";
     if (!name) {
@@ -10022,55 +10075,48 @@ function cb2_buildManualItem() {
         return null;
     }
 
-    // ITEM TYPE
     const typeEl = document.getElementById("cb2_manual_itemType");
     const itemType = typeEl ? typeEl.value : "Misc";
 
-    // STATS
     const stats = {
-        str: parseInt(document.getElementById("cb2_manual_str").value) || 0,
-        sta: parseInt(document.getElementById("cb2_manual_sta").value) || 0,
-        agi: parseInt(document.getElementById("cb2_manual_agi").value) || 0,
-        dex: parseInt(document.getElementById("cb2_manual_dex").value) || 0,
-        int: parseInt(document.getElementById("cb2_manual_int").value) || 0,
-        wis: parseInt(document.getElementById("cb2_manual_wis").value) || 0,
-        cha: parseInt(document.getElementById("cb2_manual_cha").value) || 0,
-        hp:  parseInt(document.getElementById("cb2_manual_hp").value)  || 0,
-        mana:parseInt(document.getElementById("cb2_manual_mana").value)|| 0,
-        end: parseInt(document.getElementById("cb2_manual_end").value) || 0
+        str: parseInt(cb2_manual_str.value) || 0,
+        sta: parseInt(cb2_manual_sta.value) || 0,
+        agi: parseInt(cb2_manual_agi.value) || 0,
+        dex: parseInt(cb2_manual_dex.value) || 0,
+        int: parseInt(cb2_manual_int.value) || 0,
+        wis: parseInt(cb2_manual_wis.value) || 0,
+        cha: parseInt(cb2_manual_cha.value) || 0,
+        hp:  parseInt(cb2_manual_hp.value)  || 0,
+        mana:parseInt(cb2_manual_mana.value)|| 0,
+        end: parseInt(cb2_manual_end.value) || 0
     };
 
-    // RESISTS
     const resists = {
-        fire:    parseInt(document.getElementById("cb2_manual_fire").value)    || 0,
-        cold:    parseInt(document.getElementById("cb2_manual_cold").value)    || 0,
-        magic:   parseInt(document.getElementById("cb2_manual_magic").value)   || 0,
-        disease: parseInt(document.getElementById("cb2_manual_disease").value) || 0,
-        poison:  parseInt(document.getElementById("cb2_manual_poison").value)  || 0
+        fire:    parseInt(cb2_manual_fire.value)    || 0,
+        cold:    parseInt(cb2_manual_cold.value)    || 0,
+        magic:   parseInt(cb2_manual_magic.value)   || 0,
+        disease: parseInt(cb2_manual_disease.value) || 0,
+        poison:  parseInt(cb2_manual_poison.value)  || 0
     };
 
-    // COMBAT
-    const dmg   = parseInt(document.getElementById("cb2_manual_dmg").value)   || 0;
-    const delay = parseInt(document.getElementById("cb2_manual_delay").value) || 0;
-    const ac    = parseInt(document.getElementById("cb2_manual_ac").value)    || 0;
+    const dmg   = parseInt(cb2_manual_dmg.value)   || 0;
+    const delay = parseInt(cb2_manual_delay.value) || 0;
+    const ac    = parseInt(cb2_manual_ac.value)    || 0;
 
-// SLOTS (checkboxes)
-const slot = [];
-document.querySelectorAll("#cb2_panel_manualItem_slots input[type=checkbox]")
-    .forEach(chk => { if (chk.checked) slot.push(chk.value); });
-if (slot.length === 0) slot.push("None");
+    // SLOTS (short codes)
+    const slot = [];
+    document.querySelectorAll("#cb2_panel_manualItem_slots input[type=checkbox]")
+        .forEach(chk => { if (chk.checked) slot.push(chk.value); });
 
-    // CLASSES (checkboxes)
+    // CLASSES (short codes)
     const classes = [];
     document.querySelectorAll("#cb2_panel_manualItem_classes input[type=checkbox]")
         .forEach(chk => { if (chk.checked) classes.push(chk.value); });
-    if (classes.length === 0) classes.push("None");
 
-    // RACES (checkboxes)
+    // RACES (short codes)
     const races = [];
     document.querySelectorAll("#cb2_panel_manualItem_races input[type=checkbox]")
         .forEach(chk => { if (chk.checked) races.push(chk.value); });
-    if (races.length === 0) races.push("None");
 
     return {
         id: "cb2_item_" + Date.now(),
@@ -10082,9 +10128,12 @@ if (slot.length === 0) slot.push("None");
         delay,
         ac,
         slot,
-        classes,
-        races,
-        image: null,
+        classes,   // SHORT CODES
+        races,     // SHORT CODES
+
+        // ⭐ PRESERVE IMAGE FROM SCRAPER
+        image: window.CB2_manualEditorImage || null,
+
         rawText: null,
         effect: null,
         effectType: null,
@@ -10092,15 +10141,26 @@ if (slot.length === 0) slot.push("None");
     };
 }
 
-// Send item to approval panel
+// Send manual item to preview panel
 document.getElementById("cb2_btn_manualItem_approve").onclick = () => {
     const item = cb2_buildManualItem();
     if (!item) return;
 
+    // Render manual item in preview panel
     cb2_renderScrapedItemPreview(item);
+
+    // Update global preview state
     window.CB2_currentPreviewItem = item;
 
-    cb2_log("Manual item sent to approval panel.");
+    cb2_log("Manual item sent to preview.");
+
+    // OPEN the preview panel body
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // SCROLL to the preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
 };
 
 // Initialize UI
@@ -10130,14 +10190,28 @@ ${JSON.stringify(item, null, 2)}
         </div>
     `;
 }
+
+// APPROVE MANUAL SEND TO PREVIEW CLICK BUT
+
 document.getElementById("cb2_btn_manualItem_approve").onclick = () => {
     const item = cb2_buildManualItem();
     if (!item) return;
 
-    cb2_renderScrapedItemPreview(item);
+    // Render manual item in preview panel
+    cb2_renderItemPreview(item);
+
+    // Update global preview state
     window.CB2_currentPreviewItem = item;
 
-    cb2_log("Manual item sent to approval panel.");
+    cb2_log("Manual item sent to preview.");
+
+    // OPEN the preview panel body
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // SCROLL to the preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
 };
 
 
@@ -10432,7 +10506,8 @@ function cb2_updateClassDropdown(race) {
 
 
 // =======================================
-// CB2: IMPORT ITEMS FROM SCRAPER
+// CB2: IMPORT ITEMS FROM function cb2_loadItemIntoManualEditor(item) {
+
 // =======================================
 
 // ---------------------------------------
@@ -10441,20 +10516,39 @@ function cb2_updateClassDropdown(race) {
 function cb2_convertScraperItem(scraped) {
     cb2_log("[CB2 Import] Converting scraped item…");
 
-    if (!scraped) {
-        cb2_log("[CB2 Import] ERROR: No scraped item provided.");
-        return null;
+    if (!scraped) return null;
+
+    // Parse DMG
+    let dmg = 0;
+    if (scraped.dmgLine) {
+        const m = scraped.dmgLine.match(/DMG:\s*(\d+)/i);
+        if (m) dmg = parseInt(m[1]);
     }
 
-    const item = {
+    // Parse Delay
+    let delay = 0;
+    if (scraped.skillLine) {
+        const m = scraped.skillLine.match(/Delay:\s*(\d+)/i);
+        if (m) delay = parseInt(m[1]);
+    }
+
+    // Parse AC
+    let ac = 0;
+    if (scraped.acLine) {
+        const m = scraped.acLine.match(/AC:\s*(\d+)/i);
+        if (m) ac = parseInt(m[1]);
+    }
+
+    return {
         id: "cb2_item_" + Date.now(),
         name: scraped.name || "Unknown Item",
         image: scraped.image || null,
         rawText: null,
         stats: scraped.stats || {},
         resists: scraped.resists || {},
-        dmg: scraped.dmgLine || null,
-        ac: scraped.acLine || null,
+        dmg,
+        delay,
+        ac,
         slot: scraped.slot || [],
         classes: scraped.classes || [],
         races: scraped.races || [],
@@ -10462,23 +10556,62 @@ function cb2_convertScraperItem(scraped) {
         effectType: scraped.effectType || null,
         equipped: false
     };
+}
 
-    cb2_log("[CB2 Import] Conversion complete for: " + item.name);
-    return item;
+// render manual item into preview panel
+
+function cb2_renderScrapedItemPreview(item) {
+    const box = document.getElementById("cb2_itemPreviewBox");
+    if (!box) return;
+
+    box.innerHTML = `
+        <h3>${item.name}</h3>
+        <img src="${item.image || ""}" style="max-width:64px; margin-bottom:10px;">
+        <pre style="white-space:pre-wrap;">${JSON.stringify(item, null, 2)}</pre>
+    `;
+
+    // Update global preview state
+    window.CB2_currentPreviewItem = item;
+
+    // Open preview panel
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // Scroll to preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
 }
 // ---------------------------------------
 // Render scraped item into preview panel
 // ---------------------------------------
 function cb2_renderScrapedItemPreview(scraped) {
+
+    // If this is a scraped item, convert it first
+    const item = scraped.dmgLine || scraped.skillLine || scraped.acLine
+        ? cb2_convertScraperItem(scraped)
+        : scraped;
+
     const box = document.getElementById("cb2_itemPreviewBox");
     if (!box) return;
 
     box.innerHTML = `
-        <h3>${scraped.name}</h3>
-        <img src="${scraped.image}" style="max-width:64px; margin-bottom:10px;">
-        <pre style="white-space:pre-wrap;">${JSON.stringify(scraped, null, 2)}</pre>
+        <h3>${item.name}</h3>
+        <img src="${item.image}" style="max-width:64px; margin-bottom:10px;">
+        <pre style="white-space:pre-wrap;">${JSON.stringify(item, null, 2)}</pre>
     `;
+
+    // Update global preview state
+    window.CB2_currentPreviewItem = item;
+
+    // Open preview panel
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // Scroll to preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
 }
+
 function cb2_deleteApprovedItem(index) {
     const items = cb2_swooshLoad("cb2_items", []);
     const item = items[index];
@@ -11290,6 +11423,289 @@ function cb2_saveInventoryItem(item) {
     cb2_log("Saved item: " + item.name);
 }
 
+//loop to editor back from preview
+
+function cb2_loadItemIntoManualEditor(item) {
+
+    const safeSet = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+
+    // BASIC
+    safeSet("cb2_manual_name", item.name || "");
+    safeSet("cb2_manual_itemType", item.itemType || "Misc");
+
+    // STATS
+    safeSet("cb2_manual_str", item.stats?.str || 0);
+    safeSet("cb2_manual_sta", item.stats?.sta || 0);
+    safeSet("cb2_manual_agi", item.stats?.agi || 0);
+    safeSet("cb2_manual_dex", item.stats?.dex || 0);
+    safeSet("cb2_manual_int", item.stats?.int || 0);
+    safeSet("cb2_manual_wis", item.stats?.wis || 0);
+    safeSet("cb2_manual_cha", item.stats?.cha || 0);
+
+    // VITALS
+    safeSet("cb2_manual_hp", item.stats?.hp || 0);
+    safeSet("cb2_manual_mana", item.stats?.mana || 0);
+    safeSet("cb2_manual_end", item.stats?.end || 0);
+
+    // RESISTS
+    safeSet("cb2_manual_fire", item.resists?.fire || 0);
+    safeSet("cb2_manual_cold", item.resists?.cold || 0);
+    safeSet("cb2_manual_magic", item.resists?.magic || 0);
+    safeSet("cb2_manual_disease", item.resists?.disease || 0);
+    safeSet("cb2_manual_poison", item.resists?.poison || 0);
+
+    // COMBAT
+    safeSet("cb2_manual_dmg", item.dmg || 0);
+    safeSet("cb2_manual_delay", item.delay || 0);
+    safeSet("cb2_manual_ac", item.ac || 0);
+
+    // SLOTS
+    document.querySelectorAll("#cb2_panel_manualItem_slots input[type=checkbox]")
+        .forEach(chk => chk.checked = item.slot?.includes(chk.value));
+
+    // CLASSES
+    document.querySelectorAll("#cb2_panel_manualItem_classes input[type=checkbox]")
+        .forEach(chk => chk.checked = item.classes?.includes(chk.value));
+
+    // RACES
+    document.querySelectorAll("#cb2_panel_manualItem_races input[type=checkbox]")
+        .forEach(chk => chk.checked = item.races?.includes(chk.value));
+
+    // PRESERVE IMAGE
+    window.CB2_manualEditorImage = item.image || null;
+}
+
+// resend to editor button from preview panel
+
+document.getElementById("cb2_btn_sendToEditor").onclick = () => {
+    if (!window.CB2_currentPreviewItem) {
+        cb2_log("No preview item to send to editor.");
+        return;
+    }
+
+    cb2_loadItemIntoManualEditor(window.CB2_currentPreviewItem);
+
+    cb2_log("Item loaded into Manual Editor for editing.");
+
+    // Open manual editor panel
+    document.getElementById("cb2_panel_manualItemEntry_body").style.display = "block";
+
+    // Scroll to manual editor
+    document.getElementById("cb2_panel_manualItemEntry")
+        .scrollIntoView({ behavior: "smooth" });
+};
+
+// token item system
+
+document.getElementById("cb2_btn_toggleInventoryList").onclick = () => {
+    const list = document.getElementById("cb2_tokenInventoryList");
+    const btn = document.getElementById("cb2_btn_toggleInventoryList");
+
+    if (list.style.display === "none") {
+        list.style.display = "block";
+        btn.textContent = "Hide Inventory List";
+    } else {
+        list.style.display = "none";
+        btn.textContent = "Show Inventory List";
+    }
+};
+
+// Load inventory items into the Token Workshop list
+document.getElementById("cb2_btn_loadInventoryTokens").onclick = () => {
+
+    const listBox = document.getElementById("cb2_tokenInventoryList");
+    listBox.innerHTML = "";
+
+    // Load the same inventory the character screen uses
+    const items = cb2_swooshLoad("cb2_items", []);
+
+    if (!items || items.length === 0) {
+        listBox.innerHTML = "<div style='color:#888;'>No inventory items found.</div>";
+        return;
+    }
+
+    items.forEach((item, idx) => {
+
+        const row = document.createElement("div");
+        row.style.marginBottom = "6px";
+
+        row.innerHTML = `
+            <span style="color:#0f0;">${item.name}</span>
+            <button class="cb2_btn_createToken"
+                    data-itemindex="${idx}"
+                    style="margin-left:10px;">
+                Create Token
+            </button>
+        `;
+
+        listBox.appendChild(row);
+    });
+
+    cb2_log("Inventory loaded into Token Workshop.");
+};
+
+
+function cb2_generateTokenFromItem(item) {
+
+    const token = [
+        "CB2TOKEN",
+        `NAME:${item.name}`,
+        `IMG:${item.image ? item.image.replace("https://wiki.project1999.com/images/", "") : ""}`,
+        `DMG:${item.dmg || 0}`,
+        `DELAY:${item.delay || 0}`,
+        `AC:${item.ac || 0}`,
+        `STATS:${JSON.stringify(item.stats)}`,
+        `RESISTS:${JSON.stringify(item.resists)}`,
+        `SLOT:${item.slot.join(",")}`,
+        `CLASS:${item.classes.join(",")}`,
+        `RACE:${item.races.join(",")}`,
+        "ENDTOKEN"
+    ].join("|");
+
+    return token;
+}
+
+document.addEventListener("click", e => {
+    if (!e.target.classList.contains("cb2_btn_createToken")) return;
+
+    const idx = parseInt(e.target.getAttribute("data-itemindex"), 10);
+
+    // Load from the same place as character inventory + token workshop
+    const items = cb2_swooshLoad("cb2_items", []);
+    const item = items[idx];
+
+    if (!item) {
+        cb2_log("Token Error: Item not found.");
+        return;
+    }
+
+    const token = cb2_generateTokenFromItem(item);
+
+    cb2_log(
+        "=========== TOKEN GENERATED ===========\n" +
+        token +
+        "\n========================================\n"
+    );
+});
+
+
+//beta  >>
+
+function cb2_decodeToken(token) {
+
+    const parts = token.split("|");
+    const obj = {
+        id: "cb2_item_token_" + Date.now(),
+        name: "",
+        itemType: "Misc",
+        stats: {},
+        resists: {},
+        dmg: 0,
+        delay: 0,
+        ac: 0,
+        slot: [],
+        classes: [],
+        races: [],
+        image: null,
+        rawText: null,
+        effect: null,
+        effectType: null,
+        equipped: false
+    };
+
+    for (let part of parts) {
+
+        if (part.startsWith("NAME:"))
+            obj.name = part.replace("NAME:", "");
+
+        else if (part.startsWith("IMG:")) {
+            const img = part.replace("IMG:", "");
+            obj.image = img ? "https://wiki.project1999.com/images/" + img : null;
+        }
+
+        else if (part.startsWith("DMG:"))
+            obj.dmg = parseInt(part.replace("DMG:", "")) || 0;
+
+        else if (part.startsWith("DELAY:"))
+            obj.delay = parseInt(part.replace("DELAY:", "")) || 0;
+
+        else if (part.startsWith("AC:"))
+            obj.ac = parseInt(part.replace("AC:", "")) || 0;
+
+        else if (part.startsWith("STATS:"))
+            obj.stats = JSON.parse(part.replace("STATS:", ""));
+
+        else if (part.startsWith("RESISTS:"))
+            obj.resists = JSON.parse(part.replace("RESISTS:", ""));
+
+        else if (part.startsWith("SLOT:"))
+            obj.slot = part.replace("SLOT:", "").split(",").filter(x => x);
+
+        else if (part.startsWith("CLASS:"))
+            obj.classes = part.replace("CLASS:", "").split(",").filter(x => x);
+
+        else if (part.startsWith("RACE:"))
+            obj.races = part.replace("RACE:", "").split(",").filter(x => x);
+    }
+
+    return obj;
+}
+
+document.getElementById("cb2_btn_importToken").onclick = () => {
+
+    const token = document.getElementById("cb2_input_tokenImport").value.trim();
+    if (!token) {
+        cb2_log("No token entered.");
+        return;
+    }
+
+    // Debug: Token received
+    cb2_log(
+        "=========== TOKEN RECEIVED ===========\n" +
+        token +
+        "\n=======================================\n"
+    );
+
+    // Decode token → item (placeholder for now)
+const decodedItem = cb2_decodeToken(token);
+
+    // Debug: Token decoded
+    cb2_log(
+        "=========== TOKEN DECODED ============\n" +
+        JSON.stringify(decodedItem, null, 2) +
+        "\n=======================================\n"
+    );
+
+    // Send decoded item to preview (same pipeline as scraper)
+    cb2_renderScrapedItemPreview(decodedItem);
+    window.CB2_currentPreviewItem = decodedItem;
+
+    cb2_log("Token imported and item sent to preview.");
+};
+
+
+// write to correct save file when save triggered
+
+function cb2_writeItemsIntoSwoosh() {
+    try {
+        const items = CB2.items || [];
+        window.ItemRegistry = items;
+
+        const characters = CB2.characters || [];
+        window.CB2_CharactersForSwoosh = characters;
+
+        const tokens = CB2.tokens || [];
+        window.CB2_TokensForSwoosh = tokens;
+
+        cb2_log("[SYNC] CB2 data prepared for swoosh save.");
+    } catch (e) {
+        cb2_log("[SYNC ERROR] Failed to sync CB2 data into swoosh: " + e.message);
+    }
+}
+
 // ===============================
 // REFRESH / CLOSE WARNING
 // ===============================
@@ -11302,7 +11718,7 @@ window.addEventListener("beforeunload", function (e) {
     return message;
 });
 
-
+//blanknoloadimage
 document.addEventListener("error", function (e) {
     const elem = e.target;
 
@@ -11313,6 +11729,8 @@ document.addEventListener("error", function (e) {
     }
 }, true);
 
+
+// AUTO CLOSE ON START PANELS
 document.addEventListener("DOMContentLoaded", () => {
     const panelsToCollapse = [
         "cb2_panel_manualItemEntry_body",
