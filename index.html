@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -201,7 +200,7 @@
             </select>
 
             <label for="raceSelect">Race:</label>
-            <select id="raceSelect">
+            <select id="raceSelect" onchange="cb2_startCharacterDraft()">
                 <option>Human</option>
                 <option>Erudite</option>
                 <option>Barbarian</option>
@@ -421,22 +420,399 @@
 
 <div id="chChainPanelsContainer"></div>
 
+
+<!-- =============================== -->
+<!-- CB2: CHARACTER BUILDER V2 PANEL -->
+<!-- =============================== -->
+<!-- CB2: CHARACTER BUILDER V2 PANEL -->
+<!-- =============================== -->
+<div id="cb2_panel_root" style="margin-top:30px; border-top:1px solid #555; padding-top:15px;">
+
+    <div class="cb2_panel_title" id="cb2_panel_root_title">
+        <h2 style="display:inline;">Character Builder v2</h2>
+        <button class="cb2_toggleBtn" data-target="cb2_panel_root_body">[-]</button>
+    </div>
+
+    <div id="cb2_panel_root_body">
+
+        <!-- MAIN LAYOUT: LEFT = LIST/CREATE, RIGHT = CHAR PANELS -->
+        <div style="display:flex; gap:20px; align-items:flex-start;">
+
+            <!-- LEFT COLUMN -->
+            <div id="cb2_panel_characterList" style="min-width:260px; max-width:260px; border:1px solid #444; padding:10px;">
+
+                <div class="cb2_panel_title" id="cb2_panel_characterList_title">
+                    <h3 style="display:inline;">Stable of Characters</h3>
+                    <button class="cb2_toggleBtn" data-target="cb2_panel_characterList_body">[-]</button>
+                </div>
+
+                <div id="cb2_panel_characterList_body">
+
+                    <div id="cb2_characterListBox"
+                         style="max-height:300px; overflow-y:auto; margin-bottom:10px;">
+                    </div>
+
+                    <button id="cb2_btn_deleteOne" style="margin-bottom:10px;">
+                        Delete Selected Character
+                    </button>
+
+                    <div id="cb2_panel_createCharacter"
+                         style="border-top:1px solid #333; padding-top:10px; margin-top:10px;">
+
+                        <h4>Create New Character</h4>
+
+                        <label>Name:</label><br>
+                        <input id="cb2_input_newCharacterName" type="text"
+                               style="width:100%; margin-bottom:6px;"><br>
+
+                        <label>Class:</label><br>
+                        <select id="cb2_input_newCharacterClass"
+        style="width:100%; margin-bottom:6px;"
+        onchange="cb2_startCharacterDraft()">
+                                style="width:100%; margin-bottom:6px;">
+<option value="Warrior">Warrior</option>
+<option value="Paladin">Paladin</option>
+<option value="Ranger">Ranger</option>
+<option value="Shadowknight">Shadowknight</option>
+
+<option value="Bard">Bard</option>
+<option value="Rogue">Rogue</option>
+<option value="Monk">Monk</option>
+
+<option value="Cleric">Cleric</option>
+<option value="Druid">Druid</option>
+<option value="Shaman">Shaman</option>
+
+<option value="Necromancer">Necromancer</option>
+<option value="Wizard">Wizard</option>
+<option value="Magician">Magician</option>
+<option value="Enchanter">Enchanter</option>
+                        </select><br>
+
+                        <label>Race:</label><br>
+                        <div id="cb2_panel_raceSelector"
+                             style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+                        </div>
+<div id="cb2_chrStatPanel"></div>
+                        <label>Level:</label><br>
+                        <input id="cb2_input_newCharacterLevel" type="number"
+                               min="1" max="60" value="60" style="width:80px;"><br><br>
+
+                        <button id="cb2_btn_createCharacter"
+        onclick="cb2_finalizeCharacterCreation()">
+    Forge New Character
+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div id="cb2_panel_characterDeck" style="flex:1; min-height:200px;">
+                <div class="cb2_panel_title" id="cb2_panel_characterDeck_title">
+                    <h3 style="display:inline;">Character Panels</h3>
+                    <button class="cb2_toggleBtn" data-target="cb2_panel_characterDeck_body">[-]</button>
+                </div>
+
+                <div id="cb2_panel_characterDeck_body">
+                    <!-- JS renders character cards here -->
+                </div>
+            </div>
+        </div>
+
+<!-- ================= EXTRAS ================= -->
+<div id="cb2_panel_extras" style="margin-top:20px;">
+
+    <!-- TOKEN WORKSHOP -->
+    <div id="cb2_panel_tokenWorkshop"
+         style="flex:1; border:1px solid #444; padding:10px;">
+
+        <div class="cb2_panel_title" id="cb2_panel_tokenWorkshop_title">
+            <h3 style="display:inline;">Token Workshop</h3>
+            <button class="cb2_toggleBtn" data-target="cb2_panel_tokenWorkshop_body">[-]</button>
+        </div>
+
+        <div id="cb2_panel_tokenWorkshop_body">
+
+            <!-- TOKEN IMPORT -->
+            <div style="margin-bottom:12px;">
+                <input id="cb2_input_tokenImport" type="text"
+                       placeholder="Paste token here..."
+                       style="width:70%;">
+                <button id="cb2_btn_importToken">Import Token</button>
+            </div>
+
+            <!-- LOAD INVENTORY ITEMS -->
+            <button id="cb2_btn_loadInventoryTokens"
+                    style="margin-bottom:10px;">
+                Update Inventory Items
+            </button>
+
+            <!-- HIDE/SHOW INVENTORY LIST -->
+            <button id="cb2_btn_toggleInventoryList"
+                    style="margin-left:10px;">
+                Hide Inventory List
+            </button>
+
+            <!-- INVENTORY ITEM LIST -->
+            <div id="cb2_tokenInventoryList"
+                 style="margin-top:10px; border-top:1px solid #333; padding-top:10px;">
+            </div>
+
+        </div>
+    </div>
+</div>
+
+            <!-- ITEM PREVIEW (THIS WAS THE BROKEN ONE) -->
+            <div id="cb2_panel_itemPreview"
+                 style="flex:1; border:1px solid #444; padding:10px;">
+
+                <div class="cb2_panel_title" id="cb2_panel_itemPreview_title">
+                    <h3 style="display:inline;">Item Preview & Equip State</h3>
+                    <button class="cb2_toggleBtn" data-target="cb2_panel_itemPreview_body">[-]</button>
+                </div>
+
+<div id="cb2_panel_itemPreview_body">
+    <div id="cb2_itemPreviewBox"></div>
+
+    <button id="cb2_btn_approveScrapedItem"
+            style="margin-top:10px; padding:6px 12px;">
+        Approve This Item
+    </button>
+<button id="cb2_btn_sendToEditor"
+        style="margin-top:10px; padding:6px 12px;">
+    Send to Manual Editor
+</button>
+</div>
+<div id="cb2_approvedItemsList"
+     style="margin-top:15px; padding:10px; border:1px solid #444;">
+</div>
+
+            </div>
+
+        </div> <!-- END EXTRAS -->
+
+        <!-- DEBUG CONSOLE -->
+        <pre id="cb2_debugConsole"
+             style="white-space:pre-wrap; margin-top:20px; background:#111; color:#0f0;
+                    padding:10px; max-height:200px; overflow-y:auto;"></pre>
+
+</div>
+</div>
+<div id="cb2_main_panels" style="display:flex; gap:20px; align-items:flex-start;">
+    <!-- scraper panel goes here -->
+    <!-- manual item entry panel goes here -->
+<!-- =============================== -->
+<!-- P99 SCRAPER PANEL (FINAL FIXED) -->
+<!-- =============================== -->
+<div id="p99_console_panel"
+     style="
+        border:1px solid #333;
+        padding:10px;
+        margin-top:0;                  /* NEW: remove gap */
+        background:#111;
+        box-sizing:border-box;
+        border-top:none;               /* NEW: merges visually */
+        border-radius:0 0 4px 4px;     /* NEW: matches panel */
+     ">
+
+    <!-- PANEL HEADER -->
+    <div class="cb2_panel_title" id="p99_scraper_panel_title">
+        <h3 style="display:inline;">P99 Item Scraper</h3>
+        <button class="cb2_toggleBtn" data-target="p99_scraper_panel_body">[-]</button>
+    </div>
+
+    <!-- PANEL BODY -->
+    <div id="p99_scraper_panel_body" style="padding-top:10px;">
+
+        <label>Item URL:</label><br>
+        <input id="urlInput" type="text"
+               placeholder="https://wiki.project1999.com/Sprinkler_of_the_Spirits"
+               style="width:100%; margin-bottom:10px;"><br>
+
+<button id="proxy1Btn">Proxy 1</button>
+<button id="proxy2Btn">Proxy 2</button>
+<button id="proxy3Btn">Proxy 3</button>
+
+<label>
+    <input type="checkbox" id="cb2_useCustomProxy">
+    Use Custom Proxy
+</label>
+
+<input id="cb2_userProxyInput" 
+       type="text" 
+       placeholder="Enter custom proxy base URL">
+
+<button id="proxy4Btn" style="display:none;">Proxy 4 (Custom)</button>
+
+
+        </div>
+
+        <!-- =============================== -->
+        <!-- SCRAPER CONSOLE (JS injects <pre>) -->
+        <!-- =============================== -->
+
+            <div id="p99_console_panel_body" style="padding-top:10px;">
+                <!-- JS will insert <pre id="output"> here -->
+            </div>
+
+        </div> <!-- END CONSOLE PANEL -->
+
+        <div id="itemImageBox" style="margin-top:10px;"></div>
+
+    </div> <!-- END SCRAPER BODY -->
+
+
+<!-- ======================================= -->
+<!-- CB2: MANUAL ITEM ENTRY PANEL (MODERNIZED) -->
+<!-- ======================================= -->
+<div id="cb2_panel_manualItemEntry"
+     style="flex:1; border:1px solid #444; padding:10px; margin-top:20px;">
+
+    <div class="cb2_panel_title" id="cb2_panel_manualItemEntry_title">
+        <h3 style="display:inline;">Manual Item Entry</h3>
+        <button class="cb2_toggleBtn" data-target="cb2_panel_manualItemEntry_body">[-]</button>
+    </div>
+
+    <div id="cb2_panel_manualItemEntry_body" style="padding-top:10px;">
+
+        <!-- =============================== -->
+        <!-- BASIC INFO -->
+        <!-- =============================== -->
+        <h4>Basic Info</h4>
+        <label>Name:</label><br>
+        <input id="cb2_manual_name" type="text" style="width:100%; margin-bottom:8px;"><br>
+
+        <!-- =============================== -->
+        <!-- PRIMARY STATS -->
+        <!-- =============================== -->
+        <h4>Primary Stats</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <div>STR<br><input id="cb2_manual_str" type="number" style="width:60px;"></div>
+            <div>STA<br><input id="cb2_manual_sta" type="number" style="width:60px;"></div>
+            <div>AGI<br><input id="cb2_manual_agi" type="number" style="width:60px;"></div>
+            <div>DEX<br><input id="cb2_manual_dex" type="number" style="width:60px;"></div>
+            <div>INT<br><input id="cb2_manual_int" type="number" style="width:60px;"></div>
+            <div>WIS<br><input id="cb2_manual_wis" type="number" style="width:60px;"></div>
+            <div>CHA<br><input id="cb2_manual_cha" type="number" style="width:60px;"></div>
+        </div>
+
+        <!-- =============================== -->
+        <!-- VITALS -->
+        <!-- =============================== -->
+        <h4 style="margin-top:15px;">Vitals</h4>
+        <div style="display:flex; gap:10px;">
+            <div>HP<br><input id="cb2_manual_hp" type="number" style="width:80px;"></div>
+            <div>MANA<br><input id="cb2_manual_mana" type="number" style="width:80px;"></div>
+            <div>END<br><input id="cb2_manual_end" type="number" style="width:80px;"></div>
+        </div>
+
+        <!-- =============================== -->
+        <!-- RESISTS -->
+        <!-- =============================== -->
+        <h4 style="margin-top:15px;">Resists</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <div>Fire<br><input id="cb2_manual_fire" type="number" style="width:60px;"></div>
+            <div>Cold<br><input id="cb2_manual_cold" type="number" style="width:60px;"></div>
+            <div>Magic<br><input id="cb2_manual_magic" type="number" style="width:60px;"></div>
+            <div>Disease<br><input id="cb2_manual_disease" type="number" style="width:60px;"></div>
+            <div>Poison<br><input id="cb2_manual_poison" type="number" style="width:60px;"></div>
+        </div>
+
+        <!-- =============================== -->
+        <!-- COMBAT -->
+        <!-- =============================== -->
+        <h4 style="margin-top:15px;">Combat</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <div>DMG<br><input id="cb2_manual_dmg" type="number" style="width:60px;"></div>
+            <div>Delay<br><input id="cb2_manual_delay" type="number" style="width:60px;"></div>
+            <div>AC<br><input id="cb2_manual_ac" type="number" style="width:60px;"></div>
+        </div>
+
+<!-- =============================== -->
+<!-- WEIGHT + SIZE -->
+<!-- =============================== -->
+<h4 style="margin-top:15px;">Weight & Size</h4>
+
+<div style="display:flex; gap:20px; align-items:flex-start;">
+
+    <!-- Weight -->
+    <div>
+        Weight<br>
+        <input id="cb2_manual_weight" type="number" step="0.1" style="width:80px;">
+    </div>
+
+    <!-- Size -->
+    <div>
+        Size<br>
+        <label><input type="radio" name="cb2_manual_size" value="TINY"> TINY</label><br>
+        <label><input type="radio" name="cb2_manual_size" value="SMALL"> SMALL</label><br>
+        <label><input type="radio" name="cb2_manual_size" value="MEDIUM" checked> MEDIUM</label><br>
+        <label><input type="radio" name="cb2_manual_size" value="LARGE"> LARGE</label><br>
+        <label><input type="radio" name="cb2_manual_size" value="GIANT"> GIANT</label>
+    </div>
+
 </div>
 
 
+        <!-- =============================== -->
+        <!-- SLOT -->
+        <!-- =============================== -->
+<div id="cb2_panel_manualItem_slots"></div>
 
+ 
+
+        <!-- =============================== -->
+        <!-- CLASSES -->
+        <!-- =============================== -->
+        <h4>Classes</h4>
+        <div id="cb2_panel_manualItem_classes"
+             style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <!-- JS populates class checkboxes -->
+        </div>
+
+        <!-- =============================== -->
+        <!-- RACES -->
+        <!-- =============================== -->
+        <h4>Races</h4>
+        <div id="cb2_panel_manualItem_races"
+             style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <!-- JS populates race checkboxes -->
+        </div>
+
+        <!-- =============================== -->
+        <!-- TOKENS -->
+        <!-- =============================== -->
+        <h4>Assign Tokens</h4>
+        <div id="cb2_panel_manualItem_tokens"
+             style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <!-- JS populates token checkboxes -->
+        </div>
+
+        <!-- =============================== -->
+        <!-- APPROVE BUTTON -->
+        <!-- =============================== -->
+        <button id="cb2_btn_manualItem_approve"
+                style="margin-top:10px; padding:8px 14px;">
+            Send To Preview & Approve
+        </button>
+
+    </div> <!-- END BODY -->
+</div> <!-- END PANEL -->
 
 <script>
+
 // ---------- GLOBAL CH CHAIN STATE (must load FIRST) ----------
 window.CHChains  = [];        // all chain objects
 window.CHDebug   = true;      // global debug toggle
 window.CHTickRate = 50;       // global tick interval
 window.CHPanels  = new Map(); // id -> DOM panel
+window.CB2_selectedItemIndex = null;
+window.CB2_selectedCharacterIndex = null;
 
 // ---------- UTILITIES ----------
 const CloneUIMap = new Map();
 
-const SWOOSH_START = "&#&&#&#&#&#&##&#&#& === SWOOSH START ===";
+const SWOOSH_START = "startstartstart*$*$*$*$*$*$*$*$$*$* === SWOOSH START ===";
 const SWOOSH_END   = "finfinfin*$*$*$*$*$*$*$*$$*$* === SWOOSH END ===";
 
 let DEBUG_ENABLED = true;
@@ -454,9 +830,60 @@ window.UserCustomSpells = [];
 window.SpellClassAvailable = {};
 window.ItemRegistry = [];
 window.itemTimers = {};
+window.CB2_ItemRegistry = [];   // brand‑marked CB2 item DB
+window.CB2_userProxyBase = "";
+window.CB2_approveLocked = false;
+
+
+// Ensure CB2 exists before using it
+window.CB2 = window.CB2 || {};
+CB2.activeCharacterId = null;
+
+
+// clean hold or whatever localstorage here index page
+window.addEventListener("DOMContentLoaded", () => {
+    cb2_clearAllLocalData();
+});
+// clean hold or whatever localstorage here index page on close refresh 
+window.addEventListener("beforeunload", () => {
+    cb2_clearAllLocalData();
+});
+
 
 // Safety: ensure ItemRegistry always exists
 window.ItemRegistry = window.ItemRegistry || [];
+
+// =============================================================
+// GLOBAL CB2 OBJECT
+// =============================================================
+window.CB2 = window.CB2 || {
+    characters: [],
+    items: [],
+    currentCharacterDraft: null
+};
+
+// =============================================================
+// CLEAR ALL CB2 LOCAL STORAGE (on load + on exit)
+// =============================================================
+function cb2_clearAllLocalData() {
+    const keysToDelete = [
+        "cb2_items",
+        "cb2_tokens",
+        "cb2_characters",
+        "cb2_bank",
+        "cb2_currentCharacter",
+        "cb2_lastScrapedItem",
+        "cb2_lastPreviewItem",
+        "cb2_tempItem",
+        "cb2_tempToken",
+        "CB2_tokenMergedList"
+    ];
+
+    keysToDelete.forEach(key => localStorage.removeItem(key));
+
+    console.warn("CB2: Local storage cleared on load/exit.");
+}
+
 
 //letmeseee
 
@@ -673,75 +1100,169 @@ function logRaw(text) {
     attempt();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    const log = document.getElementById("log");
-    if (log) {
-        __DBG("CHECK: #log element FOUND on DOMContentLoaded.");
-    } else {
-        __DBG("CHECK: #log element MISSING on DOMContentLoaded.");
-    }
-});
+// =============================================================
+// ## note collect these together //##
+// RACE → CLASS MAP
+// =============================================================
+window.CB2_RACE_CLASS_MAP = {
+    human: [
+        "warrior", "paladin", "ranger", "shadowknight",
+        "bard", "rogue", "monk",
+        "cleric", "druid", "shaman",
+        "necromancer", "wizard", "magician", "enchanter"
+    ],
 
+   //review?
+};
 
+// startup start up boot cmplete^^
+
+// ============================================================
+// Helper function to freeze log for swoosh before saving
+// ============================================================
 function freezeLogForSwoosh() {
     LOG_UNLOCKED = false;
     return new Promise(resolve => setTimeout(resolve, 2000)); // 2 sec quiet time
 }
 
+// ============================================================
+// 1. Swoosh Save Function (fixed for order of operations and proper async handling)
+// ============================================================
 async function swooshSave() {
-    await freezeLogForSwoosh();
-    __DBG("ENTER: swooshSave() Step 1: lock and wait");
-
-    __DBG("DBG: Building fullDatabase object...");
-    let fullDatabase;
     try {
-        fullDatabase = {
-            timestamp: new Date().toISOString(),
-            registry: SpellRegistry,
-            overrides: UserOverrides,
-            custom: UserCustomSpells,
-            classes: SpellClassAvailable,
-            longTermTimers: LongTermTimersAPI.getAll(),
-            items: ItemRegistry || []
-        };
-        __DBG("DBG: fullDatabase object built successfully.");
-    } catch (e) {
-        __DBG("ERROR: fullDatabase BUILD FAILED: " + e.message);
-        return;
-    }
+        // Step 1: Save All Items First (inventory + CH timers)
+        if (typeof cb2_saveCHTimersToStorage === "function") {
+            cb2_saveCHTimersToStorage();
+        }
 
-    __DBG("DBG: Attempting logRaw(SWOOSH_START)...");
-    try {
-        logRaw(SWOOSH_START);
-        __DBG("ENTER: swooshSave Step 2: write swoosh block (SWOOSH_START)");
-    } catch (e) {
-        __DBG("ERROR: logRaw(SWOOSH_START) FAILED: " + e.message);
-        return;
-    }
+        // Step 2: Sync CB2 → ItemRegistry, characters, tokens (preserves everything including CH timers)
+        if (typeof cb2_writeItemsIntoSwoosh === "function") {
+            cb2_writeItemsIntoSwoosh();
+        }
 
-    __DBG("DBG: Attempting logRaw(JSON)...");
-    try {
-        logRaw(JSON.stringify(fullDatabase, null, 2));
-    } catch (e) {
-        __DBG("ERROR: logRaw(JSON) FAILED: " + e.message);
-        return;
-    }
+        // Step 3: Pull the merged items that were just saved (inventory + CH timers)
+        let mergedItems = [];
+        try {
+            mergedItems = cb2_swooshLoad("cb2_items", []) || [];
+            __DBG("[SYNC] mergedItems loaded for swoosh save, count = " + mergedItems.length);
+        } catch (e) {
+            __DBG("[SYNC ERROR] Failed to load merged cb2_items for swoosh save: " + e.message);
+            mergedItems = ItemRegistry || CB2.items || [];
+        }
 
-    __DBG("DBG: Attempting logRaw(SWOOSH_END)...");
-    try {
-        logRaw(SWOOSH_END);
-        __DBG("ENTER: swooshSave Step 3: write swoosh block (SWOOSH_END)");
-    } catch (e) {
-        __DBG("ERROR: logRaw(SWOOSH_END) FAILED: " + e.message);
-        return;
-    }
+        // Step 4: Sync characters
+        let cb2Characters = [];
+        try {
+            cb2Characters = CB2.characters || [];
+            cb2_log("[SYNC] CB2.characters prepared for swoosh save.");
+        } catch (e) {
+            cb2_log("[SYNC ERROR] Failed to sync characters: " + e.message);
+        }
 
-    LOG_UNLOCKED = true;
-    __DBG("ENTER: swooshSave Step 4: unlock");
+        // Step 5: Sync tokens
+        let cb2Tokens = [];
+        try {
+            cb2Tokens = CB2.tokens || [];
+            cb2_log("[SYNC] CB2.tokens prepared for swoosh save.");
+        } catch (e) {
+            cb2_log("[SYNC ERROR] Failed to sync tokens: " + e.message);
+        }
 
-    logLine("Swoosh Save Complete.");
-    __DBG("ENTER: swooshSave() COMPLETE");
+        // Step 6: Wait for quiet period before writing swoosh block
+        await freezeLogForSwoosh();
+// Step 7: Build the full database object to be saved
+let fullDatabase;
+try {
+    const lttAll = (window.LongTermTimersAPI && typeof LongTermTimersAPI.getAll === "function")
+        ? LongTermTimersAPI.getAll() || []
+        : [];
+
+    __DBG("DBG: LongTermTimersAPI.getAll() count = " + lttAll.length);
+
+    fullDatabase = {
+        timestamp: new Date().toISOString(),
+        registry: SpellRegistry,
+        overrides: UserOverrides,
+        custom: UserCustomSpells,
+        classes: SpellClassAvailable,
+
+        // Long term timers from LTT
+        longTermTimers: lttAll,
+
+        // ⭐ Items come from merged cb2_items (inventory + CH timers + bank items)
+        items: mergedItems,
+
+        // ⭐ Characters saved directly (includes Bank Character)
+        characters: cb2Characters,
+
+        // ⭐ Tokens saved directly
+        tokens: cb2Tokens
+    };
+
+    __DBG("DBG: fullDatabase object built successfully.");
+} catch (e) {
+    __DBG("ERROR: fullDatabase BUILD FAILED: " + e.message);
+    return;
 }
+        // Step 8: Write swoosh block to localStorage
+        __DBG("DBG: Attempting logRaw(SWOOSH_START)...");
+        logRaw(SWOOSH_START);
+
+        __DBG("DBG: Attempting logRaw(JSON)...");
+        logRaw(JSON.stringify(fullDatabase, null, 2));
+
+        __DBG("DBG: Attempting logRaw(SWOOSH_END)...");
+        logRaw(SWOOSH_END);
+
+        // Unlock logging
+        LOG_UNLOCKED = true;
+        __DBG("ENTER: swooshSave() COMPLETE");
+
+        logLine("Swoosh Save Complete.");
+    } catch (e) {
+        __DBG("[SYNC ERROR] swooshSave failed: " + e.message);
+    }
+}
+
+// ============================================================
+// Swoosh Helpers (safely storing data in localStorage)
+// ============================================================
+function cb2_swooshSave(key, data) {
+    try {
+        localStorage.setItem("cb2_" + key, JSON.stringify(data));
+    } catch (e) {
+        console.warn("CB2 swooshSave failed:", e);
+    }
+}
+
+function cb2_swooshLoad(key, fallback) {
+    try {
+        const raw = localStorage.getItem("cb2_" + key);
+        if (!raw) return fallback;
+        return JSON.parse(raw);
+    } catch (e) {
+        console.warn("CB2 swooshLoad failed:", e);
+        return fallback;
+    }
+}
+
+
+
+
+// -------------------------------
+// CB2: Utility logger (separate from your main log())
+// -------------------------------
+function cb2_log(msg) {
+    const box = document.getElementById("cb2_debugConsole");
+    if (!box) return;
+    box.textContent += msg + "\n";
+    box.scrollTop = box.scrollHeight;
+}
+
+// end chr savestuff
+
+
+// chr button panel closers^^
 
 
         function logUnloggedMembers() {
@@ -2212,102 +2733,137 @@ function enableSpellClass(classCode) {
     });
 }
 
+let swooshRestoreInProgress = false;
+let swooshRestoreCompleted = false;
 
 function swooshLoadFromText(text) {
     __DBG("ENTER: swooshLoadFromText()");
-    const lines = text.split("\n");
 
-    let endIndex = -1;
-    let startIndex = -1;
-
-    // ===============================
-    // Find newest END
-    // ===============================
-    for (let i = lines.length - 1; i >= 0; i--) {
-        if (lines[i].includes(SWOOSH_END)) {
-            endIndex = i;
-            __DBG("FOUND: SWOOSH_END at line " + i);
-            break;
-        }
-    }
-    if (endIndex === -1) {
-        __DBG("ERROR: No SWOOSH_END found.");
-        logLine("No swoosh block found.");
+    // Prevent double-restore
+    if (swooshRestoreInProgress || swooshRestoreCompleted) {
+        __DBG("SKIP: swooshLoadFromText() called again — ignoring duplicate.");
         return;
     }
+    swooshRestoreInProgress = true;
 
-    // ===============================
-    // Find matching START
-    // ===============================
-    for (let j = endIndex - 1; j >= 0; j--) {
-        if (lines[j].includes(SWOOSH_START)) {
-            startIndex = j;
-            __DBG("FOUND: SWOOSH_START at line " + j);
-            break;
-        }
-    }
-    if (startIndex === -1) {
-        __DBG("ERROR: SWOOSH_END found but no SWOOSH_START.");
-        logLine("Swoosh END found but no START marker.");
-        return;
-    }
-
-    // ===============================
+    // -------------------------------
     // Extract JSON block
-    // ===============================
+    // -------------------------------
+    const lines = text.split("\n");
+    let endIndex = -1, startIndex = -1;
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].includes(SWOOSH_END)) { endIndex = i; break; }
+    }
+    if (endIndex === -1) return logLine("No swoosh block found.");
+
+    for (let j = endIndex - 1; j >= 0; j--) {
+        if (lines[j].includes(SWOOSH_START)) { startIndex = j; break; }
+    }
+    if (startIndex === -1) return logLine("Swoosh END found but no START marker.");
+
     const swooshText = lines.slice(startIndex + 1, endIndex).join("\n");
-    __DBG("EXTRACTED swooshText length=" + swooshText.length);
-
     let swoosh;
-    try {
-        swoosh = JSON.parse(swooshText);
-        __DBG("PARSE OK: swoosh JSON loaded.");
-    } catch (e) {
-        __DBG("PARSE ERROR: " + e.message);
-        logLine("Failed to parse swoosh block.");
-        return;
-    }
+    try { swoosh = JSON.parse(swooshText); }
+    catch { return logLine("Failed to parse swoosh block."); }
 
-    // ===============================
-    // Apply loaded data
-    // ===============================
-    SpellRegistry = swoosh.registry || {};
-    UserOverrides = swoosh.overrides || {};
-    UserCustomSpells = swoosh.custom || {};
-    SpellClassAvailable = swoosh.classes || {};
+    // --------------------------------------
+    // PASS 1 — Capture saved data BEFORE cb2_init wipes everything
+    // --------------------------------------
+    const _savedItems =
+        Array.isArray(swoosh.cb2_items) ? swoosh.cb2_items :
+        Array.isArray(swoosh.items)     ? swoosh.items     :
+        (typeof swoosh.items === "object" ? Object.values(swoosh.items) : []);
 
-    // ===============================
-    // Restore Long Term Timers
-    // ===============================
-    if (swoosh.longTermTimers) {
-        LongTermTimersAPI.loadAll(swoosh.longTermTimers);
-        logLine("LTT Restored from Swoosh.");
+    const _savedTimers =
+        Array.isArray(swoosh.longTermTimers) ? swoosh.longTermTimers :
+        (typeof swoosh.longTermTimers === "object" ? Object.values(swoosh.longTermTimers) : []);
+
+    const _savedCharacters =
+        Array.isArray(swoosh.characters) ? swoosh.characters :
+        (typeof swoosh.characters === "object" ? Object.values(swoosh.characters) : []);
+
+    const _savedTokens =
+        Array.isArray(swoosh.tokens) ? swoosh.tokens :
+        (typeof swoosh.tokens === "object" ? Object.values(swoosh.tokens) : []);
+
+    // -------------------------------
+    // Restore raw data (NO UI YET)
+    // -------------------------------
+    SpellRegistry       = swoosh.registry  || {};
+    UserOverrides       = swoosh.overrides || {};
+    UserCustomSpells    = swoosh.custom    || {};
+    SpellClassAvailable = swoosh.classes   || {};
+
+    // Items (inventory + CH + bank items)
+    CB2.items =
+        Array.isArray(swoosh.cb2_items) ? swoosh.cb2_items :
+        Array.isArray(swoosh.items)     ? swoosh.items     :
+        [];
+    ItemRegistry = CB2.items;
+
+    // Characters (Bank Character will be injected later)
+    CB2.characters = Array.isArray(swoosh.characters) ? swoosh.characters : [];
+    CB2.tokens     = Array.isArray(swoosh.tokens)     ? swoosh.tokens     : [];
+
+    __DBG("DEBUG: After load, ItemRegistry length = " + ItemRegistry.length);
+    __DBG("DEBUG: ItemRegistry sample = " + JSON.stringify(ItemRegistry.slice(0, 5)));
+
+    normalizeLoadedData(swoosh);
+
+    // -------------------------------
+    // Build empty UI shell
+    // -------------------------------
+    if (typeof cb2_init === "function") {
+        CB2.initialized = false;
+        cb2_init();   // wipes UI but NOT our saved data
     }
-__DBG("LOAD: swoosh.items present? " + (swoosh.items ? "YES" : "NO"));
-if (swoosh.items) {
-    __DBG("LOAD: swoosh.items length = " + swoosh.items.length);
-    swoosh.items.forEach((it, idx) => {
-        __DBG("LOAD: swoosh.items[" + idx + "] id=" + it.id + " title=" + it.title);
-    });
+// --------------------------------------
+// PASS 2 — Reinject saved data AFTER cb2_init wiped the UI
+// --------------------------------------
+CB2.items      = _savedItems;
+ItemRegistry   = _savedItems;
+
+// ⭐ Write restored items back into swoosh storage
+if (typeof cb2_swooshSave === "function") {
+    cb2_swooshSave("cb2_items", CB2.items);
 }
-    // ===============================
-    // ⭐ RESTORE ITEM BUILDER DATA
-    // ===============================
-    if (swoosh.items) {
-        __DBG("APPLY: Restoring ItemRegistry (" + swoosh.items.length + " items)");
-        ItemRegistry = swoosh.items;
 
-        restoreAllItemsFromRegistry();
+CB2.characters = _savedCharacters;
+CB2.tokens     = _savedTokens;
 
-        logLine("Restored " + ItemRegistry.length + " item timers from swoosh.");
-    } else {
-        ItemRegistry = [];
+// ⭐ NEW: Write restored characters into swoosh storage
+if (typeof cb2_swooshSave === "function") {
+    cb2_swooshSave("characters", CB2.characters);
+}
+
+// ⭐ Ensure Bank Character exists and is injected
+if (typeof cb2_getBankCharacter === "function") {
+    cb2_getBankCharacter();
+}
+
+    // Long-term timers must be restored AFTER init
+    if (typeof LongTermTimersAPI?.loadAll === "function") {
+        LongTermTimersAPI.loadAll(_savedTimers);
     }
 
-    // ===============================
-    // Rebuild Spell UI
-    // ===============================
-    rebuildSpellUI();
+    // -------------------------------
+    // Build character UI
+    // -------------------------------
+    if (typeof cb2_renderCharacterList === "function") cb2_renderCharacterList();
+    if (typeof cb2_renderCharacterDeck === "function") cb2_renderCharacterDeck();
+
+    // -------------------------------
+    // Build spell UI
+    // -------------------------------
+    if (typeof rebuildSpellUI === "function") rebuildSpellUI();
+
+    // -------------------------------
+    // Final polish pass
+    // -------------------------------
+    if (typeof rebuildAllUIAfterSwoosh === "function") {
+        rebuildAllUIAfterSwoosh();
+    }
 
     if (typeof updateSwooshListUI === "function") {
         updateSwooshListUI(swoosh.timestamp);
@@ -2315,7 +2871,10 @@ if (swoosh.items) {
 
     logLine("Swoosh Load Complete.");
     __DBG("EXIT: swooshLoadFromText() — COMPLETE");
+    swooshRestoreCompleted = true;
+    swooshRestoreInProgress = false;
 }
+
 function restoreItemTimer(panel, item) {
     const timerDisplay = panel.querySelector(`#itemTimer_${item.id}`);
     if (!timerDisplay) {
@@ -5189,70 +5748,9 @@ __DBG("past SPELL REGISTRY BOOTSTRAPPER (SAFE VERSION)()66611144431111333");
 // AUTO-GENERATE FIRST SWOOSH SAVE (FIRST RUN) — FULLY INSTRUMENTED
 // ===============================
 
-__DBG("ENTER: autoFirstRunSwoosh()");
+// REMOVE auto-first-run swoosh entirely.
+// It conflicts with manual swoosh loading.
 
-(function autoFirstRunSwoosh() {
-
-    // Check if already loaded this session
-    if (window.__swooshLoadedOnce) {
-        __DBG("SKIP: __swooshLoadedOnce already TRUE.");
-        return;
-    }
-    __DBG("PASS: __swooshLoadedOnce is FALSE (first run).");
-
-    // Check if log already contains a swoosh block
-    const log = document.getElementById("log");
-
-    if (!log) {
-        __DBG("ERROR: #log element NOT FOUND during autoFirstRunSwoosh.");
-    } else {
-        __DBG("PASS: #log element FOUND.");
-    }
-
-    if (log && log.textContent.includes(SWOOSH_START)) {
-        __DBG("SKIP: Log already contains a swoosh block.");
-        return;
-    }
-
-    __DBG("PASS: No swoosh block found in log. Generating first-run swoosh.");
-
-    // Mark as generated
-    window.__swooshLoadedOnce = true;
-    __DBG("SET: __swooshLoadedOnce = TRUE");
-
-    // Generate initial swoosh block
-    freezeLogForSwoosh().then(() => {
-
-        __DBG("ENTER: freezeLogForSwoosh() resolved — writing initial swoosh.");
-
-        const fullDatabase = {
-            timestamp: new Date().toISOString(),
-            registry: SpellRegistry,
-            overrides: UserOverrides,
-            custom: UserCustomSpells,
-            classes: SpellClassAvailable
-        };
-
-        __DBG("WRITING: SWOOSH_START");
-        logRaw(SWOOSH_START);
-
-        __DBG("WRITING: JSON fullDatabase");
-        logRaw(JSON.stringify(fullDatabase, null, 2));
-
-        __DBG("WRITING: SWOOSH_END");
-        logRaw(SWOOSH_END);
-
-        LOG_UNLOCKED = true;
-        __DBG("SET: LOG_UNLOCKED = TRUE");
-
-        logLine("Initial Swoosh database generated (first run).");
-        __DBG("PASS: Initial swoosh generation COMPLETE.");
-
-    }).catch(err => {
-        __DBG("ERROR: freezeLogForSwoosh() rejected: " + err);
-    });
-
-})();
 
 __DBG("EXIT: autoFirstRunSwoosh()");
 
@@ -7294,8 +7792,17 @@ setInterval(() => {
 // ===============================
 window.LongTermTimersAPI = {
     getAll: () => LTT,
-    loadAll: arr => { LTT = arr || []; render(); }
+
+    loadAll: arr => {
+        LTT = Array.isArray(arr) ? arr : [];
+    },
+
+    rebuildPanels: () => {
+        render();
+    }
 };
+
+
 
 })();
 // ===============================
@@ -7603,7 +8110,28 @@ sealBtn.style.cursor = "not-allowed";
     document.getElementById("itemSealArea").style.display = "none";
 };
 
+
+
 function createItemPanel(item) {
+
+    // ============================
+    // FILTER PROTECTION FOR REAL SEALED ITEMS
+    // ============================
+    if (!item ||
+        typeof item !== "object" ||
+        !item.id ||
+        !item.title ||
+        typeof item.effectEnabled !== "boolean" ||
+        typeof item.effectSeconds !== "number" ||
+        typeof item.timer !== "object" ||
+        item.type === "chain" ||
+        item.type === "chchain" ||
+        (typeof item.name === "string" && item.name.startsWith("CH Chain"))
+    ) {
+        __DBG("UI: createItemPanel SKIPPED invalid item", item);
+        return null;
+    }
+
     __DBG("UI: createItemPanel ENTER id=" + item.id + " title=" + item.title);
 
     const container = document.createElement("div");
@@ -7643,7 +8171,7 @@ function createItemPanel(item) {
             <button data-id="${item.id}" class="itemTimerStart">Start</button>
             <button data-id="${item.id}" class="itemTimerPause">Pause</button>
             <button data-id="${item.id}" class="itemTimerReset">Reset</button>
-<button data-id="${item.id}" class="itemTimerRestart">Restart</button>
+            <button data-id="${item.id}" class="itemTimerRestart">Restart</button>
         `;
 
         container.appendChild(timerDiv);
@@ -7686,13 +8214,13 @@ function createItemPanel(item) {
         // Delete checkbox
         const delLabel = document.createElement("label");
         delLabel.style.marginRight = "10px";
-delLabel.innerHTML = `<input type="checkbox" class="itemSealDeleteToggle" data-id="${item.id}"> Delete?`;
+        delLabel.innerHTML = `<input type="checkbox" class="itemSealDeleteToggle" data-id="${item.id}"> Delete?`;
         controlRow.appendChild(delLabel);
 
         // Delete button
         const delBtn = document.createElement("button");
         delBtn.textContent = "Delete";
-delBtn.className = "itemSealDeleteBtn";
+        delBtn.className = "itemSealDeleteBtn";
         delBtn.dataset.id = item.id;
         delBtn.disabled = true;
         delBtn.style.opacity = "0.4";
@@ -7730,6 +8258,7 @@ delBtn.className = "itemSealDeleteBtn";
     __DBG("UI: createItemPanel EXIT id=" + item.id + " title=" + item.title);
     return container;
 }
+
 
 // ======================================================
 // TIMER LOGIC — UPDATED TO USE UUID // global click handler
@@ -7887,14 +8416,21 @@ if (e.target.classList.contains("itemCloneRestart")) {
 }
 
 });
-
 // ======================================================
 // RESTORE LOGIC — UUID SAFE
 // ======================================================
 function restoreItemTimer(panel, item) {
     __DBG("RESTORE_TIMER: ENTER id=" + item.id + " title=" + item.title);
 
-    const timerDisplay = panel.querySelector(`#itemTimer_${item.id}`);
+    // Allow calls with panel OR without panel
+    let timerDisplay = null;
+
+    if (panel) {
+        timerDisplay = panel.querySelector(`#itemTimer_${item.id}`);
+    } else {
+        timerDisplay = document.getElementById(`itemTimer_${item.id}`);
+    }
+
     if (!timerDisplay) {
         __DBG("RESTORE_TIMER: No timerDisplay for id=" + item.id);
         return;
@@ -7916,53 +8452,80 @@ function restoreItemTimer(panel, item) {
         const now = Date.now();
         const elapsed = now - item.timer.savedAt;
         const remaining = Math.max(0, item.timer.remaining - elapsed);
-        timerDisplay.textContent = remaining + "s";
-        __DBG("RESTORE_TIMER: Running restore id=" + item.id + " remaining=" + remaining);
-    } else {
-        timerDisplay.textContent = (item.timer.remaining || item.effectSeconds) + "s";
-        __DBG("RESTORE_TIMER: Static restore id=" + item.id + " remaining=" + (item.timer.remaining || item.effectSeconds));
-    }
 
-    __DBG("RESTORE_TIMER: EXIT id=" + item.id);
+        timerDisplay.textContent = Math.ceil(remaining / 1000) + "s";
+
+        // Update internal state
+        item.timer.remaining = remaining;
+        item.timer.savedAt = now;
+
+        resumeItemTimerTick(item);
+
+        __DBG("RESTORE: Item id=" + item.id + " restored running timer, remaining=" + remaining);
+    }
 }
+
+
 function restoreAllItemsFromRegistry() {
     __DBG("RESTORE: Starting item restore from ItemRegistry");
-    __DBG("RESTORE: ItemRegistry length = " + (window.ItemRegistry ? window.ItemRegistry.length : "NULL"));
 
-    if (!window.ItemRegistry || window.ItemRegistry.length === 0) {
+    if (!Array.isArray(window.ItemRegistry) || window.ItemRegistry.length === 0) {
         __DBG("RESTORE: No items to restore.");
         return;
     }
 
-    window.ItemRegistry.forEach((item, index) => {
-        __DBG("RESTORE: [" + index + "] id=" + item.id + " title=" + item.title + " type=" + item.type);
+    __DBG("RESTORE: ItemRegistry length = " + window.ItemRegistry.length);
 
-        // Normal item panel
-        if (!item.type || item.type === "item") {
+    window.ItemRegistry.forEach((item, index) => {
+        if (!item || !item.id) {
+            __DBG(`RESTORE: [${index}] Invalid item entry — skipping.`);
+            return;
+        }
+
+        const title = item.title || item.name || item.spellName || "(unnamed item)";
+        const type  = item.type || "item";
+
+        __DBG(`RESTORE: [${index}] id=${item.id} title=${title} type=${type}`);
+
+        // -------------------------------
+        // NORMAL INVENTORY / ITEM PANEL
+        // -------------------------------
+        if (type === "item" || !type) {
             const panel = createItemPanel(item);
             __DBG("RESTORE: Item panel created for id=" + item.id);
 
-            restoreItemTimer(panel, item);
-            __DBG("RESTORE: Item timer restored for id=" + item.id);
+            if (panel && typeof restoreItemTimer === "function") {
+                restoreItemTimer(panel, item);
+                __DBG("RESTORE: Item timer restored for id=" + item.id);
+            }
             return;
         }
 
-        // CH Chain panel
-        if (item.type === "chchain") {
-            createChChainPanel(item);
-            __DBG("RESTORE: CH Chain panel created for id=" + item.id);
+        // -------------------------------
+        // CH CHAIN PANEL
+        // -------------------------------
+        if (type === "chchain") {
+            if (typeof createChChainPanel === "function") {
+                createChChainPanel(item);
+                __DBG("RESTORE: CH Chain panel created for id=" + item.id);
+            } else {
+                __DBG("RESTORE: Missing createChChainPanel() — skipping CH chain item.");
+            }
             return;
         }
 
-        // Unknown future types
-        __DBG("RESTORE: Unknown item type '" + item.type + "' — skipping.");
+        // -------------------------------
+        // UNKNOWN FUTURE TYPES
+        // -------------------------------
+        __DBG(`RESTORE: Unknown item type '${type}' — skipping.`);
     });
 
-    const sections = document.querySelectorAll(".section");
-    __DBG("RESTORE: Total .section panels in DOM after restore = " + sections.length);
+    const sections = document.querySelectorAll(".cb2-item-panel, .itemTimerSection, .cb2-inventory-item");
+    __DBG("RESTORE: Total item-related panels in DOM after restore = " + sections.length);
 
     __DBG("RESTORE: Item restore complete.");
 }
+
 
 function rebuildCycleRotation() {
     chain._cycleRotation = getActiveRotation().slice();
@@ -8921,20 +9484,24 @@ patternInput.oninput = () => {
         syncBtn.textContent = "Just Fired!";
         syncBtn.style.fontSize = "10px";
 
-        syncBtn.onclick = () => {
-            const rotation = chain._cycleRotation || getActiveRotation();
-            const rotIdx = rotation.findIndex(c => c.slotId === cleric.slotId);
+syncBtn.onclick = () => {
+    const rotation = chain._cycleRotation || getActiveRotation();
+    const rotIdx = rotation.findIndex(c => c.slotId === cleric.slotId);
 
-            if (rotIdx >= 0) {
-                chain.currentBlockIndex = rotIdx;
-                chain.currentBlockStartTime = Date.now();
-                chain._frozenBlockTime = chain.delayMs;
-                chain._lastCasterIndex = rotIdx - 1;
+    if (rotIdx >= 0) {
+        chain.currentBlockIndex = rotIdx;
+        chain.currentBlockStartTime = Date.now();
+        chain._frozenBlockTime = chain.delayMs;
+        chain._lastCasterIndex = rotIdx - 1;
 
-                chLogLine(`Synced to cleric: ${cleric.name}`);
-                renderOnce();
-            }
-        };
+        chLogLine(`Synced to cleric: ${cleric.name}`);
+        renderOnce();
+    }
+
+    // ⭐ NEW: Save CH timers into cb2_items
+    cb2_saveCHTimersToStorage();
+};
+
 
         // ===============================
         // BUILD ROW
@@ -8944,7 +9511,7 @@ patternInput.oninput = () => {
     });
 }
 
-
+//
 function renderTimeline() {
     const rotation = chain._cycleRotation || getActiveRotation();
 
@@ -9245,6 +9812,3036 @@ function tick() {
     renderOnce();
 }
 
+// itemlord chritem itemchr chrlord letsgo
+
+// =======================================
+// CB2: CHARACTER CREATION + PANEL LOGIC
+// =======================================
+// -------------------------------
+// Initialize CB2 from swoosh
+// -------------------------------
+function cb2_init() {
+    if (CB2.initialized) return;
+
+    // -----------------------------------------
+    // ALWAYS sync characters from storage
+    // -----------------------------------------
+    console.warn("cb2_init(): Syncing CB2.characters from storage");
+    CB2.characters = cb2_swooshLoad("characters", []);   // ⭐ ALWAYS sync
+
+    // ⭐ Ensure Bank Character exists on fresh start
+    if (typeof cb2_getBankCharacter === "function") {
+        cb2_getBankCharacter();
+    }
+
+    // Items
+    if (!Array.isArray(CB2.items)) {
+        console.warn("cb2_init(): CB2.items was not an array — forcing empty array");
+        CB2.items = [];
+    }
+
+    // Tokens
+    if (!Array.isArray(CB2.tokens)) {
+        console.warn("cb2_init(): CB2.tokens was not an array — forcing empty array");
+        CB2.tokens = [];
+    }
+
+    // Build UI shell
+    if (typeof cb2_renderCharacterList === "function") {
+        cb2_renderCharacterList();
+    }
+
+    if (typeof cb2_renderCharacterDeck === "function") {
+        cb2_renderCharacterDeck();
+    }
+
+    CB2.initialized = true;
+    cb2_log("CB2 Initialized.");
+}
+
+// -------------------------------
+// CREATE CHARACTER
+// -------------------------------
+CB2.currentCharacterDraft = null;
+const CB2_RACE_CLASS_STATS = {
+    human: {
+        Bard:        { STR:80, STA:75, AGI:75, DEX:85, WIS:75, INT:75, CHA:85, bonus:25 },
+        Cleric:      { STR:80, STA:80, AGI:75, DEX:75, WIS:85, INT:75, CHA:75, bonus:30 },
+        Druid:       { STR:75, STA:85, AGI:75, DEX:75, WIS:85, INT:75, CHA:75, bonus:30 },
+        Enchanter:   { STR:75, STA:75, AGI:75, DEX:75, WIS:75, INT:85, CHA:85, bonus:30 },
+        Magician:    { STR:75, STA:85, AGI:75, DEX:75, WIS:75, INT:85, CHA:75, bonus:30 },
+        Monk:        { STR:80, STA:80, AGI:85, DEX:85, WIS:75, INT:75, CHA:75, bonus:20 },
+        Necromancer: { STR:75, STA:75, AGI:75, DEX:85, WIS:75, INT:85, CHA:75, bonus:30 },
+        Paladin:     { STR:85, STA:80, AGI:75, DEX:75, WIS:80, INT:75, CHA:85, bonus:20 },
+        Ranger:      { STR:80, STA:85, AGI:75, DEX:75, WIS:80, INT:75, CHA:75, bonus:20 },
+        Rogue:       { STR:75, STA:75, AGI:85, DEX:85, WIS:75, INT:75, CHA:75, bonus:30 },
+        "Shadow Knight": { STR:80, STA:75, AGI:75, DEX:75, WIS:75, INT:85, CHA:80, bonus:20 },
+        Warrior:     { STR:85, STA:85, AGI:80, DEX:75, WIS:75, INT:75, CHA:75, bonus:25 },
+        Wizard:      { STR:75, STA:85, AGI:75, DEX:75, WIS:75, INT:85, CHA:75, bonus:30 }
+    },
+
+    iksar: {
+        Monk:        { STR:75, STA:75, AGI:100, DEX:95, WIS:80, INT:75, CHA:55, bonus:20 },
+        Necromancer: { STR:70, STA:70, AGI:90,  DEX:95, WIS:80, INT:85, CHA:55, bonus:30 },
+        "Shadow Knight": { STR:80, STA:75, AGI:90, DEX:85, WIS:80, INT:85, CHA:60, bonus:20 },
+        Shaman:      { STR:70, STA:75, AGI:90,  DEX:85, WIS:90, INT:75, CHA:60, bonus:30 },
+        Warrior:     { STR:80, STA:80, AGI:95,  DEX:85, WIS:80, INT:75, CHA:55, bonus:25 }
+    }
+};
+
+function cb2_getBaseStatsForRaceClass(race, className) {
+    if (!race || !className) return null;
+
+    const raceKey = race.toLowerCase(); // "human", "iksar"
+    const raceData = CB2_RACE_CLASS_STATS[raceKey];
+    if (!raceData) return null;
+
+    // Normalize class name to match keys exactly
+    const classKey = Object.keys(raceData).find(
+        key => key.toLowerCase() === className.toLowerCase()
+    );
+
+    if (!classKey) return null;
+
+    // Clone so we don't mutate the master table
+    return { ...raceData[classKey] };
+}
+
+// ---------------------------------------
+// IMPORT SCRAPED ITEM → APPROVED LIST
+// ---------------------------------------
+function cb2_importScraperItem(scraped) {
+    if (!scraped) {
+        cb2_log("[CB2 Import] ERROR: No scraped item provided.");
+        return;
+    }
+
+    cb2_log("[CB2 Import] Importing scraped item: " + scraped.name);
+
+    // Convert scraped → CB2 format
+    const item = cb2_convertScraperItem(scraped);
+
+    // Load existing approved items
+    const items = cb2_swooshLoad("cb2_items", []);
+
+    // Add new item
+    items.push(item);
+
+    // Save back to storage
+    cb2_swooshSave("cb2_items", items);
+
+    cb2_log("[CB2 Import] Saved item: " + item.name);
+}
+
+// =============================================================
+// function cb2_renderCharacterCreatorStats
+// =============================================================
+function cb2_renderCharacterCreatorStats(chr) {
+    const panel = document.getElementById("cb2_chrStatPanel");
+    if (!panel) return;
+
+    const stats = ["STR","STA","AGI","DEX","WIS","INT","CHA"];
+
+    panel.innerHTML = `
+        <div style="font-size:12px; margin-bottom:6px;">
+            Points remaining: <strong>${chr.bonusPool}</strong>
+        </div>
+
+        <table style="font-size:12px;">
+            <tr><th>Stat</th><th>Value</th><th>Adjust</th></tr>
+
+            ${stats.map(stat => `
+                <tr>
+                    <td>${stat}</td>
+                    <td>${chr.baseStats[stat]}</td>
+                    <td>
+                        <button class="cb2-stat-minus" data-stat="${stat}">-</button>
+                        <button class="cb2-stat-plus" data-stat="${stat}">+</button>
+                    </td>
+                </tr>
+            `).join("")}
+        </table>
+    `;
+
+    panel.querySelectorAll(".cb2-stat-plus").forEach(btn => {
+        btn.onclick = () => {
+            cb2_addBonusPoint(chr, btn.getAttribute("data-stat"));
+            cb2_renderCharacterCreatorStats(chr);
+        };
+    });
+
+    panel.querySelectorAll(".cb2-stat-minus").forEach(btn => {
+        btn.onclick = () => {
+            cb2_removeBonusPoint(chr, btn.getAttribute("data-stat"));
+            cb2_renderCharacterCreatorStats(chr);
+        };
+    });
+}
+
+// =============================================================
+// function cb2_addBonusPoint
+// =============================================================
+function cb2_addBonusPoint(chr, stat) {
+    if (chr.bonusPool <= 0) return;
+    chr.baseStats[stat]++;
+    chr.bonusPool--;
+}
+
+// =============================================================
+// function cb2_removeBonusPoint
+// =============================================================
+function cb2_removeBonusPoint(chr, stat) {
+    if (chr.baseStats[stat] <= chr.originalBaseStats[stat]) return;
+    chr.baseStats[stat]--;
+    chr.bonusPool++;
+}
+
+// ------------------------------------------------------------
+// Character Creator: Draft Builder
+// ------------------------------------------------------------
+// =============================================================
+// function cb2_startCharacterDraft
+// =============================================================
+function cb2_finalizeCharacterCreation() {
+    const chr = CB2.currentCharacterDraft;
+
+    if (!chr) {
+        cb2_log("No character draft exists.");
+        return;
+    }
+
+    if (chr.bonusPool > 0) {
+        cb2_log("Assign all bonus points before creating the character.");
+        return;
+    }
+
+    // Lock in the true base stats
+    chr.originalBaseStats = { ...chr.baseStats };
+
+    // REQUIRED FIELDS FOR PANELS
+    chr.id = "chr_" + Date.now();
+    chr.visible = true;          // ← THIS IS THE FIX
+    chr.collapsed = false;
+    chr.equipment = {};
+    chr.finalStats = { ...chr.baseStats };
+
+    // Save character
+    CB2.characters.push(chr);
+    cb2_swooshSave("characters", CB2.characters);
+
+    cb2_log("Created character: " + chr.name);
+
+    // Update both panels
+    cb2_renderCharacterDeck();
+    cb2_renderCharacterList?.();
+
+    CB2.currentCharacterDraft = null;
+}
+
+
+// -------------------------------
+// DELETE CHARACTER (SAFE RITUAL)
+// -------------------------------
+document.getElementById("cb2_btn_deleteOne").onclick = () => {
+    const selected = CB2.characters.filter(chr => chr.visible);
+
+    if (selected.length === 0) {
+        cb2_log("Delete failed: No character selected.");
+        return;
+    }
+
+    if (selected.length > 1) {
+        cb2_log("Delete failed: Select only ONE character to delete.");
+        return;
+    }
+
+    const chr = selected[0];
+// ⭐ Prevent deleting the bank
+if (chr.id === "BANK_CHARACTER") {
+    cb2_log("The Bank cannot be deleted.");
+    return;
+}
+
+    const confirmText = prompt(`Type DELETE to confirm deleting: ${chr.name}`);
+
+    if (confirmText !== "DELETE") {
+        cb2_log("Delete cancelled.");
+        return;
+    }
+
+    CB2.characters = CB2.characters.filter(c => c.id !== chr.id);
+cb2_swooshSave("characters", CB2.characters);
+
+    cb2_log("Deleted character: " + chr.name);
+
+    cb2_renderCharacterList();
+    cb2_renderCharacterDeck();
+};
+
+// -------------------------------
+// AUTO-INIT
+// -------------------------------
+cb2_init();
+
+function cb2_renderCharacterList() {
+    const box = document.getElementById("cb2_characterListBox");
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    CB2.characters.forEach(chr => {
+
+        const row = document.createElement("div");
+        row.style.marginBottom = "4px";
+
+        // ⭐ BANK CHARACTER: visible but NOT selectable
+        if (chr.id === "BANK_CHARACTER") {
+            row.innerHTML = `<span style="opacity:0.5">${chr.name} (Bank)</span>`;
+            box.appendChild(row);
+            return;
+        }
+
+        const visibleId = "cb2_chk_characterVisible_" + chr.id;
+        const selectId  = "cb2_chk_characterSelect_" + chr.id;
+
+        row.innerHTML = `
+            <label>
+                <input type="checkbox" id="${visibleId}" ${chr.visible ? "checked" : ""}>
+                ${chr.name}
+            </label>
+
+            <label style="margin-left:10px;">
+                <input type="radio" name="cb2_activeCharacter" id="${selectId}"
+                       ${CB2.activeCharacterId === chr.id ? "checked" : ""}>
+                Use
+            </label>
+        `;
+
+        box.appendChild(row);
+
+        setTimeout(() => {
+            const chkVisible = document.getElementById(visibleId);
+            const chkSelect  = document.getElementById(selectId);
+
+            if (chkVisible) {
+                chkVisible.onchange = () => {
+                    chr.visible = chkVisible.checked;
+                    cb2_swooshSave("characters", CB2.characters);
+                    cb2_renderCharacterDeck();
+                };
+            }
+
+            if (chkSelect) {
+                chkSelect.onchange = () => {
+                    CB2.activeCharacterId = chr.id;
+                    cb2_swooshSave("activeCharacter", CB2.activeCharacterId);
+                };
+            }
+        }, 0);
+    });
+}
+
+
+
+// =======================================
+// CB2: MANUAL ITEM ENTRY LOGIC (CHECKBOX VERSION)
+// =======================================
+
+// EverQuest class short codes (canonical)
+const CB2_ALL_CLASSES = [
+    "WAR","CLR","PAL","RNG","SHD",
+    "DRU","MNK","BRD","ROG","SHM",
+    "NEC","WIZ","MAG","ENC"
+];
+
+// Full names for UI labels
+const CB2_CLASS_FULLNAME = {
+    "WAR":"Warrior",
+    "CLR":"Cleric",
+    "PAL":"Paladin",
+    "RNG":"Ranger",
+    "SHD":"Shadow Knight",
+    "DRU":"Druid",
+    "MNK":"Monk",
+    "BRD":"Bard",
+    "ROG":"Rogue",
+    "SHM":"Shaman",
+    "NEC":"Necromancer",
+    "WIZ":"Wizard",
+    "MAG":"Magician",
+    "ENC":"Enchanter"
+};
+
+// EverQuest race short codes (canonical)
+const CB2_ALL_RACES = [
+    "HUM","BAR","ERU","ELF","HEF","DEF",
+    "HFL","DWF","TRL","OGR","GNM","IKS"
+];
+
+// Full names for UI labels
+const CB2_RACE_FULLNAME = {
+    "HUM":"Human",
+    "BAR":"Barbarian",
+    "ERU":"Erudite",
+    "ELF":"Wood Elf",
+    "HEF":"High Elf",
+    "DEF":"Dark Elf",
+    "HFL":"Halfling",
+    "DWF":"Dwarf",
+    "TRL":"Troll",
+    "OGR":"Ogre",
+    "GNM":"Gnome",
+    "IKS":"Iksar"
+};
+
+// EverQuest slot list (already canonical)
+const CB2_ALL_SLOTS = [
+    "PRIMARY","SECONDARY","RANGE","AMMO",
+    "HEAD","FACE","NECK","SHOULDERS",
+    "ARMS","BACK","WRISTS","HANDS",
+    "FINGER","CHEST","WAIST","LEGS","FEET",
+    "EAR","RING","CHARM"
+];
+
+// Render class checkboxes (short code value, full name label)
+function cb2_renderManualItemClasses() {
+    const box = document.getElementById("cb2_panel_manualItem_classes");
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    CB2_ALL_CLASSES.forEach(code => {
+        const id = "cb2_manualItem_class_" + code;
+        box.innerHTML += `
+            <label style="display:block;">
+                <input type="checkbox" id="${id}" value="${code}">
+                ${CB2_CLASS_FULLNAME[code]}
+            </label>
+        `;
+    });
+}
+
+// Render race checkboxes (short code value, full name label)
+function cb2_renderManualItemRaces() {
+    const box = document.getElementById("cb2_panel_manualItem_races");
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    CB2_ALL_RACES.forEach(code => {
+        const id = "cb2_manualItem_race_" + code;
+        box.innerHTML += `
+            <label style="display:block;">
+                <input type="checkbox" id="${id}" value="${code}">
+                ${CB2_RACE_FULLNAME[code]}
+            </label>
+        `;
+    });
+}
+
+// Render slot checkboxes (slots already match EQ format)
+function cb2_renderManualItemSlots() {
+    const box = document.getElementById("cb2_panel_manualItem_slots");
+    if (!box) return;
+
+    box.innerHTML = "";
+
+    CB2_ALL_SLOTS.forEach(slot => {
+        const id = "cb2_manualItem_slot_" + slot;
+        box.innerHTML += `
+            <label style="display:block;">
+                <input type="checkbox" id="${id}" value="${slot}">
+                ${slot}
+            </label>
+        `;
+    });
+}
+function cb2_buildManualItem() {
+
+    const nameEl = document.getElementById("cb2_manual_name");
+    const name = nameEl ? nameEl.value.trim() : "";
+    if (!name) {
+        cb2_log("Manual Item Error: Name is required.");
+        return null;
+    }
+
+    const typeEl = document.getElementById("cb2_manual_itemType");
+    const itemType = typeEl ? typeEl.value : "Misc";
+
+    const stats = {
+        str: parseInt(cb2_manual_str.value) || 0,
+        sta: parseInt(cb2_manual_sta.value) || 0,
+        agi: parseInt(cb2_manual_agi.value) || 0,
+        dex: parseInt(cb2_manual_dex.value) || 0,
+        int: parseInt(cb2_manual_int.value) || 0,
+        wis: parseInt(cb2_manual_wis.value) || 0,
+        cha: parseInt(cb2_manual_cha.value) || 0,
+        hp:  parseInt(cb2_manual_hp.value)  || 0,
+        mana:parseInt(cb2_manual_mana.value)|| 0,
+        end: parseInt(cb2_manual_end.value) || 0
+    };
+
+    const resists = {
+        fire:    parseInt(cb2_manual_fire.value)    || 0,
+        cold:    parseInt(cb2_manual_cold.value)    || 0,
+        magic:   parseInt(cb2_manual_magic.value)   || 0,
+        disease: parseInt(cb2_manual_disease.value) || 0,
+        poison:  parseInt(cb2_manual_poison.value)  || 0
+    };
+
+    const dmg   = parseInt(cb2_manual_dmg.value)   || 0;
+    const delay = parseInt(cb2_manual_delay.value) || 0;
+    const ac    = parseInt(cb2_manual_ac.value)    || 0;
+
+// WEIGHT
+const weight = parseFloat(document.getElementById("cb2_manual_weight")?.value) || 0;
+
+// SIZE
+const size = document.querySelector("input[name='cb2_manual_size']:checked")?.value || "MEDIUM";
+
+
+    // SLOTS (short codes)
+    const slot = [];
+    document.querySelectorAll("#cb2_panel_manualItem_slots input[type=checkbox]")
+        .forEach(chk => { if (chk.checked) slot.push(chk.value); });
+
+    // CLASSES (short codes)
+    const classes = [];
+    document.querySelectorAll("#cb2_panel_manualItem_classes input[type=checkbox]")
+        .forEach(chk => { if (chk.checked) classes.push(chk.value); });
+
+    // RACES (short codes)
+    const races = [];
+    document.querySelectorAll("#cb2_panel_manualItem_races input[type=checkbox]")
+        .forEach(chk => { if (chk.checked) races.push(chk.value); });
+
+return {
+    id: "cb2_item_" + Date.now(),
+    name,
+    itemType,
+    stats,
+    resists,
+    dmg,
+    delay,
+    ac,
+    slot,
+    classes,
+    races,
+
+    // NEW FIELDS
+    weight,
+    size,
+
+    image: window.CB2_manualEditorImage || null,
+    rawText: null,
+    effect: null,
+    effectType: null,
+    equipped: false
+};
+
+}
+
+// Send manual item to preview panel
+document.getElementById("cb2_btn_manualItem_approve").onclick = () => {
+    const item = cb2_buildManualItem();
+    if (!item) return;
+
+    // Render manual item in preview panel
+    cb2_renderScrapedItemPreview(item);
+
+    // Update global preview state
+    window.CB2_currentPreviewItem = item;
+
+    cb2_log("Manual item sent to preview.");
+
+    // OPEN the preview panel body
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // SCROLL to the preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
+};
+
+// Initialize UI
+cb2_renderManualItemClasses();
+cb2_renderManualItemRaces();
+cb2_renderManualItemSlots();
+
+//blockk
+
+// Render item preview in the right panel
+function cb2_renderItemPreview(item) {
+    const box = document.getElementById("cb2_itemPreviewBox");
+    if (!box) return;
+
+    box.innerHTML = `
+        <div style="border:1px solid #333; padding:10px; margin-bottom:10px;">
+            <h4>${item.name}</h4>
+
+            ${item.image && item.image.startsWith("http")
+                ? `<img src="${item.image}" style="width:64px;height:64px;">`
+                : `<div style="font-size:48px;">✨</div>`
+            }
+
+            <pre style="white-space:pre-wrap; background:#111; color:#0f0; padding:10px; margin-top:10px;">
+${JSON.stringify(item, null, 2)}
+            </pre>
+        </div>
+    `;
+}
+
+// APPROVE MANUAL SEND TO PREVIEW CLICK BUT
+document.getElementById("cb2_btn_manualItem_approve").onclick = () => {
+    const item = cb2_buildManualItem();
+    if (!item) return;
+
+    // Render manual item in preview panel
+    cb2_renderItemPreview(item);
+
+    // Update global preview state
+    window.CB2_currentPreviewItem = item;
+
+    // ⭐ Unlock Approve button using the boolean system
+    cb2_unlockApproveButton();
+
+    cb2_log("Manual item sent to preview.");
+
+    // OPEN the preview panel body
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // SCROLL to the preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
+};
+
+// Initialize manual item entry UI
+cb2_renderManualItemClasses();
+cb2_renderManualItemRaces();
+
+// =======================================
+// CB2: ITEM EQUIP LOGIC
+// =======================================
+
+// -------------------------------
+// Render all items inside a character panel
+// -------------------------------
+function cb2_renderCharacterGear(chr) {
+    const gearBox = document.getElementById("cb2_panel_chrGear_" + chr.id);
+    if (!gearBox) return;
+
+    gearBox.innerHTML = "";
+
+    for (const slot in chr.equipment) {
+        const item = chr.equipment[slot];
+        if (!item) continue;
+
+        const idx = item.id || `${chr.id}_${slot}`;
+
+        const wrapper = document.createElement("div");
+        wrapper.style.border = "1px solid #333";
+        wrapper.style.padding = "8px";
+        wrapper.style.marginBottom = "8px";
+        wrapper.style.background = "#1a1a1a";
+
+        wrapper.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+<div style="display:flex; align-items:center; gap:6px;">
+${
+    item.image && item.image.startsWith("http")
+        ? `<img src="${item.image}" style="width:20px; height:20px; object-fit:contain;">`
+        : `<div style="
+                width:20px;
+                height:20px;
+                background:#333;
+                border:1px solid #555;
+                border-radius:3px;
+            "></div>`
+}
+    <strong>${item.name}</strong>
+</div>
+
+                <div>
+                    <button class="cb2-gear-toggle" data-id="${idx}" style="margin-right:6px;">Show</button>
+                    <button class="cb2-gear-unequip" data-slot="${slot}" data-chr="${chr.id}">✕</button>
+                </div>
+            </div>
+
+            <div id="cb2_gear_details_${idx}" style="display:none; margin-top:6px;">
+                <div style="font-size:12px; line-height:1.4; padding:6px; background:#111; border:1px solid #333; border-radius:4px;">
+                    <div><strong>Name:</strong> ${item.name}</div>
+
+                    <div style="margin-top:4px;">
+                        <strong>Image:</strong>
+${
+    item.image && item.image.startsWith("http")
+        ? `<img src="${item.image}" style="width:32px; height:32px; object-fit:contain; vertical-align:middle; margin-left:4px;">`
+        : `<div style="
+                width:32px;
+                height:32px;
+                background:#333;
+                border:1px solid #555;
+                border-radius:4px;
+                display:inline-block;
+                margin-left:4px;
+            "></div>`
+}
+                    </div>
+
+                    <div style="margin-top:8px;"><strong>Stats:</strong></div>
+                    <ul style="margin:0 0 6px 15px; padding:0;">
+                        ${Object.entries(item.stats || {})
+                            .map(([k,v]) => `<li>${k.toUpperCase()}: ${v}</li>`)
+                            .join("")}
+                    </ul>
+
+                    <div><strong>Resists:</strong></div>
+                    <ul style="margin:0 0 6px 15px; padding:0;">
+                        ${Object.entries(item.resists || {})
+                            .map(([k,v]) => `<li>${k.toUpperCase()}: ${v}</li>`)
+                            .join("")}
+                    </ul>
+<div><strong>Size:</strong> ${item.size ?? "—"}</div>
+<div><strong>Weight:</strong> ${item.weight ?? "—"}</div>
+
+                    <div><strong>Damage:</strong> ${item.dmg || "—"}</div>
+<div><strong>Delay:</strong> ${item.delay || "—"}</div>
+                    <div><strong>AC Line:</strong> ${item.ac || "—"}</div>
+
+                    <div style="margin-top:6px;"><strong>Slot:</strong> ${item.slot?.join(", ")}</div>
+                    <div><strong>Classes:</strong> ${item.classes?.join(", ")}</div>
+
+                    <div style="margin-top:6px;"><strong>Effect:</strong> ${item.effect || "None"}</div>
+                </div>
+            </div>
+        `;
+
+        gearBox.appendChild(wrapper);
+    }
+
+    // Toggle details
+    gearBox.querySelectorAll(".cb2-gear-toggle").forEach(btn => {
+        btn.onclick = () => {
+            const id = btn.getAttribute("data-id");
+            const box = document.getElementById(`cb2_gear_details_${id}`);
+
+            if (box.style.display === "none") {
+                box.style.display = "block";
+                btn.textContent = "Hide";
+            } else {
+                box.style.display = "none";
+                btn.textContent = "Show";
+            }
+        };
+    });
+
+    // Unequip button
+    gearBox.querySelectorAll(".cb2-gear-unequip").forEach(btn => {
+        btn.onclick = () => {
+            const slot = btn.getAttribute("data-slot");
+            const chrId = btn.getAttribute("data-chr");
+
+            const chr = CB2.characters.find(c => c.id === chrId);
+            if (!chr) return;
+
+            chr.equipment[slot] = null;
+
+            cb2_swooshSave("characters", CB2.characters);
+            cb2_renderCharacterDeck();
+        };
+    });
+}
+// -------------------------------
+// Equip / Unequip item
+// -------------------------------
+function cb2_toggleEquipItem(chr, item, isEquipped) {
+    const slot = item.slot[0] || null;
+
+    if (!slot) {
+        cb2_log("Item has no slot: " + item.name);
+        return;
+    }
+
+    // Unequip previous item in this slot
+    if (isEquipped) {
+        for (const s in chr.equipment) {
+            if (s === slot && chr.equipment[s]) {
+                chr.equipment[s].equipped = false;
+            }
+        }
+        chr.equipment[slot] = item;
+        item.equipped = true;
+    } else {
+        if (chr.equipment[slot] && chr.equipment[slot].id === item.id) {
+            chr.equipment[slot] = null;
+        }
+        item.equipped = false;
+    }
+
+    cb2_recalculateCharacterStats(chr);
+    cb2_swooshSave("characters", CB2.characters);
+    cb2_swooshSave("cb2_items", CB2.items);
+
+    cb2_renderCharacterDeck();
+}
+
+// -------------------------------
+// Recalculate final stats
+// -------------------------------
+function cb2_recalculateCharacterStats(chr) {
+    const base = chr.originalBaseStats || chr.baseStats || {};
+    const finalStats = { ...base };
+
+    const eq = chr.equipment || {};
+    for (const slot in eq) {
+        const item = eq[slot];
+        if (!item) continue;
+
+        // Primary stats
+        for (const [stat, val] of Object.entries(item.stats || {})) {
+            const key = stat.toUpperCase();
+            finalStats[key] = (finalStats[key] || 0) + val;
+        }
+
+        // Resist stats
+        for (const [res, val] of Object.entries(item.resists || {})) {
+            const key = "SV_" + res.toUpperCase();
+            finalStats[key] = (finalStats[key] || 0) + val;
+        }
+
+        // HP / MANA
+        if (item.stats?.hp)   finalStats.HP   = (finalStats.HP   || 0) + item.stats.hp;
+        if (item.stats?.mana) finalStats.MANA = (finalStats.MANA || 0) + item.stats.mana;
+    }
+
+    chr.finalStats = finalStats;
+}
+
+
+// -------------------------------
+// Update character deck to include gear
+// -------------------------------
+function cb2_renderCharacterDeck() {
+    const deck = document.getElementById("cb2_panel_characterDeck");
+    if (!deck) return;
+
+    deck.innerHTML = "";
+
+    CB2.characters.forEach(chr => {
+        if (!chr.visible) return;
+
+        const panel = document.createElement("div");
+        panel.className = "cb2_characterCard";
+        panel.style.border = "1px solid #444";
+        panel.style.padding = "10px";
+        panel.style.marginBottom = "15px";
+
+        const collapseBtnId = "cb2_btn_collapse_" + chr.id;
+
+        panel.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>${chr.name} (${chr.class} ${chr.level})</h3>
+                <button id="${collapseBtnId}">
+                    ${chr.collapsed ? "Expand Panel" : "Collapse / Inv Refresh"}
+                </button>
+            </div>
+
+            <div id="cb2_panel_chrBody_${chr.id}" style="${chr.collapsed ? "display:none;" : ""}">
+                <h4>Base Stats</h4>
+                <pre>${JSON.stringify(chr.baseStats, null, 2)}</pre>
+
+                <h4>Final Stats</h4>
+                <pre>${JSON.stringify(chr.finalStats, null, 2)}</pre>
+
+                <h4>Equipped Items</h4>
+                <div id="cb2_panel_chrGear_${chr.id}"></div>
+
+                <h4>Inventory</h4>
+                <div id="cb2_panel_chrInventory_${chr.id}"
+                     style="margin-top:6px; padding:6px; background:#111; border:1px solid #333; border-radius:4px; max-height:200px; overflow-y:auto;">
+                </div>
+            </div>
+        `;
+
+        deck.appendChild(panel);
+
+        // Collapse logic
+        setTimeout(() => {
+            const btn = document.getElementById(collapseBtnId);
+            const body = document.getElementById("cb2_panel_chrBody_" + chr.id);
+
+            if (btn && body) {
+                btn.onclick = () => {
+                    chr.collapsed = !chr.collapsed;
+                    cb2_swooshSave("characters", CB2.characters);
+                    cb2_renderCharacterDeck();
+                };
+            }
+        }, 0);
+
+        // Render gear
+        setTimeout(() => {
+            cb2_renderCharacterGear(chr);
+        }, 0);
+
+        // Render inventory
+        setTimeout(() => {
+            cb2_renderCharacterInventory(chr);
+        }, 0);
+    });
+}
+
+function cb2_updateClassDropdown(race) {
+    const classSelect = document.getElementById("cb2_input_newCharacterClass");
+    classSelect.innerHTML = "";
+
+    const raceKey = race.toLowerCase();
+    const raceData = CB2_RACE_CLASS_STATS[raceKey];
+    if (!raceData) return;
+
+    Object.keys(raceData).forEach(cls => {
+        const opt = document.createElement("option");
+        opt.value = cls;
+        opt.textContent = cls;
+        classSelect.appendChild(opt);
+    });
+}
+
+
+// =======================================
+// CB2: IMPORT ITEMS FROM function cb2_loadItemIntoManualEditor(item) {
+
+// =======================================
+
+// ---------------------------------------
+// Convert scraper item → CB2 item format
+// ---------------------------------------
+function cb2_convertScraperItem(scraped) {
+    cb2_log("[CB2 Import] Converting scraped item…");
+
+    if (!scraped) return null;
+
+    // Parse DMG
+    let dmg = 0;
+    if (scraped.dmgLine) {
+        const m = scraped.dmgLine.match(/DMG:\s*(\d+)/i);
+        if (m) dmg = parseInt(m[1]);
+    }
+
+    // Parse Delay
+    let delay = 0;
+    if (scraped.skillLine) {
+        const m = scraped.skillLine.match(/Delay:\s*(\d+)/i);
+        if (m) delay = parseInt(m[1]);
+    }
+
+    // Parse AC
+    let ac = 0;
+    if (scraped.acLine) {
+        const m = scraped.acLine.match(/AC:\s*(\d+)/i);
+        if (m) ac = parseInt(m[1]);
+    }
+
+    // ⭐ Parse Weight
+    let weight = 0;
+    if (scraped.weightLine) {
+        const m = scraped.weightLine.match(/(?:WT|Weight)\s*[: ]\s*([\d.]+)/i);
+        if (m) weight = parseFloat(m[1]);
+    }
+
+    // ⭐ Parse Size
+    let size = "MEDIUM";
+    if (scraped.sizeLine) {
+        const m = scraped.sizeLine.match(/Size\s*[: ]\s*(TINY|SMALL|MEDIUM|LARGE|GIANT)/i);
+        if (m) size = m[1].toUpperCase();
+    }
+
+    return {
+        id: "cb2_item_" + Date.now(),
+        name: scraped.name || "Unknown Item",
+        image: scraped.image || null,
+        rawText: null,
+
+        stats: scraped.stats || {},
+        resists: scraped.resists || {},
+
+        dmg,
+        delay,
+        ac,
+
+        // NEW FIELDS
+        weight,
+        size,
+
+        slot: scraped.slot || [],
+        classes: scraped.classes || [],
+        races: scraped.races || [],
+
+        effect: scraped.effect || null,
+        effectType: scraped.effectType || null,
+        equipped: false
+    };
+}
+
+
+// render manual item into preview panel
+
+function cb2_renderScrapedItemPreview(item) {
+    const box = document.getElementById("cb2_itemPreviewBox");
+    if (!box) return;
+
+    box.innerHTML = `
+        <h3>${item.name}</h3>
+        <img src="${item.image || ""}" style="max-width:64px; margin-bottom:10px;">
+        <pre style="white-space:pre-wrap;">${JSON.stringify(item, null, 2)}</pre>
+    `;
+
+    // Update global preview state
+    window.CB2_currentPreviewItem = item;
+
+    // Open preview panel
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // Scroll to preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
+}
+// ---------------------------------------
+// Render scraped item into preview panel
+// ---------------------------------------
+function cb2_renderScrapedItemPreview(scraped) {
+
+    // If this is a scraped item, convert it first
+    const item = scraped.dmgLine || scraped.skillLine || scraped.acLine
+        ? cb2_convertScraperItem(scraped)
+        : scraped;
+
+    const box = document.getElementById("cb2_itemPreviewBox");
+    if (!box) return;
+
+    box.innerHTML = `
+        <h3>${item.name}</h3>
+        <img src="${item.image}" style="max-width:64px; margin-bottom:10px;">
+        <pre style="white-space:pre-wrap;">${JSON.stringify(item, null, 2)}</pre>
+    `;
+
+    // Update global preview state
+    window.CB2_currentPreviewItem = item;
+
+    // Open preview panel
+    const previewBody = document.getElementById("cb2_panel_itemPreview_body");
+    if (previewBody) previewBody.style.display = "block";
+
+    // Scroll to preview panel
+    const previewPanel = document.getElementById("cb2_panel_itemPreview");
+    if (previewPanel) previewPanel.scrollIntoView({ behavior: "smooth" });
+}
+
+function cb2_deleteApprovedItem(index) {
+    const items = cb2_swooshLoad("cb2_items", []);
+    const item = items[index];
+
+    if (!confirm(`Delete "${item.name}" from approved items?`)) {
+        return;
+    }
+
+    items.splice(index, 1);
+    cb2_swooshSave("cb2_items", items);
+    cb2_updateApprovedList();
+}
+
+function cb2_updateApprovedList() {
+    const listBox = document.getElementById("cb2_approvedItemsList");
+    if (!listBox) return;
+
+    // Approved list intentionally disabled
+    listBox.innerHTML = "";
+}
+
+function cb2_equipItemToCharacter(itemId, charIndex) {
+    console.log("========================================");
+    console.log(">>> EQUIP FUNCTION START");
+    console.log("Incoming itemId:", itemId, "type:", typeof itemId);
+    console.log("Incoming charIndex:", charIndex, "type:", typeof charIndex);
+
+    // Normalize charIndex
+    charIndex = Number(charIndex);
+    console.log("Normalized charIndex:", charIndex);
+
+    if (isNaN(charIndex)) {
+        console.log("❌ ERROR: charIndex is NaN");
+        console.log("========================================");
+        return;
+    }
+
+    // -----------------------------------------
+    // Load characters
+    // -----------------------------------------
+console.log("Loading characters from storage key: characters");
+const chars = cb2_swooshLoad("characters", []);
+
+    console.log("Loaded chars array:", chars);
+
+    const chr = chars[charIndex];
+    console.log("Resolved character at index:", charIndex, "=>", chr);
+
+    if (!chr) {
+        console.log("❌ ERROR: Character not found at index", charIndex);
+        console.log("========================================");
+        return;
+    }
+
+    // Ensure equipment object exists
+    if (!chr.equipment || typeof chr.equipment !== "object") {
+        console.log("Character has no equipment object — creating one.");
+        chr.equipment = {};
+    }
+
+    console.log("Character equipment BEFORE equip:", chr.equipment);
+
+    // -----------------------------------------
+    // Load Bank items ONLY
+    // -----------------------------------------
+    console.log("Loading bank character...");
+    let bankItems = [];
+    try {
+        const bank = cb2_getBankCharacter();
+        console.log("Bank character loaded:", bank);
+        bankItems = Array.isArray(bank.bank) ? bank.bank : [];
+    } catch (e) {
+        console.log("❌ Bank load error:", e);
+    }
+
+    console.log("Bank items array:", bankItems);
+
+// -----------------------------------------
+// Find item by ID (string compare safe)
+// -----------------------------------------
+console.log("Searching for item with ID:", itemId);
+const item = bankItems.find(it => String(it.id) === String(itemId));
+console.log("Item search result:", item);
+
+if (!item) {
+    console.log("❌ ERROR: Item not found with ID", itemId);
+    console.log("========================================");
+    return;
+}
+
+// -----------------------------------------
+// Validate slot
+// -----------------------------------------
+console.log("Item slot raw value:", item.slot);
+let slot = item.slot;
+
+if (Array.isArray(slot)) {
+    console.log("Slot is array — using first slot:", slot[0]);
+    slot = slot[0];
+}
+
+if (!slot || typeof slot !== "string") {
+    console.log("❌ ERROR: Item has invalid slot:", slot);
+    console.log("========================================");
+    return;
+}
+
+console.log("Final resolved slot:", slot);
+
+// -----------------------------------------
+// Equip item
+// -----------------------------------------
+console.log(`Equipping item '${item.name}' into slot '${slot}'`);
+chr.equipment[slot] = item;
+
+console.log("Character equipment AFTER equip:", chr.equipment);
+
+// -----------------------------------------
+// Save characters back to storage
+// -----------------------------------------
+console.log("Saving updated characters to storage...");
+cb2_swooshSave("characters", chars);   // ⭐ FIXED — correct storage key
+console.log("✔ Characters saved.");
+
+// -----------------------------------------
+// Update in-memory CB2.characters
+// -----------------------------------------
+console.log("Syncing to CB2.characters...");
+if (CB2.characters && CB2.characters[charIndex]) {
+    CB2.characters[charIndex].equipment = { ...chr.equipment };
+    console.log("✔ CB2.characters updated:", CB2.characters[charIndex]);
+} else {
+    console.log("⚠ CB2.characters missing or index invalid.");
+}
+
+console.log(`[Equip] SUCCESS: Equipped ${item.name} to ${chr.name}`);
+
+// -----------------------------------------
+// Re-render deck
+// -----------------------------------------
+console.log("Re-rendering character deck...");
+cb2_renderCharacterDeck();
+
+console.log(">>> EQUIP FUNCTION END");
+console.log("========================================");
+}
+
+
+
+// =======================================
+// CB2-SAFE P99 ITEM PARSER
+// =======================================
+function parseP99HTML(html) {
+    cb2_log("[Parser] Starting parseP99HTML…");
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    // -----------------------------------
+    // TITLE
+    // -----------------------------------
+    const title = doc.querySelector(".itemtitle")?.textContent.trim() || "Unknown Item";
+    cb2_log("[Parser] Title: " + title);
+
+    // -----------------------------------
+    // ICON
+    // -----------------------------------
+    const iconEl = doc.querySelector(".itemicon img");
+    let iconUrl = null;
+
+    if (iconEl) {
+        const iconFile = iconEl.getAttribute("src").split("/").pop();
+        iconUrl = "https://wiki.project1999.com/images/" + iconFile;
+        cb2_log("[Parser] Icon found: " + iconUrl);
+    } else {
+        cb2_log("[Parser] No icon found.");
+    }
+
+    // -----------------------------------
+    // DATA BLOCK
+    // -----------------------------------
+    const block = doc.querySelector(".itemdata p")?.innerText || "";
+    const lines = block.split("\n").map(l => l.trim());
+
+    cb2_log("[Parser] Data block lines: " + lines.length);
+
+    // -----------------------------------
+    // FLAGS
+    // -----------------------------------
+    const flags = lines[0]
+        .split("  ")
+        .map(f => f.trim())
+        .filter(f => f.length > 0);
+
+    cb2_log("[Parser] Flags: " + JSON.stringify(flags));
+
+    // -----------------------------------
+    // SLOT
+    // -----------------------------------
+    const slotLine = lines.find(l => l.startsWith("Slot:"));
+    const slot = slotLine
+        ? slotLine.replace("Slot:", "").trim().split(" ")
+        : [];
+
+    cb2_log("[Parser] Slot(s): " + JSON.stringify(slot));
+
+    // -----------------------------------
+    // SKILL / DELAY
+    // -----------------------------------
+    const skillLine = lines.find(l => l.startsWith("Skill:")) || "";
+    cb2_log("[Parser] Skill line: " + skillLine);
+
+    // -----------------------------------
+    // DMG / AC
+    // -----------------------------------
+    const dmgLine = lines.find(l => l.startsWith("DMG:")) || "";
+    const acLine = lines.find(l => l.startsWith("AC:")) || "";
+
+    cb2_log("[Parser] DMG line: " + dmgLine);
+    cb2_log("[Parser] AC line: " + acLine);
+
+    // -----------------------------------
+    // STATS
+    // -----------------------------------
+    const stats = {};
+    const statRegex = /(STR|STA|DEX|AGI|WIS|INT|CHA|HP|MANA): \+?(\d+)/g;
+    let match;
+
+    while ((match = statRegex.exec(block)) !== null) {
+        stats[match[1].toLowerCase()] = parseInt(match[2], 10);
+    }
+
+    cb2_log("[Parser] Stats: " + JSON.stringify(stats));
+
+// -----------------------------------
+// EFFECT
+// -----------------------------------
+let effect = null;
+let effectType = null;
+
+const effectLine = lines.find(l => l.startsWith("Effect:"));
+if (effectLine) {
+    // Example: "Effect: Swiftwind (Combat)"
+    const m = effectLine.match(/Effect:\s*(.+?)(?:\s*\((.+)\))?$/);
+    if (m) {
+        effect = m[1].trim();
+        effectType = m[2]?.trim() || null;
+    }
+}
+
+cb2_log("[Parser] Effect: " + effect + " | Type: " + effectType);
+
+    // -----------------------------------
+    // RESISTS
+    // -----------------------------------
+    const resists = {};
+    const resistRegex = /SV (FIRE|COLD|MAGIC|POISON|DISEASE): \+?(\d+)/g;
+
+    while ((match = resistRegex.exec(block)) !== null) {
+        resists[match[1].toLowerCase()] = parseInt(match[2], 10);
+    }
+
+    cb2_log("[Parser] Resists: " + JSON.stringify(resists));
+
+// -----------------------------------
+// WEIGHT / SIZE (robust parsing)
+// -----------------------------------
+let weight = null;
+let size = null;
+
+// Look for any line containing WT or Size
+const wtSizeLine = lines.find(l => l.includes("WT:") || l.includes("Size:"));
+
+if (wtSizeLine) {
+    // Extract weight
+    const w = wtSizeLine.match(/WT[: ]\s*([\d.]+)/i);
+    if (w) weight = parseFloat(w[1]);
+
+    // Extract size
+    const s = wtSizeLine.match(/Size[: ]\s*(TINY|SMALL|MEDIUM|LARGE|GIANT)/i);
+    if (s) size = s[1].toUpperCase();
+}
+
+cb2_log("[Parser] Weight: " + weight + " | Size: " + size);
+
+
+    // -----------------------------------
+    // CLASS / RACE
+    // -----------------------------------
+    const classLine = lines.find(l => l.startsWith("Class:"));
+    const raceLine = lines.find(l => l.startsWith("Race:"));
+
+    const classes = classLine
+        ? classLine.replace("Class:", "").trim().split(" ")
+        : [];
+
+    const races = raceLine
+        ? raceLine.replace("Race:", "").trim().split(" ")
+        : [];
+
+    cb2_log("[Parser] Classes: " + JSON.stringify(classes));
+    cb2_log("[Parser] Races: " + JSON.stringify(races));
+
+// -----------------------------------
+// FINAL SCRAPED OBJECT
+// -----------------------------------
+const item = {
+    name: title,
+    image: iconUrl,
+    flags,
+    slot,
+    skillLine,
+    dmgLine,
+    acLine,
+    stats,
+    resists,
+    weight,
+    size,
+    effect,
+    effectType,
+    classes,
+    races
+};
+
+
+cb2_log("[Parser] Final scraped item built.");
+// -----------------------------------
+// DISPLAY IMAGE (legacy UI)
+// -----------------------------------
+const imgBox = document.getElementById("itemImageBox");
+if (imgBox) {
+    imgBox.innerHTML = "";
+
+    if (item.image) {
+        const img = document.createElement("img");
+        img.src = item.image;
+        img.style.width = "64px";
+        img.style.height = "64px";
+        imgBox.appendChild(img);
+    } else {
+        imgBox.textContent = "No image";
+    }
+}
+
+// -----------------------------------
+// STORE SCRAPED ITEM FOR APPROVAL
+// -----------------------------------
+cb2_onScrapeComplete(item);
+cb2_log("[Parser] Scraped item stored for approval.");
+
+// -----------------------------------
+// SHOW PREVIEW IN CB2 UI
+// -----------------------------------
+cb2_renderScrapedItemPreview(item);
+
+return item;
+
+}
+// -------------------------------
+// Debug helper
+// -------------------------------
+function cb2_fetchLog(msg) {
+    cb2_log("[Fetch] " + msg);
+}
+// old proxy stuff 
+
+// -------------------------------
+// Proxy checkbox logic
+// -------------------------------
+function cb2_initProxySelector() {
+    const proxyBoxes = document.querySelectorAll(".proxyChoice");
+    const runBtn = document.getElementById("runBtn");
+
+    proxyBoxes.forEach(box => {
+        box.addEventListener("change", () => {
+
+            // Uncheck all other boxes
+            proxyBoxes.forEach(other => {
+                if (other !== box) other.checked = false;
+            });
+
+            // Enable button only if one is selected
+            const anyChecked = [...proxyBoxes].some(b => b.checked);
+            runBtn.disabled = !anyChecked;
+
+            cb2_fetchLog("Proxy selected: " + (anyChecked ? box.value : "none"));
+        });
+    });
+}
+// -------------------------------
+// Direct fetch (no proxy)
+// -------------------------------
+async function cb2_fetchDirect(url) {
+    cb2_fetchLog("Direct fetch: " + url);
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            cb2_fetchLog("HTTP Error: " + response.status + " " + response.statusText);
+            return;
+        }
+
+        const html = await response.text();
+        cb2_fetchLog("HTML loaded (" + html.length + " chars)");
+
+        parseP99HTML(html);
+
+    } catch (err) {
+        cb2_fetchLog("FETCH FAILED: " + err);
+    }
+}
+//working proxy stuff
+
+// -------------------------------
+// Build proxy URL
+// -------------------------------
+function cb2_buildProxyUrl(proxyType, url) {
+    cb2_fetchLog("Building proxy URL for type " + proxyType);
+
+    switch (proxyType) {
+        case 1:
+            return "https://corsproxy.io/?" + url;
+        case 2:
+            return "https://api.allorigins.win/raw?url=" + url;
+        case 3:
+            return "https://thingproxy.freeboard.io/fetch/" + url;
+        case 4:
+            if (!window.CB2_userProxyBase) {
+                cb2_fetchLog("Custom proxy selected but no URL set.");
+                return url;
+            }
+            return window.CB2_userProxyBase + url;
+        default:
+            return url;
+    }
+}
+
+
+
+// -------------------------------
+// Proxy fetch
+// -------------------------------
+async function cb2_runProxy(proxyType) {
+    const url = document.getElementById("urlInput").value.trim();
+    const finalUrl = cb2_buildProxyUrl(proxyType, url);
+
+    cb2_fetchLog("Fetching via proxy " + proxyType + ": " + finalUrl);
+
+    try {
+        const response = await fetch(finalUrl);
+
+        if (!response.ok) {
+            cb2_fetchLog("HTTP Error: " + response.status + " " + response.statusText);
+            return;
+        }
+
+        const html = await response.text();
+        cb2_fetchLog("HTML loaded (" + html.length + " chars)");
+
+        parseP99HTML(html);
+
+    } catch (err) {
+        cb2_fetchLog("FETCH FAILED: " + err);
+    }
+}
+
+
+
+// -------------------------------
+// Button hooks
+// -------------------------------
+function cb2_initFetchButtons() {
+    const useCustomBox = document.getElementById("cb2_useCustomProxy");
+    const proxyInput = document.getElementById("cb2_userProxyInput");
+    const proxy4Btn = document.getElementById("proxy4Btn");
+
+    // Show/hide Proxy 4 button
+    useCustomBox.onchange = () => {
+        proxy4Btn.style.display = useCustomBox.checked ? "inline-block" : "none";
+    };
+
+    // Proxy 1
+    document.getElementById("proxy1Btn").onclick = () => {
+        cb2_unlockApproveButton();
+        cb2_runProxy(1);
+    };
+
+    // Proxy 2
+    document.getElementById("proxy2Btn").onclick = () => {
+        cb2_unlockApproveButton();
+        cb2_runProxy(2);
+    };
+
+    // Proxy 3
+    document.getElementById("proxy3Btn").onclick = () => {
+        cb2_unlockApproveButton();
+        cb2_runProxy(3);
+    };
+
+    // Proxy 4 (Custom)
+    proxy4Btn.onclick = () => {
+        const input = proxyInput.value.trim();
+        if (!input) {
+            cb2_fetchLog("Custom proxy URL is empty.");
+            return;
+        }
+
+        window.CB2_userProxyBase = input;
+        cb2_fetchLog("Custom proxy set: " + input);
+
+        cb2_unlockApproveButton();
+        cb2_runProxy(4);
+    };
+}
+
+
+// keep above auto-init
+
+function cb2_buildScraperConsole() {
+    const parent = document.getElementById("p99_scraper_panel");
+    if (!parent) return;
+
+    const pre = document.createElement("pre");
+    pre.id = "output";
+
+    pre.style.whiteSpace = "pre-wrap";
+    pre.style.background = "#000";
+    pre.style.color = "#0f0";
+    pre.style.padding = "12px";
+    pre.style.maxHeight = "400px";
+    pre.style.overflowY = "auto";
+    pre.style.border = "1px solid #222";
+    pre.style.fontSize = "14px";
+    pre.style.lineHeight = "1.35";
+    pre.style.margin = "10px 0 0 0";
+    pre.style.boxSizing = "border-box";
+
+    // keep it safe
+    pre.style.maxWidth = "100%";
+    pre.style.overflowX = "auto";
+    pre.style.wordBreak = "break-word";
+
+    // ⭐ append AFTER the panel
+    parent.insertAdjacentElement("afterend", pre);
+}
+// -------------------------------
+// AUTO-INIT FETCH SYSTEM
+// -------------------------------
+cb2_initProxySelector();
+cb2_initFetchButtons();
+cb2_fetchLog("Proxy + Fetch system ready.");
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    cb2_log("[Init] DOM ready — initializing CB2 systems…");
+
+    // 1. Initialize CB2 core
+    if (typeof cb2_init === "function") {
+        cb2_init();
+        cb2_log("[Init] CB2 core initialized.");
+    }
+
+    // 2. Build scraper console
+    cb2_buildScraperConsole();
+
+    // Debug check
+    const out = document.getElementById("output");
+    if (out) {
+        __DBG("CHECK: scraper console successfully created.");
+    } else {
+        __DBG("CHECK: scraper console NOT created.");
+    }
+
+    // 3. Load approved items list
+    //cb2_updateApprovedList();
+
+    // 4. Wire toggle buttons
+    document.querySelectorAll(".cb2_toggleBtn").forEach(btn => {
+        const targetId = btn.getAttribute("data-target");
+        const target = document.getElementById(targetId);
+        if (!target) return;
+
+        btn.onclick = () => {
+            const isHidden = target.style.display === "none";
+            target.style.display = isHidden ? "" : "none";
+            btn.textContent = isHidden ? "[-]" : "[+]";
+        };
+    });
+
+    // 5. Wire race dropdown
+    const raceSelect = document.getElementById("raceSelect");
+    if (raceSelect) {
+        raceSelect.onchange = (e) => {
+            cb2_updateClassDropdown(e.target.value);
+            cb2_startCharacterDraft();
+        };
+    }
+
+    // 6. Wire class dropdown
+    const classSelect = document.getElementById("cb2_input_newCharacterClass");
+    if (classSelect) {
+        classSelect.onchange = cb2_startCharacterDraft;
+    }
+
+    // 7. Wire name input
+    const nameInput = document.getElementById("cb2_input_newCharacterName");
+    if (nameInput) {
+        nameInput.oninput = cb2_startCharacterDraft;
+    }
+
+    // 8. Wire level input
+    const levelInput = document.getElementById("cb2_input_newCharacterLevel");
+    if (levelInput) {
+        levelInput.onchange = cb2_startCharacterDraft;
+    }
+// 9. Wire Approve button
+const approveBtn = document.getElementById("cb2_btn_approveScrapedItem");
+if (approveBtn) {
+
+    // Use our global boolean instead of auto-locking
+    if (window.CB2_approveLocked) {
+        approveBtn.disabled = true;
+        approveBtn.textContent = "Waiting...";
+    } else {
+        approveBtn.disabled = false;
+        approveBtn.textContent = "Approve Item";
+    }
+
+    approveBtn.onclick = async () => {
+        if (window.CB2_approveLocked) {
+            cb2_log("[CB2 Import] Approve button locked.");
+            return;
+        }
+
+        const item = window.CB2_currentPreviewItem;
+        if (!item) {
+            cb2_log("[CB2 Import] Item not ready yet.");
+            return;
+        }
+
+        // Lock during save
+        cb2_lockApproveButton();
+        approveBtn.textContent = "Saving...";
+
+        try {
+            const savedItem = cb2_saveInventoryItem(item);
+
+            setTimeout(() => {
+                cb2_storeItemInBank(savedItem);
+            }, 1000);
+
+            cb2_updateApprovedList?.();
+            cb2_renderScrapedItemPreview?.(item);
+
+            cb2_log("[CB2 Import] Item approved and saved.");
+
+        } catch (err) {
+            cb2_log("[CB2 Import] ERROR saving item: " + err);
+        }
+
+        approveBtn.textContent = "Approved";
+    };
+}
+
+
+
+
+    // 10. Wire Create Character button
+    const createBtn = document.getElementById("cb2_btn_createCharacter");
+    if (createBtn) {
+        createBtn.onclick = cb2_finalizeCharacterCreation;
+    }
+
+    cb2_log("[Init] System ready for testing.");
+});
+function cb2_finalizeCharacterCreation() {
+    const chr = CB2.currentCharacterDraft;
+
+    if (!chr) {
+        cb2_log("No character draft exists.");
+        return;
+    }
+
+    if (chr.bonusPool > 0) {
+        cb2_log("Assign all bonus points before creating the character.");
+        return;
+    }
+
+    // Lock in the true base stats
+    chr.originalBaseStats = { ...chr.baseStats };
+
+    // REQUIRED FIELDS FOR DECK + LIST + EQUIP
+    chr.id = "chr_" + Date.now();
+    chr.visible = true;
+    chr.collapsed = false;
+    chr.equipment = {};
+    chr.finalStats = { ...chr.baseStats };
+
+    // Save character
+    CB2.characters.push(chr);
+    cb2_swooshSave("characters", CB2.characters);
+
+    cb2_log("Created character: " + chr.name);
+
+    // Update both panels
+    cb2_renderCharacterDeck();
+    cb2_renderCharacterList();
+
+    CB2.currentCharacterDraft = null;
+}
+
+
+function cb2_renderCharacterInventory(chr) {
+    const invBox = document.getElementById(`cb2_panel_chrInventory_${chr.id}`);
+    if (!invBox) return;
+
+    // -----------------------------------------
+    // Load ONLY from the Bank Character
+    // -----------------------------------------
+    let bankItems = [];
+    try {
+        const bank = cb2_getBankCharacter();
+        bankItems = Array.isArray(bank.bank) ? bank.bank : [];
+    } catch (e) {
+        cb2_log("Bank load error: " + e);
+    }
+
+    // -----------------------------------------
+    // Filter out CH chains, timers, junk
+    // -----------------------------------------
+    let items = bankItems.filter(it => {
+        if (!it || typeof it !== "object") return false;
+        if (it.type === "chchain") return false;
+        if (!String(it.id).startsWith("cb2_item_")) return false;
+        return true;
+    });
+
+    // -----------------------------------------
+    // Render inventory panel
+    // -----------------------------------------
+    if (items.length === 0) {
+        invBox.innerHTML = `<div style="color:#888;">No items in bank inventory.</div>`;
+        return;
+    }
+
+    invBox.innerHTML = items.map(it => {
+        return `
+            <div class="cb2-inventory-item">
+                <div style="display:flex; justify-content:space-between;">
+                    <span>${it.name || it.title}</span>
+
+                    <div>
+                        <button class="cb2-inventory-info"
+                                data-item-id="${it.id}">
+                            Info
+                        </button>
+
+                        <button class="cb2-inventory-equip"
+                                data-item-id="${it.id}">
+                            Equip
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cb2-inventory-info-box"
+                     id="cb2_inventory_info_${it.id}"
+                     style="display:none; margin-top:6px;">
+
+                    <strong>Name:</strong> ${it.name || it.title}<br>
+                    <strong>Image:</strong> ${it.image || it.imgUrl || ""}<br>
+
+                    <strong>Stats:</strong><br>
+                    STR: ${it.stats?.str ?? 0}<br>
+                    DEX: ${it.stats?.dex ?? 0}<br>
+                    STA: ${it.stats?.sta ?? 0}<br>
+                    HP: ${it.stats?.hp ?? 0}<br>
+
+                    <strong>Resists:</strong><br>
+                    FIRE: ${it.resists?.fire ?? 0}<br>
+                    DISEASE: ${it.resists?.disease ?? 0}<br>
+                    COLD: ${it.resists?.cold ?? 0}<br>
+                    MAGIC: ${it.resists?.magic ?? 0}<br>
+                    POISON: ${it.resists?.poison ?? 0}<br>
+
+                    <strong>Size:</strong> ${it.size}<br>
+                    <strong>Weight:</strong> ${it.weight}<br>
+                    <strong>Damage:</strong> ${it.dmg}<br>
+                    <strong>Delay:</strong> ${it.delay}<br>
+                    <strong>AC:</strong> ${it.ac}<br>
+                    <strong>Slot:</strong> ${Array.isArray(it.slot) ? it.slot.join(", ") : it.slot}<br>
+                    <strong>Classes:</strong> ${Array.isArray(it.classes) ? it.classes.join(", ") : it.classes}<br>
+                    <strong>Effect:</strong> ${it.effect}<br>
+
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    // -----------------------------------------
+    // INFO BUTTON HANDLER
+    // -----------------------------------------
+    invBox.querySelectorAll(".cb2-inventory-info").forEach(btn => {
+        btn.onclick = () => {
+            const itemId = btn.dataset.itemId;
+            const box = document.getElementById(`cb2_inventory_info_${itemId}`);
+
+            if (!box) return;
+
+            const hidden = box.style.display === "none";
+            box.style.display = hidden ? "block" : "none";
+            btn.textContent = hidden ? "Hide" : "Info";
+        };
+    });
+
+    // -----------------------------------------
+    // EQUIP BUTTON HANDLER
+    // -----------------------------------------
+invBox.querySelectorAll(".cb2-inventory-equip").forEach(btn => {
+    btn.onclick = () => {
+
+        console.log("=== EQUIP BUTTON CLICKED ===");
+        console.log("Button dataset:", btn.dataset);
+
+        const itemId = btn.dataset.itemId;
+        console.log("Item ID from button:", itemId);
+
+        // Check active character
+        console.log("CB2.activeCharacterId =", CB2.activeCharacterId);
+
+        const activeId = CB2.activeCharacterId;
+        if (!activeId) {
+            console.log("ERROR: No active character selected.");
+            return;
+        }
+
+        // Find character index
+        const charIndex = CB2.characters.findIndex(c => c.id === activeId);
+        console.log("Resolved charIndex =", charIndex);
+
+        if (charIndex === -1) {
+            console.log("ERROR: Active character not found in CB2.characters");
+            console.log("CB2.characters =", CB2.characters);
+            return;
+        }
+
+        console.log("Calling cb2_equipItemToCharacter with:", {
+            itemId,
+            charIndex,
+            charName: CB2.characters[charIndex]?.name
+        });
+
+        cb2_equipItemToCharacter(itemId, charIndex);
+
+        console.log("Re-rendering deck...");
+        cb2_renderCharacterDeck();
+
+        console.log("=== EQUIP CLICK END ===");
+    };
+});
+
+}
+
+// =============================================================
+// function cb2_startCharacterDraft
+// =============================================================
+function cb2_startCharacterDraft() {
+    const name = document.getElementById("cb2_input_newCharacterName")?.value.trim() || "";
+    const cls  = document.getElementById("cb2_input_newCharacterClass")?.value;
+    const lvl  = parseInt(document.getElementById("cb2_input_newCharacterLevel")?.value, 10) || 1;
+    const race = document.getElementById("raceSelect")?.value.toLowerCase();
+
+    if (!cls || !race) return;
+
+    const base = cb2_getBaseStatsForRaceClass(race, cls);
+    if (!base) return;
+
+    const baseStats = {
+        STR: base.STR,
+        STA: base.STA,
+        AGI: base.AGI,
+        DEX: base.DEX,
+        WIS: base.WIS,
+        INT: base.INT,
+        CHA: base.CHA,
+
+        SV_FIRE: 0,
+        SV_COLD: 0,
+        SV_POISON: 0,
+        SV_DISEASE: 0
+    };
+
+    const chr = {
+        id: "draft_" + Date.now(),
+        name,
+        class: cls,
+        race,
+        level: lvl,
+
+        baseStats,
+        originalBaseStats: { ...baseStats },
+
+        bonusPool: 25,
+
+        equipment: {},
+        finalStats: { ...baseStats },
+        visible: true,
+        collapsed: false
+    };
+
+    window.CB2.currentCharacterDraft = chr;
+    cb2_renderCharacterCreatorStats(chr);
+}
+
+// Make sure it's global
+window.cb2_startCharacterDraft = cb2_startCharacterDraft;
+
+//
+function cb2_saveInventoryItem(item) {
+    // Ensure global registry exists
+    CB2.items = CB2.items || [];
+
+    // Clone the item so we don't mutate the original
+    const newItem = JSON.parse(JSON.stringify(item));
+
+    // Generate a fresh unique ID
+    newItem.id = "cb2_item_" + Date.now() + "_" + Math.floor(Math.random() * 999999);
+
+    // Normalize fields for consistency
+    newItem.isInventoryItem = true;
+    newItem.type = newItem.type || "inventory";
+
+    // Add to global item registry
+    CB2.items.push(newItem);
+
+    // Save updated registry
+    cb2_swooshSave("cb2_items", CB2.items);
+
+    cb2_log("Saved item: " + newItem.name + " (id=" + newItem.id + ")");
+
+    return newItem; // ⭐ useful for chaining (e.g., sending to bank)
+}
+
+
+
+//loop to editor back from preview
+
+function cb2_loadItemIntoManualEditor(item) {
+
+    const safeSet = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+
+    // BASIC
+    safeSet("cb2_manual_name", item.name || "");
+    safeSet("cb2_manual_itemType", item.itemType || "Misc");
+
+    // STATS
+    safeSet("cb2_manual_str", item.stats?.str || 0);
+    safeSet("cb2_manual_sta", item.stats?.sta || 0);
+    safeSet("cb2_manual_agi", item.stats?.agi || 0);
+    safeSet("cb2_manual_dex", item.stats?.dex || 0);
+    safeSet("cb2_manual_int", item.stats?.int || 0);
+    safeSet("cb2_manual_wis", item.stats?.wis || 0);
+    safeSet("cb2_manual_cha", item.stats?.cha || 0);
+
+    // VITALS
+    safeSet("cb2_manual_hp", item.stats?.hp || 0);
+    safeSet("cb2_manual_mana", item.stats?.mana || 0);
+    safeSet("cb2_manual_end", item.stats?.end || 0);
+
+    // RESISTS
+    safeSet("cb2_manual_fire", item.resists?.fire || 0);
+    safeSet("cb2_manual_cold", item.resists?.cold || 0);
+    safeSet("cb2_manual_magic", item.resists?.magic || 0);
+    safeSet("cb2_manual_disease", item.resists?.disease || 0);
+    safeSet("cb2_manual_poison", item.resists?.poison || 0);
+
+    // COMBAT
+    safeSet("cb2_manual_dmg", item.dmg || 0);
+    safeSet("cb2_manual_delay", item.delay || 0);
+    safeSet("cb2_manual_ac", item.ac || 0);
+
+    // ⭐ WEIGHT
+    safeSet("cb2_manual_weight", item.weight ?? 0);
+
+    // ⭐ SIZE (radio buttons)
+    const sizeValue = item.size || "MEDIUM";
+    document.querySelectorAll("input[name='cb2_manual_size']").forEach(r => {
+        r.checked = (r.value === sizeValue);
+    });
+
+    // SLOTS
+    document.querySelectorAll("#cb2_panel_manualItem_slots input[type=checkbox]")
+        .forEach(chk => chk.checked = item.slot?.includes(chk.value));
+
+    // CLASSES
+    document.querySelectorAll("#cb2_panel_manualItem_classes input[type=checkbox]")
+        .forEach(chk => chk.checked = item.classes?.includes(chk.value));
+
+    // RACES
+    document.querySelectorAll("#cb2_panel_manualItem_races input[type=checkbox]")
+        .forEach(chk => chk.checked = item.races?.includes(chk.value));
+
+    // PRESERVE IMAGE
+    window.CB2_manualEditorImage = item.image || null;
+}
+
+
+// -----------------------------------------
+// RESEND TO EDITOR BUTTON FROM PREVIEW PANEL
+// -----------------------------------------
+document.getElementById("cb2_btn_sendToEditor").onclick = () => {
+    if (!window.CB2_currentPreviewItem) {
+        cb2_log("No preview item to send to editor.");
+        return;
+    }
+
+    // Load item into manual editor
+    cb2_loadItemIntoManualEditor(window.CB2_currentPreviewItem);
+
+    cb2_log("Item loaded into Manual Editor for editing.");
+
+    // ⭐ Unlock the Approve button (same as scraper + token import)
+    if (typeof cb2_unlockApproveButton === "function") {
+        cb2_unlockApproveButton();
+    }
+
+    // Open manual editor panel
+    document.getElementById("cb2_panel_manualItemEntry_body").style.display = "block";
+
+    // Scroll to manual editor
+    document.getElementById("cb2_panel_manualItemEntry")
+        .scrollIntoView({ behavior: "smooth" });
+};
+
+
+// delete helper only item deleter here in token
+
+function cb2_deleteInventoryItem(itemId) {
+    if (!itemId) return;
+
+    const confirmDelete = confirm(
+        "Delete this item?\n\nThis will remove it from your inventory AND your bank."
+    );
+
+    if (!confirmDelete) return;
+
+    // Load inventory
+    let items = cb2_swooshLoad("cb2_items", []) || [];
+    items = items.filter(it => it.id !== itemId);
+    cb2_swooshSave("cb2_items", items);
+
+    // Load bank
+    try {
+        const bank = cb2_getBankCharacter();
+        if (bank && Array.isArray(bank.bank)) {
+            bank.bank = bank.bank.filter(it => it.id !== itemId);
+            cb2_saveBankCharacter(bank);
+        }
+    } catch (e) {
+        cb2_log("Bank delete error: " + e);
+    }
+
+    cb2_log("Item deleted: " + itemId);
+
+    // Refresh the token workshop list
+    document.getElementById("cb2_btn_loadInventoryTokens").click();
+}
+
+
+// -----------------------------------------
+// TOKEN WORKSHOP — TOGGLE INVENTORY LIST
+// -----------------------------------------
+document.getElementById("cb2_btn_toggleInventoryList").onclick = () => {
+    const list = document.getElementById("cb2_tokenInventoryList");
+    const btn  = document.getElementById("cb2_btn_toggleInventoryList");
+
+    const isHidden = list.style.display === "none";
+
+    list.style.display = isHidden ? "block" : "none";
+    btn.textContent    = isHidden ? "Hide Inventory List" : "Show Inventory List";
+};
+
+// Global merged list for token creation
+window.CB2_tokenMergedList = [];
+
+
+// -----------------------------------------
+// TOKEN WORKSHOP — LOAD INVENTORY + BANK ITEMS + item delete
+// -----------------------------------------
+document.getElementById("cb2_btn_loadInventoryTokens").onclick = () => {
+
+    const listBox = document.getElementById("cb2_tokenInventoryList");
+    listBox.innerHTML = "";
+
+    // Load inventory items from storage
+    let items = cb2_swooshLoad("cb2_items", []) || [];
+
+    // Load Bank items
+    let bankItems = [];
+    try {
+        const bank = cb2_getBankCharacter();
+        bankItems = Array.isArray(bank.bank) ? bank.bank : [];
+    } catch (e) {
+        cb2_log("Bank load error: " + e);
+    }
+
+    // Merge inventory + bank items
+    let merged = [...items, ...bankItems];
+
+    // Deduplicate by ID
+    const seen = new Set();
+    merged = merged.filter(it => {
+        if (!it || !it.id) return false;
+        if (seen.has(it.id)) return false;
+        seen.add(it.id);
+        return true;
+    });
+
+    // Filter out junk
+    merged = merged.filter(it => {
+        if (!it || typeof it !== "object") return false;
+        if (it.type === "chchain") return false;
+        if (!String(it.id).startsWith("cb2_item_")) return false;
+        return true;
+    });
+
+    // Store merged list globally for token creation
+    CB2_tokenMergedList = merged;
+
+    // Display results
+    if (merged.length === 0) {
+        listBox.innerHTML = `<div style="color:#888;">No inventory items found.</div>`;
+        return;
+    }
+
+    // Build rows
+    merged.forEach((item, idx) => {
+        const row = document.createElement("div");
+        row.style.marginBottom = "6px";
+
+        row.innerHTML = `
+            <span style="color:#0f0;">${item.name || item.title}</span>
+
+            <button class="cb2_btn_createToken"
+                    data-itemindex="${idx}"
+                    style="margin-left:10px;">
+                Create Token
+            </button>
+
+            <button class="cb2_btn_deleteItem"
+                    data-itemid="${item.id}"
+                    style="margin-left:10px; color:#f44;">
+                Delete
+            </button>
+        `;
+
+        listBox.appendChild(row);
+    });
+
+    // -----------------------------
+    // Hook delete buttons (ONE TIME)
+    // -----------------------------
+    document.querySelectorAll(".cb2_btn_deleteItem").forEach(btn => {
+        btn.onclick = () => {
+            const itemId = btn.getAttribute("data-itemid");
+            cb2_deleteInventoryItem(itemId);
+        };
+    });
+
+    cb2_log("Inventory (including Bank) loaded into Token Workshop.");
+};
+
+// -----------------------------------------
+// TOKEN WORKSHOP — GENERATE TOKEN FROM ITEM
+// -----------------------------------------
+function cb2_generateTokenFromItem(item) {
+
+    const token = [
+        "CB2TOKEN",
+
+        // Basic identity
+        `NAME:${item.name || ""}`,
+        `IMG:${item.image ? item.image.replace("https://wiki.project1999.com/images/", "") : ""}`,
+
+        // Skill / DMG / AC (parser-style fields)
+        `SKILL:${item.skillLine || ""}`,
+        `DMG:${item.dmgLine || ""}`,
+        `AC:${item.acLine || ""}`,
+
+        // Weight / Size
+        `WT:${item.weight ?? 0}`,
+        `SIZE:${item.size ?? "MEDIUM"}`,
+
+        // Stats / Resists
+        `STATS:${JSON.stringify(item.stats || {})}`,
+        `RESISTS:${JSON.stringify(item.resists || {})}`,
+
+        // Flags
+        `FLAGS:${JSON.stringify(item.flags || [])}`,
+
+        // Effect
+        `EFFECT:${item.effect || ""}`,
+        `EFFECTTYPE:${item.effectType || ""}`,
+
+        // Slot / Class / Race
+        `SLOT:${Array.isArray(item.slot) ? item.slot.join(",") : ""}`,
+        `CLASS:${Array.isArray(item.classes) ? item.classes.join(",") : ""}`,
+        `RACE:${Array.isArray(item.races) ? item.races.join(",") : ""}`,
+
+        "ENDTOKEN"
+    ].join("|");
+
+    return token;
+}
+
+
+// -----------------------------------------
+// TOKEN WORKSHOP — CLICK HANDLER
+// -----------------------------------------
+document.addEventListener("click", e => {
+    if (!e.target.classList.contains("cb2_btn_createToken")) return;
+
+    const idx = parseInt(e.target.getAttribute("data-itemindex"), 10);
+    const item = CB2_tokenMergedList[idx];   // ⭐ Correct source
+
+    if (!item) {
+        cb2_log("Token Error: Item not found in merged list.");
+        return;
+    }
+
+    const token = cb2_generateTokenFromItem(item);
+
+    cb2_log(
+        "=========== TOKEN GENERATED ===========\n" +
+        token +
+        "\n========================================\n"
+    );
+});
+// -----------------------------------------
+// TOKEN WORKSHOP — DECODE TOKEN → ITEM OBJECT
+// -----------------------------------------
+function cb2_decodeToken(token) {
+
+    const parts = token.split("|");
+    const obj = {
+        id: "cb2_item_token_" + Date.now(),
+        name: "",
+        image: null,
+
+        // Parser-style fields
+        flags: [],
+        slot: [],
+        skillLine: "",
+        dmgLine: "",
+        acLine: "",
+        stats: {},
+        resists: {},
+        weight: 0,
+        size: "MEDIUM",
+        effect: null,
+        effectType: null,
+        classes: [],
+        races: [],
+
+        // Misc
+        itemType: "Misc",
+        rawText: token,
+        equipped: false
+    };
+
+    for (let part of parts) {
+
+        if (part.startsWith("NAME:"))
+            obj.name = part.replace("NAME:", "");
+
+        else if (part.startsWith("IMG:")) {
+            const img = part.replace("IMG:", "");
+            obj.image = img ? "https://wiki.project1999.com/images/" + img : null;
+        }
+
+        else if (part.startsWith("SKILL:"))
+            obj.skillLine = part.replace("SKILL:", "");
+
+        else if (part.startsWith("DMG:"))
+            obj.dmgLine = part.replace("DMG:", "");
+
+        else if (part.startsWith("AC:"))
+            obj.acLine = part.replace("AC:", "");
+
+        else if (part.startsWith("WT:"))
+            obj.weight = parseFloat(part.replace("WT:", "")) || 0;
+
+        else if (part.startsWith("SIZE:"))
+            obj.size = part.replace("SIZE:", "").trim() || "MEDIUM";
+
+        else if (part.startsWith("STATS:"))
+            obj.stats = JSON.parse(part.replace("STATS:", ""));
+
+        else if (part.startsWith("RESISTS:"))
+            obj.resists = JSON.parse(part.replace("RESISTS:", ""));
+
+        else if (part.startsWith("FLAGS:"))
+            obj.flags = JSON.parse(part.replace("FLAGS:", ""));
+
+        else if (part.startsWith("EFFECT:"))
+            obj.effect = part.replace("EFFECT:", "");
+
+        else if (part.startsWith("EFFECTTYPE:"))
+            obj.effectType = part.replace("EFFECTTYPE:", "");
+
+        else if (part.startsWith("SLOT:"))
+            obj.slot = part.replace("SLOT:", "").split(",").filter(x => x);
+
+        else if (part.startsWith("CLASS:"))
+            obj.classes = part.replace("CLASS:", "").split(",").filter(x => x);
+
+        else if (part.startsWith("RACE:"))
+            obj.races = part.replace("RACE:", "").split(",").filter(x => x);
+    }
+
+    return obj;
+}
+
+
+// -----------------------------------------
+// TOKEN WORKSHOP — IMPORT TOKEN
+// -----------------------------------------
+document.getElementById("cb2_btn_importToken").onclick = () => {
+
+    const token = document.getElementById("cb2_input_tokenImport").value.trim();
+    if (!token) {
+        cb2_log("No token entered.");
+        return;
+    }
+
+    cb2_log(
+        "=========== TOKEN RECEIVED ===========\n" +
+        token +
+        "\n=======================================\n"
+    );
+
+    const decodedItem = cb2_decodeToken(token);
+
+    cb2_log(
+        "=========== TOKEN DECODED ============\n" +
+        JSON.stringify(decodedItem, null, 2) +
+        "\n=======================================\n"
+    );
+
+    // Send decoded item to preview (same pipeline as scraper)
+    cb2_renderScrapedItemPreview(decodedItem);
+    window.CB2_currentPreviewItem = decodedItem;
+
+    // ⭐ Unlock Approve button using the new boolean system
+    cb2_unlockApproveButton();
+
+    cb2_log("Token imported and item sent to preview.");
+};
+
+// fix scrapper complete
+function cb2_onScrapeComplete(item) {
+    // Store preview item globally
+    window.CB2_currentPreviewItem = item;
+
+    const approveBtn = document.getElementById("cb2_btn_approveScrapedItem");
+    if (approveBtn) {
+        // Reset button state for a fresh approval
+        approveBtn.textContent = "Approve Item";
+        approveBtn.disabled = true;
+
+        // ⭐ Enable after UI settles
+        setTimeout(() => {
+            approveBtn.disabled = false;
+        }, 50);
+    }
+
+    // Render preview + log
+    cb2_renderScrapedItemPreview(item);
+    cb2_log("[CB2 Import] Item ready for approval.");
+}
+//lock that preview approve button control
+
+function cb2_lockApproveButton() {
+    window.CB2_approveLocked = true;
+
+    const btn = document.getElementById("cb2_btn_approveScrapedItem");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Waiting...";
+    }
+}
+
+function cb2_unlockApproveButton() {
+    window.CB2_approveLocked = false;
+
+    const btn = document.getElementById("cb2_btn_approveScrapedItem");
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Approve Item";
+    }
+}
+
+
+
+//fknk create item bn fnkfnkf whatever everyone gets a banker now
+
+function cb2_getBankCharacter() {
+    // Try to find existing bank
+    let bank = CB2.characters.find(c => c.id === "BANK_CHARACTER");
+
+    if (!bank) {
+        bank = {
+            id: "BANK_CHARACTER",
+            name: "Bank",
+            visible: false,       // cannot be selected
+            collapsed: true,
+            equipment: {},
+            bank: [],             // holds all items
+            isBank: true          // special flag
+        };
+
+        CB2.characters.push(bank);
+        cb2_swooshSave("characters", CB2.characters);
+    }
+
+    return bank;
+}
+
+function cb2_storeItemInBank(item) {
+    const bank = cb2_getBankCharacter();
+
+    // Ensure bank has a bank array
+    bank.bank = bank.bank || [];
+
+    // Normalize item
+    item.id = item.id || ("item_" + Date.now());
+    item.type = "bank";
+    item.isInventoryItem = false;
+
+    bank.bank.push(item);
+
+    // Update global item registry
+    CB2.items = CB2.items || [];
+    CB2.items.push(item);
+
+    cb2_swooshSave("cb2_items", CB2.items);
+    cb2_swooshSave("characters", CB2.characters);
+
+    cb2_log("Item stored in Bank: " + item.name);
+}
+
+
+// ============================================================
+// 1. Sync CB2 data into swoosh before saving
+// ============================================================
+
+function cb2_getCurrentInventorySnapshot() {
+    const stored = cb2_swooshLoad("cb2_items", []).filter(i => i && i.id);
+
+    // Pull bank items
+    const bank = cb2_getBankCharacter();
+    const bankItems = Array.isArray(bank.bank) ? bank.bank : [];
+
+    // Merge + dedupe by ID
+    const merged = [...stored, ...bankItems];
+    const unique = [];
+    const seen = new Set();
+
+    merged.forEach(item => {
+        if (!seen.has(item.id)) {
+            seen.add(item.id);
+            unique.push(item);
+        }
+    });
+
+    return unique;
+}
+
+function cb2_writeItemsIntoSwoosh() {
+    try {
+        const snapshot = cb2_getCurrentInventorySnapshot();
+
+        snapshot.forEach(item => {
+            if (item.type === "chchain") return;   // leave CH chains alone
+            if (item.type === "bank") return;      // leave bank items alone
+
+            // Normalize inventory items
+            item.type = "inventory";
+            item.isInventoryItem = true;
+        });
+
+        // Update registry
+        ItemRegistry = snapshot;
+        CB2.items = snapshot;
+
+        // Characters + tokens
+        window.CB2_CharactersForSwoosh = CB2.characters || [];
+        window.CB2_TokensForSwoosh = CB2.tokens || [];
+
+        cb2_log("[SYNC] Inventory + Bank + CH synced into swoosh.");
+    } catch (e) {
+        cb2_log("[SYNC ERROR] Failed to sync inventory: " + e.message);
+    }
+}
+
+// ============================================================
+// 2. Save ALL items (CH chains + inventory) into cb2_items
+// ============================================================
+function cb2_saveAllItemsToStorage() {
+    try {
+        const swooshData = cb2_swooshLoad("cb2_items", {
+            longTermTimers: [],
+            items: [],
+            characters: [],
+            tokens: []
+        });
+
+        const snapshot = cb2_getCurrentInventorySnapshot();
+
+        // Normalize inventory items only
+        snapshot.forEach(item => {
+            if (item.type === "chchain") return;
+            if (item.type === "bank") return;
+
+            item.type = "inventory";
+            item.isInventoryItem = true;
+        });
+
+        swooshData.items = snapshot;
+        CB2.items = snapshot;
+
+        cb2_swooshSave("cb2_items", swooshData);
+
+        console.log("Swoosh Save Complete. Total items:", snapshot.length);
+    } catch (e) {
+        cb2_log("[SAVE ERROR] Failed to save inventory: " + e.message);
+    }
+}
+
+// ============================================================
+// 3. Save CH chains into cb2_items (merged with inventory)
+// ============================================================
+function cb2_saveCHTimersToStorage() {
+    try {
+        if (!Array.isArray(ItemRegistry)) ItemRegistry = [];
+
+        // Build fresh CH chain entries
+        const chTimers = getAllCHTimers().map(chain => ({
+            ...chain,
+            type: "chchain"
+        }));
+
+        // ⭐ Keep everything EXCEPT old CH chains
+        // This preserves:
+        // - inventory items
+        // - bank items
+        // - anything else non-CH
+        const nonCH = ItemRegistry.filter(i => i.type !== "chchain");
+
+        // Merge new CH chains back in
+        const merged = nonCH.concat(chTimers);
+
+        // ⭐ Update registry safely
+        ItemRegistry.length = 0;
+        merged.forEach(i => ItemRegistry.push(i));
+
+        // Sync to CB2 global
+        CB2.items = ItemRegistry;
+
+        // Save to swoosh
+        cb2_swooshSave("cb2_items", ItemRegistry);
+
+        cb2_log("[DEBUG] getAllCHTimers() count = " + chTimers.length);
+        cb2_log("[SYNC] CH timers saved into cb2_items.");
+    } catch (e) {
+        cb2_log("[SYNC ERROR] Failed to save CH timers: " + e.message);
+    }
+}
+
+
+// ============================================================
+// 4. Rebuild item panels (skip CH chains)
+// ============================================================
+function rebuildItemPanels() {
+    __DBG("REBUILD: Item Panels — START");
+
+    document.querySelectorAll(
+        ".cb2-item-panel, .itemTimerSection, .cb2-inventory-item"
+    ).forEach(el => el.remove());
+
+    if (!Array.isArray(ItemRegistry)) {
+        __DBG("REBUILD: ItemRegistry is not an array — aborting.");
+        __DBG("REBUILD: Item Panels — COMPLETE");
+        return;
+    }
+
+    ItemRegistry.forEach(item => {
+        if (!item || !item.id) return;
+
+        // Skip CH chains (handled elsewhere)
+        if (item.type === "chchain") return;
+
+        // ⭐ Skip Bank items — they do NOT appear in normal inventory UI
+        if (item.type === "bank") return;
+
+        // Normalize old items only if they are inventory
+        item.type = item.type || "inventory";
+        item.isInventoryItem = true;
+
+        createItemPanel?.(item);
+    });
+
+    __DBG("REBUILD: Item Panels — COMPLETE");
+}
+
+// normalize 
+function normalizeLoadedData(swoosh) {
+    __DBG("NORMALIZE: START");
+
+    // -------------------------------
+    // Helper: ensure array, preserve IDs
+    // -------------------------------
+    function ensureArray(value, label) {
+        if (Array.isArray(value)) return value;
+
+        if (value && typeof value === "object") {
+            const arr = Object.values(value).filter(v => v != null);
+            __DBG(`NORMALIZE: Converted object → array for ${label}, length=${arr.length}`);
+            return arr;
+        }
+
+        __DBG(`NORMALIZE: ${label} was not array/object, forcing empty array`);
+        return [];
+    }
+
+// -------------------------------
+// Normalize items
+// -------------------------------
+swoosh.items = ensureArray(swoosh.items, "items");
+
+// Validate IDs BEFORE any further processing
+swoosh.items = swoosh.items.filter((it, i) => {
+    if (!it || typeof it !== "object") {
+        console.warn("normalizeLoadedData: removed invalid item at index", i, it);
+        return false;
+    }
+    if (!it.id) {
+        console.warn("normalizeLoadedData: item missing ID, keeping but flagged:", it);
+    }
+    return true;
+});
+
+// ⭐ Normalize ONLY inventory items
+swoosh.items.forEach(it => {
+    if (it.type === "chchain") return; // leave CH chains alone
+    if (it.type === "bank") return;    // leave bank items alone
+
+    // Inventory normalization
+    it.type = it.type || "inventory";
+    it.isInventoryItem = true;
+});
+
+    // -------------------------------
+    // Normalize long-term timers
+    // -------------------------------
+    swoosh.longTermTimers = ensureArray(swoosh.longTermTimers, "longTermTimers");
+
+    // -------------------------------
+    // Normalize characters
+    // -------------------------------
+    swoosh.characters = ensureArray(swoosh.characters, "characters");
+
+    // -------------------------------
+    // Normalize tokens
+    // -------------------------------
+    swoosh.tokens = ensureArray(swoosh.tokens, "tokens");
+
+    __DBG("NORMALIZE: COMPLETE");
+}
+
+
+
+// restore timers
+
+function restoreAllTimers() {
+    __DBG("RESTORE: All timers — START");
+
+    if (!Array.isArray(ItemRegistry)) return;
+
+    ItemRegistry.forEach(item => {
+        try {
+            if (!item || !item.id) return;
+
+            // ⭐ Skip Bank items — they have no timers
+            if (item.type === "bank") return;
+
+            // ⭐ Skip CH chains — timers handled elsewhere
+            if (item.type === "chchain") return;
+
+            const panel = document.getElementById(`itemPanel_${item.id}`);
+            if (panel) restoreItemTimer(panel, item);
+
+            // Resume ticking if timer was running
+            if (item.timer && item.timer.running) {
+                resumeItemTimerTick(item);
+            }
+        } catch (e) {
+            __DBG("RESTORE ERROR: Timer failed for id=" + item.id + " — " + e.message);
+        }
+    });
+
+    __DBG("RESTORE: All timers — COMPLETE");
+}
+
+function rebuildCharacterPanels() {
+    try {
+        __DBG("REBUILD: Character Panels — START");
+
+        // Clear existing character UI
+        const charList = document.getElementById("cb2_characterList");
+        if (charList) charList.innerHTML = "";
+
+        // ⭐ Re-render characters (Bank Character already handled inside render function)
+        if (typeof cb2_renderCharacterList === "function") {
+            cb2_renderCharacterList();
+        }
+
+        // ⭐ Re-render equipment decks (Bank Character has no deck)
+        if (typeof cb2_renderCharacterDeck === "function") {
+            cb2_renderCharacterDeck();
+        }
+
+        __DBG("REBUILD: Character Panels — COMPLETE");
+    } catch (e) {
+        __DBG("REBUILD ERROR: Character Panels failed — " + e.message);
+    }
+}
+
+function rebuildCHChainPanels() {
+    try {
+        __DBG("REBUILD: CH Chain Panels — START");
+
+        const container = document.getElementById("chChainPanelsContainer");
+        if (!container) {
+            __DBG("CH UI ERROR: chChainPanelsContainer missing");
+            return;
+        }
+
+        // Clear old CH chain UI
+        container.innerHTML = "";
+
+        // Pull CH chains from ItemRegistry
+        const chains = Array.isArray(ItemRegistry)
+            ? ItemRegistry.filter(i => i && i.type === "chchain")
+            : [];
+
+        __DBG("CH UI: chains found = " + chains.length);
+
+        chains.forEach(chain => {
+            __DBG("CH UI: building chain id=" + chain.id);
+            createChChainPanel(chain);
+        });
+
+        __DBG("REBUILD: CH Chain Panels — COMPLETE");
+    } catch (e) {
+        __DBG("REBUILD ERROR: CH Chain Panels failed — " + e.message);
+    }
+}
+
+
+// One button to rebuild everything that depends on swoosh data
+function rebuildAllUIAfterSwoosh() {
+    __DBG("REBUILD: FULL UI — START");
+
+    try {
+        // ===============================
+        // Characters
+        // ===============================
+        __DBG("REBUILD: Character Panels — START");
+
+        if (typeof cb2_renderCharacterList === "function") {
+            cb2_renderCharacterList();
+        }
+
+        if (typeof cb2_renderCharacterDeck === "function") {
+            cb2_renderCharacterDeck();
+        }
+
+        __DBG("REBUILD: Character Panels — COMPLETE");
+
+        // ===============================
+        // Items (inventory + item panels)
+        // ===============================
+        if (typeof rebuildItemPanels === "function") {
+            rebuildItemPanels();
+        }
+
+        // ===============================
+        // CH Chains (panels + state)
+        // ===============================
+        if (typeof rebuildCHChainPanels === "function") {
+            rebuildCHChainPanels();
+        }
+
+        if (typeof restoreAllCHChains === "function") {
+            restoreAllCHChains();
+        }
+
+        if (typeof resumeCHChainTimers === "function") {
+            resumeCHChainTimers();
+        }
+
+        // ===============================
+        // Spells
+        // ===============================
+        if (typeof rebuildSpellUI === "function") {
+            rebuildSpellUI();
+        }
+
+        // ===============================
+        // Item Timers (AFTER item panels exist)
+        // ===============================
+        if (typeof restoreAllTimers === "function") {
+            restoreAllTimers();
+        }
+
+        // ===============================
+        // Long-Term Timers (AFTER item timers)
+        // ===============================
+        if (window.LongTermTimersAPI) {
+            if (typeof LongTermTimersAPI.rebuildPanels === "function") {
+                LongTermTimersAPI.rebuildPanels();
+            } else if (typeof LongTermTimersAPI.rebuildUI === "function") {
+                LongTermTimersAPI.rebuildUI();
+            }
+        }
+
+    } catch (e) {
+        __DBG("REBUILD ERROR: FULL UI — " + e.message);
+    }
+
+    __DBG("REBUILD: FULL UI — COMPLETE");
+}
+
+function resumeItemTimerTick(item) {
+    if (!item || !item.timer) return;
+
+    // ⭐ Skip Bank items — they never have timers
+    if (item.type === "bank") return;
+
+    // Clear old interval if any
+    if (item.timer.intervalId) {
+        clearInterval(item.timer.intervalId);
+    }
+
+    item.timer.intervalId = setInterval(() => {
+        const now = Date.now();
+        const elapsed = now - item.timer.savedAt;
+        const remaining = Math.max(0, item.timer.remaining - elapsed);
+
+        const display = document.getElementById(`itemTimer_${item.id}`);
+        if (display) display.textContent = Math.ceil(remaining / 1000) + "s";
+
+        if (remaining <= 0) {
+            clearInterval(item.timer.intervalId);
+            item.timer.running = false;
+            item.timer.completed = true;
+
+            if (display) {
+                display.textContent = "DONE";
+                display.classList.add("flash");
+            }
+        }
+    }, 250);
+}
+
+function getAllCHTimers() {
+    if (!Array.isArray(ItemRegistry)) return [];
+    return ItemRegistry.filter(item => item.type === "chchain");
+}
+
+
+function restoreAllCHChains() {
+    const chains = getAllCHTimers();
+
+    chains.forEach(chain => {
+        chain._frozenBlockTime = chain._frozenBlockTime || chain.delayMs;
+        chain._cycleRotation = chain._cycleRotation || [];
+        chain._lastCasterIndex = chain._lastCasterIndex ?? -1;
+        chain.currentBlockIndex = chain.currentBlockIndex ?? 0;
+        chain.currentBlockStartTime = chain.currentBlockStartTime || Date.now();
+        chain.nextSlotId = chain.nextSlotId ?? chain.clerics.length;
+    });
+}
+
+function resumeCHChainTimers() {
+    const chains = getAllCHTimers();
+
+    chains.forEach(chain => {
+        if (!chain || !chain.id) return;
+
+        setInterval(() => tickChain(chain), window.CHTickRate || 50);
+    });
+}
+
+function tickChain(chain) {
+    // ⭐ Safety: ensure this is a real CH chain
+    if (!chain || chain.type === "bank") return;
+    if (!chain.chainRunning) return;
+
+    const rotation = chain._cycleRotation || [];
+    if (!rotation.length) return;
+
+    const now = Date.now();
+
+    // Initialize missing state
+    if (chain.currentBlockIndex === null || chain.currentBlockStartTime === null) {
+        chain.currentBlockIndex = 0;
+        chain.currentBlockStartTime = now;
+        chain._frozenBlockTime = chain.delayMs;
+        chain._lastCasterIndex = -1;
+    }
+
+    const currentIdx = chain.currentBlockIndex;
+    const currentCleric = rotation[currentIdx];
+    if (!currentCleric) return;
+
+    const elapsed = now - chain.currentBlockStartTime;
+    const blockTime = chain._frozenBlockTime || chain.delayMs;
+
+    // ===============================
+    // MACRO FIRING (new cleric)
+    // ===============================
+    if (currentIdx !== chain._lastCasterIndex) {
+        const tmpl = chain.macroTemplate || "/ooc {name} casting Complete Heal on {target} >>";
+        let msg = tmpl.replace("{name}", currentCleric.name)
+                      .replace("{pattern}", currentCleric.pattern || "")
+                      .replace("{target}", chain.target);
+
+        const delaySec = (chain.delayMs / 1000).toFixed(1);
+
+        if (msg.startsWith(chain.channel)) {
+            chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing [delay ${delaySec}s]: ${msg}`);
+        } else {
+            chLogLine(`${currentCleric.name} (${currentCleric.pattern || "?"}) firing [delay ${delaySec}s]: ${chain.channel} ${msg}`);
+        }
+
+        // YOUR TURN BEEP
+        const myNameLower = (chain.myName || "").toLowerCase();
+        if (currentCleric.name.toLowerCase() === myNameLower) {
+            if (typeof makeBeep === "function") makeBeep();
+            chLogLine("YOUR TURN! Cast CH NOW!");
+        }
+
+        // EARLY WARNINGS
+        if (rotation.length > 2) {
+            const myIndex = rotation.findIndex(c => c.name.toLowerCase() === myNameLower);
+
+            if (myIndex >= 0) {
+                const warn2 = (myIndex - 2 + rotation.length) % rotation.length;
+                const warn1 = (myIndex - 1 + rotation.length) % rotation.length;
+
+                if (rotation[warn2].slotId === currentCleric.slotId) {
+                    chLogLine(`⚠️ Early Warning: ${currentCleric.name} fired. You are coming up soon!`);
+                }
+
+                if (rotation[warn1].slotId === currentCleric.slotId) {
+                    chLogLine(`⚠️ Final Warning: ${currentCleric.name} fired. YOU ARE NEXT!`);
+                }
+            }
+        }
+
+        chain._lastCasterIndex = currentIdx;
+    }
+
+    // ===============================
+    // ADVANCE TO NEXT BLOCK
+    // ===============================
+    if (elapsed >= blockTime) {
+        const newRotation = getActiveRotation();
+        if (!newRotation || newRotation.length === 0) {
+            chLogLine("Chain stopped: no active clerics.");
+            chain.chainRunning = false;
+            return;
+        }
+
+        chain._cycleRotation = newRotation.slice();
+        chain.currentBlockIndex = (currentIdx + 1) % newRotation.length;
+        chain.currentBlockStartTime = now;
+        chain._frozenBlockTime = chain.delayMs;
+        chain._lastCasterIndex = -1;
+    }
+
+    // ===============================
+    // TIMELINE RENDER
+    // ===============================
+    if (typeof renderTimeline === "function") {
+        renderTimeline();
+    }
+}
 
 
 // ===============================
@@ -9259,10 +12856,40 @@ window.addEventListener("beforeunload", function (e) {
     return message;
 });
 
+//blanknoloadimage
+document.addEventListener("error", function (e) {
+    const elem = e.target;
 
+    if (elem.tagName === "IMG") {
+        elem.src = "";
+        elem.alt = "✨";
+        elem.onerror = null;
+    }
+}, true);
+
+
+// AUTO CLOSE ON START PANELS
+document.addEventListener("DOMContentLoaded", () => {
+    const panelsToCollapse = [
+        "cb2_panel_manualItemEntry_body",
+        "cb2_panel_root_body",
+        "cb2_panel_characterList_body",
+        "cb2_panel_characterDeck_body",
+        "cb2_panel_tokenWorkshop_body",
+        "cb2_panel_itemPreview_body",
+        "p99_scraper_panel_body"
+    ];
+
+    panelsToCollapse.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+    });
+});
 __DBG("PAST end to script end 0101337");
+
+
+__DBG("PAST end to tired");
 </script>
 
 </body>
 </html>
-yesyesyesx
