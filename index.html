@@ -159,6 +159,39 @@
     100% { transform: scale(1);     filter: brightness(1); }
 }
 
+.cb2-mobile-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: auto;
+    z-index: 9999;
+    background: rgba(0,0,0,0.75);
+    padding: 8px;
+    border-radius: 6px;
+    color: white;
+    font-family: sans-serif;
+}
+
+.cb2-mobile-toggle {
+    display: block;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    border: none;
+    border-radius: 4px;
+    background: #444;
+    color: white;
+}
+
+.cb2-mobile-body {
+    margin-top: 8px;
+    display: block;
+}
+
+.cb2-mobile-panel.collapsed .cb2-mobile-body {
+    display: none;
+}
+
     </style>
 <div id="topTimersArea"></div>
 
@@ -806,6 +839,15 @@
     z-index: 9999;
 ">
     <img src="https://hits.sh/haha8888haha8888/clickexp.svg?style=flat-square&label=views" />
+</div>
+
+<div id="cb2_mobilePanel" class="cb2-mobile-panel collapsed">
+    <button id="cb2_mobileToggle" class="cb2-mobile-toggle">⚙️</button>
+
+    <div class="cb2-mobile-body">
+        <h3>Mobile Options</h3>
+        <button id="cb2_disableTapZoomBtn">Disable Single‑Tap Zoom</button>
+    </div>
 </div>
 
 <script>
@@ -12854,6 +12896,52 @@ function tickChain(chain) {
         renderTimeline();
     }
 }
+/// damdtaptap
+
+// Start collapsed
+document.getElementById("cb2_mobilePanel").classList.add("collapsed");
+
+// Toggle panel open/close
+document.getElementById("cb2_mobileToggle").onclick = () => {
+    document.getElementById("cb2_mobilePanel").classList.toggle("collapsed");
+};
+
+// Tap‑zoom disable toggle
+document.getElementById("cb2_disableTapZoomBtn").onclick = () => {
+    const ok = confirm("Disable single‑tap zoom?");
+    if (ok) {
+        window.CB2_disableSingleTapZoom = true;
+        localStorage.setItem("CB2_disableSingleTapZoom", "1");
+        alert("Single‑tap zoom disabled.");
+    }
+};
+
+// Restore setting on load
+if (localStorage.getItem("CB2_disableSingleTapZoom") === "1") {
+    window.CB2_disableSingleTapZoom = true;
+}
+
+// Global mobile zoom blocker
+let lastTap = 0;
+
+document.addEventListener("touchend", function (e) {
+    if (!window.CB2_disableSingleTapZoom) return;
+
+    const now = Date.now();
+    const tapGap = now - lastTap;
+
+    // Block single tap zoom
+    if (e.touches.length === 1) {
+        e.preventDefault();
+    }
+
+    // Block double tap zoom
+    if (tapGap < 300) {
+        e.preventDefault();
+    }
+
+    lastTap = now;
+}, { passive: false });
 
 
 // ===============================
