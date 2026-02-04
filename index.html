@@ -859,6 +859,8 @@ window.CHTickRate = 50;       // global tick interval
 window.CHPanels  = new Map(); // id -> DOM panel
 window.CB2_selectedItemIndex = null;
 window.CB2_selectedCharacterIndex = null;
+window.CB2_disableSingleTapZoom = true;
+
 
 // ---------- UTILITIES ----------
 const CloneUIMap = new Map();
@@ -899,7 +901,9 @@ window.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("beforeunload", () => {
     cb2_clearAllLocalData();
 });
-
+if (localStorage.getItem("CB2_disableSingleTapZoom") === "0") {
+    window.CB2_disableSingleTapZoom = false;
+}
 
 // Safety: ensure ItemRegistry always exists
 window.ItemRegistry = window.ItemRegistry || [];
