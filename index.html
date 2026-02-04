@@ -11270,22 +11270,25 @@ function cb2_buildProxyUrl(proxyType, url) {
 
     switch (proxyType) {
         case 1:
-            return "https://corsproxy.io/?" + url;
+            return `https://corsproxy.io/?${url}`;
+
         case 2:
-            return "https://api.allorigins.win/raw?url=" + url;
+            return `https://api.codetabs.com/v1/proxy?quest=${url}`;
+
         case 3:
-            return "https://thingproxy.freeboard.io/fetch/" + url;
+            return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
         case 4:
             if (!window.CB2_userProxyBase) {
                 cb2_fetchLog("Custom proxy selected but no URL set.");
                 return url;
             }
             return window.CB2_userProxyBase + url;
+
         default:
             return url;
     }
 }
-
 
 
 // -------------------------------
